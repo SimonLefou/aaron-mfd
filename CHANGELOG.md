@@ -1,0 +1,255 @@
+# 🚀 AARON MFD - Journal des Versions & Notes de Patch / Release Notes
+
+[🇫🇷 Version Française](#-journal-des-versions-français) | [🇬🇧 English Version](#-release-notes--changelog-english)
+
+---
+
+## 🇫🇷 Journal des Versions (Français)
+
+Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
+
+### [v1.2] - 2026-10-14 - *Tactical Overhaul & 6 Mining Tools*
+
+#### 🌿 Simulateur d'Arbre de Fracturation (Break Tree / Sous-Roches)
+- **Nouveau** : Modélisation physique de la fracture d'un rocher parent en 3 sous-blocs avec conservation exacte de la masse totale.
+- **Nouveau** : Tri visuel automatique selon les règles de Star Citizen :
+  - **Violet (Aspirable)** : Morceau enrichi (> 60% de pureté), aspirable directement dans la soute d'un simple clic (`Aspirer dans la soute`).
+  - **Orange (À re-fracturer)** : Morceau à pureté intermédiaire, chargeable instantanément dans le scanner principal (`Re-fracturer`).
+  - **Gris (Déchets inertes)** : Morceau stérile (< 5% minerai) à laisser sur place.
+- **Nouveau** : Affichage en direct du volume cumulé extrait depuis l'arbre de fracture.
+
+#### 🏭 Gestionnaire de Commandes de Raffinage en Direct
+- **Nouveau** : File d'attente multi-stations pour suivre vos ordres de raffinage en temps réel dans Stanton.
+- **Nouveau** : Calculateur de durée basé sur `durationHoursPerSCU` selon les 4 procédés industriels (*Dinyx Solventation*, *Ferris Carbide*, *Cormack*, *Pyro-Burst*).
+- **Nouveau** : Minuteurs dynamiques `hh:mm:ss` avec barre de progression animée et statut `✅ PRÊT AU RAMASSAGE`.
+- **Nouveau** : Bouton d'action rapide `Transférer la soute en raffinage` qui vide le vaisseau et planifie la commande.
+- **Nouveau** : Bouton `Récupéré / Vendu` créditant automatiquement le gain net dans le Journal de Vol.
+- **Nouveau** : Badge de notification dynamique sur l'en-tête du HUD indiquant le nombre de lots actifs.
+
+#### 💡 Assistant Tactique de Gadgets & Modules
+- **Nouveau** : Analyse en continu du déficit de pénétration laser.
+- **Nouveau** : Recommandation intelligente du gadget idéal :
+  - **Sabir 21** (-50% résistance) si suffisant pour saturer la fenêtre verte.
+  - **BoreMax** (-75% résistance) pour les roches ultra-denses.
+  - **Stalwart** (-70% instabilité) dès que l'instabilité dépasse 60%.
+  - **Surge** (+35% charge instantanée) pour les roches proches du seuil optimal.
+  - **Tourelles MOLE** : Recommandation du nombre de tourelles actives nécessaires avec calcul de la puissance combinée.
+- **Nouveau** : Bouton `APPLIQUER CONSEIL` en 1 clic pour équiper le gadget ou module suggéré et recalculer immédiatement.
+
+#### 🌸 Mode Cluster de Gemmes ROC (Surface)
+- **Nouveau** : Interface dédiée apparaissant automatiquement lorsque le **Greycat ROC** (0.8 SCU) est sélectionné.
+- **Nouveau** : Sélecteur tactile du nombre de cailloux par cluster (2, 4, 6, 9, 12).
+- **Nouveau** : Curseur d'estimation des gemmes par caillou (80 à 220 gemmes).
+- **Nouveau** : Calculateur instantané du remplissage de la soute ROC (0.8 SCU = 800 gemmes) et de la valeur marchande en aUEC.
+- **Nouveau** : Bouton `CHARGER LE CLUSTER DANS LE ROC`.
+
+#### 📊 Journal de Vol & Statistiques Financières (Flight Ledger)
+- **Nouveau** : Tableau de bord de statistiques financières :
+  - Total des gains cumulés (toutes sessions).
+  - Gains de la session en cours.
+  - Volume total extrait en SCU.
+  - Compteur de roches / clusters récoltés.
+  - Rentabilité horaire estimée en direct (`aUEC / heure`).
+- **Nouveau** : Historique complet chronologique des extractions et des lots de raffinage vendus.
+- **Nouveau** : Export des données en 1 clic au format **JSON** et au format **CSV (Tableur Excel / Google Sheets)**.
+- **Nouveau** : Option de réinitialisation sécurisée de l'historique avec confirmation.
+
+#### ⏱️ Télémètre de Coupe Quantum (Aaron Halo)
+- **Nouveau** : Outil interactif intégré au guide du Halo pour calculer la distance restante avant la coupure QT vers les Bandes 4, 5 et 6.
+- **Nouveau** : Jauge visuelle de proximité kilométrique.
+- **Nouveau** : Alerte sonore et clignotante `🚨 COUPEZ LE QUANTUM DRIVE MAINTENANT !` à moins de 0.15 M km du point de largage.
+
+#### 🔥 Expansion Multi-Systèmes (Pyro 4.0, Nyx & Stanton) & 6 Nouveaux Minerais
+- **Nouveau** : Prise en charge intégrale du **Système Pyro** (Alpha 4.0) avec ses stations et minerais exclusifs.
+- **Nouveau** : 6 Nouveaux minerais majeurs de Star Citizen 4.0 :
+  - **Stileron (ST)** (Pyro Exclusif, Tier S) : Métal légendaire pour blindages militaires lourds (Terminus, Monox). Payout brut 135 aUEC / raffiné 275 aUEC. Signature RS de base : `3 185`.
+  - **Riccite (RI)** (Pyro Exclusif, Tier S) : Alliage élastique auto-cicatrisant des mondes sismiques. Payout brut 110 aUEC / raffiné 220 aUEC. Signature RS de base : `3 385`.
+  - **Lindinium (LI)** (Pyro & Espace profond, Tier A) : Minerai haute technologie pour composants de pointe. Payout brut 85 aUEC / raffiné 170 aUEC. Signature RS de base : `3 400`.
+  - **Sadaryx (SD)** (Nyx Exclusif, Tier A) : Cristal ultra-résistant de la Ceinture Keeger et des stations QV Breaker, indispensable pour les lentilles laser industrielles. Payout brut 95 aUEC / raffiné 195 aUEC. Signature RS de base : `3 320`.
+  - **Savrilium (SV)** (Nyx, Tier B) : Composé catalytique rare des astéroïdes profonds. Payout brut 78 aUEC / raffiné 156 aUEC. Signature RS de base : `3 200`.
+  - **Carinite (CA)** (Stanton, Tier A) : Minerai rouge profond extrait dans les cratères de lasers orbitaux Hathor (Aberdeen & Daymar) pour les processeurs quantiques. Payout brut 90 aUEC / raffiné 180 aUEC. Signature RS de base : `3 450`.
+- **Nouveau** : **Signatures Radar RS (Radar Cross-Section)** officielles intégrées pour chaque minerai : permet aux pilotes de déterminer la composition d'un astéroïde dès le ping radar sans s'approcher !
+- **Nouveau** : Barre de filtres par système sur la grille des minerais : `[TOUS LES SYSTÈMES]`, `[STANTON]`, `[🔥 PYRO (4.0)]`, `[🚀 NYX]`.
+- **Nouveau** : 4 Nouvelles plateformes et ponts de raffinage de Pyro :
+  - **Checkmate Station** (+9% Stileron, +8% Riccite)
+  - **Ruin Station • Terminus** (+8% Quantainium, +7% Stileron)
+  - **Orbituary** (+7% Riccite, +7% Lindinium)
+  - **Station Jump Point Stanton-Pyro** (+6% Lindinium, +5% Bexalite)
+- **Nouveau** : 3 Stations de raffinage dans Nyx (Levski • Delamar, Poste Glaciem, Station Jump Point Stanton-Nyx).
+- **Nouveau** : 4 Hotspots majeurs de Pyro dans l'Atlas Minier : Planète Terminus (Pyro VI), Planète Monox (Pyro II), Ceinture d'astéroïdes Akiro Cluster, Planète Bloom (Pyro III).
+- **Nouveau** : Navigation à 3 onglets dans l'Atlas : `🌌 STANTON & AARON HALO`, `🔥 SYSTÈME PYRO (HAUT RISQUE)`, `🚀 SYSTÈME NYX (DELAMAR & GLACIEM)`.
+- **Nouveau** : Sélecteur de commande de raffinage classé par groupes de systèmes (`Système Stanton`, `Système Pyro`, `Système Nyx`).
+
+#### 🌐 Internationalisation & Optimisations
+- **Nouveau** : Guide d'accueil et d'explications interactif (Walkthrough) avec sélection de langue directe et onglets thématiques (Démarrage Rapide, Outils, Astuces).
+- **Nouveau** : Traduction intégrale bilingue **Français 🇫🇷 / Anglais 🇬🇧** sur 100% des clés de texte, infobulles, fenêtres modales et alertes.
+- **Nouveau** : Fenêtre modale interactive de Notes de Version (Changelog) accessible depuis l'en-tête ou le pied de page.
+- **Optimisation** : Persistance totale sans serveur via `localStorage` (sauvegarde de la soute, des commandes de raffinage et du journal).
+- **Correctif** : Bumping du cache Service Worker vers `aaron-mfd-v7` pour éliminer tout risque de cache périmé sur mobile.
+
+---
+
+### [v1.1] - 2026-10-14 - *Argo MOLE Multi-Crew & Cockpit Themes*
+
+#### 🚀 Support Argo MOLE Multi-Crew
+- **Nouveau** : Prise en charge des 3 tourelles Size 2 de l'Argo MOLE (Centrale, Gauche, Droite).
+- **Nouveau** : Sélecteur d'équipage : Solo (1 tourelle), Duo (2 tourelles), Trio (3 tourelles actives en simultané).
+- **Nouveau** : Calcul de la puissance laser combinée et application cumulative des modificateurs de résistance et d'instabilité.
+- **Nouveau** : Configuration individuelle des têtes de minage Size 2 (Lancet MH2, Helix II, Impact II, Hofstede-S2) et modules.
+
+#### 👥 Calculateur de Partage d'Équipage (Multi-Crew Split)
+- **Nouveau** : Répartition équitable des gains par membre d'équipage (1 à 5 joueurs).
+- **Nouveau** : Curseur de déduction d'une réserve opérationnelle de bord (0 à 30%) pour carburant, réparations et consommables.
+
+#### 🎨 Thèmes de Cockpit Constructeurs
+- **Nouveau** : 4 ambiances chromatiques de HUD :
+  - **MISC** : Cyan / Bleu canard haute lisibilité.
+  - **Drake** : Ambre industriel Caterpillar / Vulture.
+  - **Aegis** : Émeraude militaire Vanguard / Reclaimer.
+  - **RSI** : Glace arctique Constellation / Scorpius.
+- **Nouveau** : Mémorisation du thème dans le stockage local.
+
+#### 📱 Ergonomie Mobile & PWA
+- **Nouveau** : Garde d'écran active (`Screen Wake Lock API`) évitant la mise en veille pendant les phases de pilotage.
+- **Nouveau** : Mode plein écran immersif en 1 clic.
+- **Nouveau** : Cibles tactiles conformes aux standards ergonomiques (minimum 44px de hauteur).
+- **Nouveau** : Effets de retour haptique vibrant sur appareils mobiles compatibles.
+- **Nouveau** : Export formaté pour Discord en Markdown.
+- **Nouveau** : Saisie vocale rapide via la Web Speech API.
+
+---
+
+### [v1.0] - 2026-10-14 - *Fondation AARON MFD*
+
+- **Lancement** : Calculateur instantané de rentabilité du minage (valeur brute vs raffinée).
+- **Moteur physique** : Évaluation de la faisabilité de fracturation selon la masse, la résistance et le laser équipé.
+- **Base de données** : Fiches des minerais de Stanton (Quantainium, Bexalite, Taranite, Borase, Laranite, Hadanite, etc.).
+- **Sécurité** : Minuteur d'instabilité du Quantainium (15 minutes) avec avertissements sonores.
+- **Guide spatial** : Tableau des bonus de raffinage des stations L1/L2 et coordonnées de coupe du Halo d'Aaron.
+- **Zéro coût** : Fonctionnement 100% côté client sans serveur ni abonnement, installable en PWA hors-ligne.
+
+---
+
+## 🇬🇧 Release Notes & Changelog (English)
+
+This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [v1.2] - 2026-10-14 - *Tactical Overhaul & 6 Mining Tools*
+
+#### 🌿 Sub-Chunk Fracture Simulator (Break Tree)
+- **New**: Real-time physical fracture simulation splitting parent rocks into 3 sub-chunks while strictly conserving total rock mass.
+- **New**: Star Citizen color-coded visual triage:
+  - **Purple (Extractable)**: High-purity chunk (> 60% ore), extractable directly into the cargo hold with a single click (`Extract to hold`).
+  - **Orange (Re-fracture)**: Intermediate purity chunk, instantly loadable into the main scan display (`Re-fracture`).
+  - **Gray (Inert Waste)**: Sterile debris (< 5% ore) to leave behind.
+- **New**: Live tracker of cumulative volume extracted from the fracture tree.
+
+#### 🏭 Live Refinery Order Manager
+- **New**: Multi-station queue to monitor active refinery batches across Stanton in real time.
+- **New**: Accurate duration calculation engine based on industrial methods (*Dinyx Solventation*, *Ferris Carbide*, *Cormack*, *Pyro-Burst*).
+- **New**: Dynamic `hh:mm:ss` countdown timers with animated progress bars and `✅ READY TO COLLECT` status.
+- **New**: Quick-action button `Transfer Hold to Refinery` that empties ship cargo and schedules the batch.
+- **New**: `Collected / Sold` button automatically logging net profit into the Flight Ledger.
+- **New**: Dynamic HUD header notification badge showing the number of active refinery batches.
+
+#### 💡 Tactical Gadget & Mining Module Advisor
+- **New**: Continuous laser penetration deficit analysis.
+- **New**: Intelligent gadget recommendations:
+  - **Sabir 21** (-50% resistance) when adequate to saturate the optimal green window.
+  - **BoreMax** (-75% resistance) for ultra-dense high-mass rocks.
+  - **Stalwart** (-70% instability) whenever instability exceeds 60%.
+  - **Surge** (+35% instant charge) for rocks hovering near the optimal threshold.
+  - **MOLE Turrets**: Automated recommendation of required active turrets with combined power rating.
+- **New**: 1-Click `APPLY ADVICE` button to equip the recommended gadget or module and instantly recalculate.
+
+#### 🌸 ROC Gem Cluster Mode (Surface Mining)
+- **New**: Dedicated UI card appearing automatically when the **Greycat ROC** (0.8 SCU) is selected.
+- **New**: Tactile node count selector for clusters (2, 4, 6, 9, 12 nodes).
+- **New**: Interactive slider for estimated gems per node (80 to 220 gems).
+- **New**: Instant calculation of ROC hold fill percentage (0.8 SCU = 800 gems) and projected market value in aUEC.
+- **New**: Single-click button `LOAD CLUSTER INTO ROC`.
+
+#### 📊 Flight Ledger & Financial Statistics
+- **New**: Comprehensive financial dashboard:
+  - Total cumulative earnings across all runs.
+  - Current session earnings.
+  - Total volume extracted in SCU.
+  - Total rock / cluster counter.
+  - Real-time estimated hourly profitability (`aUEC / hour`).
+- **New**: Chronological extraction history tracking runs and collected refinery orders.
+- **New**: 1-Click export to **JSON** and **CSV (Excel / Google Sheets)**.
+- **New**: Secure ledger reset with confirmation dialog.
+
+#### ⏱️ Aaron Halo Quantum Drive Cut-Off Rangefinder
+- **New**: Interactive tool integrated into the Halo reference guide to calculate remaining distance before QT cut-off towards Bands 4, 5, and 6.
+- **New**: Visual proximity gauge with distance tracking.
+- **New**: Audio and flashing alert `🚨 CUT QUANTUM DRIVE NOW!` when within 0.15 M km of drop point.
+
+#### 🔥 Multi-System Expansion (Pyro 4.0, Nyx & Stanton) & 6 New Ores
+- **New**: Full support for the lawless **Pyro System** (Star Citizen Alpha 4.0) with exclusive ores and integrated refinery decks.
+- **New**: 6 High-tier ores introduced in Star Citizen 4.0:
+  - **Stileron (ST)** (Pyro Exclusive, Tier S): Legendary metal used in heavy military armor (Terminus, Monox). Raw 135 aUEC / Refined 275 aUEC. Base RS Signature: `3,185`.
+  - **Riccite (RI)** (Pyro Exclusive, Tier S): Self-healing elastic alloy from seismic worlds. Raw 110 aUEC / Refined 220 aUEC. Base RS Signature: `3,385`.
+  - **Lindinium (LI)** (Pyro & Deep space, Tier A): Cutting-edge component alloy. Raw 85 aUEC / Refined 170 aUEC. Base RS Signature: `3,400`.
+  - **Sadaryx (SD)** (Nyx Exclusive, Tier A): Ultra-durable crystal from Keeger Belt and QV Breaker stations for high-power laser lenses. Raw 95 aUEC / Refined 195 aUEC. Base RS Signature: `3,320`.
+  - **Savrilium (SV)** (Nyx, Tier B): Rare catalytic compound from deep asteroid hollows. Raw 78 aUEC / Refined 156 aUEC. Base RS Signature: `3,200`.
+  - **Carinite (CA)** (Stanton, Tier A): Deep-red mineral mined from Hathor orbital laser craters (Aberdeen & Daymar) for quantum processors. Raw 90 aUEC / Refined 180 aUEC. Base RS Signature: `3,450`.
+- **New**: Official **RS (Radar Cross-Section) Signatures** embedded into every mineral card, allowing pilots to identify rock contents directly from scanner ping pings!
+- **New**: Interactive System Filter bar on the ore selector: `[ALL SYSTEMS]`, `[STANTON]`, `[🔥 PYRO (4.0)]`, `[🚀 NYX]`.
+- **New**: 4 Major Pyro orbital refinery hubs:
+  - **Checkmate Station** (+9% Stileron, +8% Riccite)
+  - **Ruin Station • Terminus** (+8% Quantainium, +7% Stileron)
+  - **Orbituary** (+7% Riccite, +7% Lindinium)
+  - **Stanton-Pyro Jump Point Station** (+6% Lindinium, +5% Bexalite)
+- **New**: 3 Refinery hubs in Nyx (Levski • Delamar, Poste Glaciem, Stanton-Nyx Gateway).
+- **New**: 4 Prime Pyro mining hotspots in Geological Atlas: Planet Terminus (Pyro VI), Planet Monox (Pyro II), Akiro Cluster Belt, Planet Bloom (Pyro III).
+- **New**: 3-Tabbed System Atlas: `🌌 STANTON & AARON HALO`, `🔥 PYRO SYSTEM (HIGH RISK)`, `🚀 NYX SYSTEM (DELAMAR & GLACIEM)`.
+- **New**: Refinery order creation modal with system grouping (`Stanton System`, `Pyro System`, `Nyx System`).
+
+#### 🌐 Internationalization & Core Optimizations
+- **New**: Interactive User Walkthrough and Quick Start Guide modal with direct language switcher and tabbed breakdown (Quick Start, Mining Tools, Pro Tips).
+- **New**: Complete bilingual **French 🇫🇷 / English 🇬🇧** localization across 100% of UI labels, modals, tooltips, and alerts.
+- **New**: Interactive Release Notes modal (Changelog) accessible from header badge and footer.
+- **Optimization**: Zero server cost with complete `localStorage` offline persistence (cargo hold, refinery jobs, ledger).
+- **Fix**: Service Worker cache bumped to `aaron-mfd-v7` ensuring seamless mobile PWA updates.
+
+---
+
+### [v1.1] - 2026-10-14 - *Argo MOLE Multi-Crew & Cockpit Themes*
+
+#### 🚀 Argo MOLE Multi-Crew Support
+- **New**: Full support for all 3 Size 2 MOLE turrets (Center, Left, Right).
+- **New**: Crew operational modes: Solo (1 turret), Duo (2 turrets), Trio (3 turrets active simultaneously).
+- **New**: Combined laser wattage and cumulative resistance/instability modifiers.
+- **New**: Individual Size 2 mining head loadout configuration (Lancet MH2, Helix II, Impact II, Hofstede-S2) and sub-modules.
+
+#### 👥 Multi-Crew Profit Sharing (Crew Split)
+- **New**: Fair payout distribution per crew member (1 to 5 players).
+- **New**: Configurable ship operational reserve deduction (0 to 30%) for fuel, ammo, and repairs.
+
+#### 🎨 Manufacturer Cockpit HUD Themes
+- **New**: 4 authentic manufacturer color schemes:
+  - **MISC**: High-readability Cyan / Teal.
+  - **Drake**: Industrial Amber (Caterpillar / Vulture style).
+  - **Aegis**: Military Emerald (Vanguard / Reclaimer style).
+  - **RSI**: Arctic Ice (Constellation / Scorpius style).
+- **New**: Theme persistence saved to local storage.
+
+#### 📱 Mobile PWA & Cockpit Ergonomics
+- **New**: Screen Wake Lock API keeping screens illuminated during flight.
+- **New**: 1-Click immersive fullscreen mode.
+- **New**: Ergonomic 44px+ touch targets for tablets and mobile devices.
+- **New**: Haptic vibration feedback on compatible devices.
+- **New**: Pre-formatted Markdown report export ready to paste into Discord org channels.
+- **New**: Voice input via Web Speech API.
+
+---
+
+### [v1.0] - 2026-10-14 - *AARON MFD Foundation*
+
+- **Launch**: Real-time mining profitability calculator (raw vs. refined yield).
+- **Physics Engine**: Laser fracture feasibility based on rock mass, resistance, and equipped laser power.
+- **Stanton Database**: Mineral database covering Quantainium, Bexalite, Taranite, Borase, Laranite, Hadanite, etc.
+- **Hazard Safety**: 15-minute Quantainium volatility countdown timer with critical audio alerts.
+- **Navigation Guide**: L1/L2 refinery station bonus matrix and Aaron Halo Quantum drop coordinates.
+- **Zero Cost**: 100% client-side architecture with zero server costs, installable offline PWA.

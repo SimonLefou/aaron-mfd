@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="fr" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>AARON MFD - Star Citizen Mining Tactical Companion</title>
+  <meta name="description" content="AARON MFD - Compagnon tactile de minage Star Citizen pour tablette et smartphone. Calculateur instantané de rentabilité, fracturation, soute, partage d'équipage et raffinage.">
+  <meta name="theme-color" content="#070a0f">
+  
+  <!-- PWA & Mobile Web App support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AARON MFD">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <link rel="stylesheet" href="style.css?v=1.3">
+</head>
+<body>
+
+  <!-- TOP HUD BAR -->
+  <header class="hud-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 3a9 9 0 0 1 9 9"></path>
+          <polygon points="12 8 8 16 16 16"></polygon>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.3</span></h1>
+        <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
+      </div>
+    </div>
+
+    <!-- Header Controls -->
+    <div class="header-actions">
+      <!-- Ship selection -->
+      <div class="ship-badge" id="shipBadge" data-i18n-title="titleShipSelect" title="Sélectionner le vaisseau">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 19h20L12 2z"></path>
+        </svg>
+        <select id="shipSelect">
+          <option value="prospector" data-i18n="shipProspector">MISC Prospector (32 SCU)</option>
+          <option value="mole" data-i18n="shipMole">Argo MOLE (96 SCU)</option>
+          <option value="roc" data-i18n="shipRoc">Greycat ROC (0.8 SCU)</option>
+        </select>
+      </div>
+
+      <!-- MOLE Active Turrets Control (Appears when MOLE selected) -->
+      <div class="mole-turret-bar" id="moleTurretBar" style="display:none;" data-i18n-title="titleMoleTurrets" title="Nombre de tourelles opérées simultanément">
+        <span class="mole-turret-tag" data-i18n="turretsActive">TOURELLES ACTIVES :</span>
+        <button class="mole-active-btn" data-mole-turret="1" data-i18n="solo">Solo</button>
+        <button class="mole-active-btn active" data-mole-turret="2" data-i18n="duo">Duo</button>
+        <button class="mole-active-btn" data-mole-turret="3" data-i18n="trio">Trio</button>
+      </div>
+
+      <!-- Loadout trigger -->
+      <button class="btn-icon" id="btnOpenLoadout" data-i18n-title="titleLoadout" title="Configurer laser & modules">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span id="loadoutSummary">Lancet MH1</span>
+      </button>
+
+      <!-- Crew Sharing Button -->
+      <button class="btn-icon" id="btnOpenCrew" data-i18n-title="titleCrew" title="Partage des gains en équipage (Multi-crew)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span data-i18n="crew">Équipage</span>
+      </button>
+
+      <!-- Aaron Halo Routes Guide -->
+      <button class="btn-icon" id="btnOpenHalo" data-i18n-title="titleHalo" title="Guide des coordonnées de l'Aaron Halo & Raffineries">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span data-i18n="haloStations">Halo & Stations</span>
+      </button>
+
+      <!-- Refinery Orders Tracker Button -->
+      <button class="btn-icon" id="btnOpenRefinery" data-i18n-title="titleRefineryJobs" title="Suivi des commandes de raffinage en cours (Timers)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 20h20"></path>
+          <path d="M5 20V8l5 4V4l9 7v9"></path>
+          <line x1="14" y1="12" x2="14" y2="12.01"></line>
+        </svg>
+        <span data-i18n="refineryJobs">Raffinage</span>
+        <span class="hud-badge" id="refineryBadge" style="display:none;">0</span>
+      </button>
+
+      <!-- Flight Ledger & Statistics Button -->
+      <button class="btn-icon" id="btnOpenLedger" data-i18n-title="titleLedgerStats" title="Journal de bord et statistiques des gains miniers">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span data-i18n="ledgerStats">Journal</span>
+      </button>
+
+      <!-- User Guide & Walkthrough Modal Button -->
+      <button class="btn-icon" id="btnOpenGuide" data-i18n-title="titleGuide" title="Guide d'utilisation et prise en main de l'OS">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span data-i18n="guideBtn">Guide</span>
+      </button>
+
+      <!-- Quantainium Timer (Appears when active) -->
+      <div class="qt-timer-pill" id="qtTimerPill" data-i18n-title="titleQtTimer" title="Temps restant avant instabilité critique !">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span id="qtCountdownText">15:00</span>
+        <button class="qt-dismiss-btn" id="btnDismissQtTimer" data-i18n="timerDismiss" title="Arrêter le minuteur">ARRÊTER</button>
+      </div>
+
+      <!-- Voice control button -->
+      <button class="btn-icon" id="btnVoiceCommand" data-i18n-title="titleVoice" title="Saisie vocale rapide">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+        <span data-i18n="mic">Micro</span>
+      </button>
+
+      <!-- Cockpit HUD Theme Selector -->
+      <div class="ship-badge" style="padding:4px 8px;" data-i18n-title="titleTheme" title="Thème visuel HUD de cockpit">
+        <select id="themeSelect">
+          <option value="misc" data-i18n="themeMisc">MISC (Cyan)</option>
+          <option value="drake" data-i18n="themeDrake">Drake (Ambre)</option>
+          <option value="aegis" data-i18n="themeAegis">Aegis (Émeraude)</option>
+          <option value="rsi" data-i18n="themeRsi">RSI (Glace)</option>
+        </select>
+      </div>
+
+      <!-- Language Toggle (FR / EN) -->
+      <button class="btn-icon" id="btnLangToggle" data-i18n-title="titleLang" title="Changer de langue / Switch Language">
+        <span id="langFlag">🇬🇧</span>
+        <span id="langLabel" style="font-weight:700;">EN</span>
+      </button>
+
+      <!-- Wake Lock Screen Keep-Alive -->
+      <button class="btn-icon" id="btnWakeLock" data-i18n-title="titleWakeLock" title="Garder l'écran allumé pendant le vol">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <span id="wakeLockLabel" data-i18n="wakeLockOff">Écran</span>
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button class="btn-icon" id="btnFullscreen" data-i18n-title="titleFullscreen" title="Mode plein écran immersif">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+      </button>
+
+      <!-- Audio Mute/Unmute -->
+      <button class="btn-icon" id="btnAudioToggle" data-i18n-title="titleAudio" title="Effets sonores MFD">
+        <svg id="audioIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+      </button>
+
+      <!-- Donate / Support Modal -->
+      <button class="btn-icon btn-donate" id="btnOpenDonate" data-i18n-title="titleDonate" title="Soutenir le développement">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+        <span data-i18n="support">Soutenir</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- QUICK ROCK PRESETS BAR -->
+  <section class="presets-bar" aria-label="Quick Presets">
+    <span class="presets-title" data-i18n="quickPresetsTitle">PRÉRÉGLAGES RAPIDES :</span>
+    <div class="presets-scroller">
+      <button class="chip-btn preset-pill" data-preset="quant" data-i18n="presetQuant">💎 Quant 35%</button>
+      <button class="chip-btn preset-pill" data-preset="bexalite" data-i18n="presetBexalite">🔥 Bexalite 30%</button>
+      <button class="chip-btn preset-pill" data-preset="taranite" data-i18n="presetTaranite">⚡ Taranite 25%</button>
+      <button class="chip-btn preset-pill" data-preset="gem" data-i18n="presetGem">🌸 Hadanite ROC</button>
+    </div>
+  </section>
+
+  <!-- MAIN HUD INTERFACE -->
+  <main class="main-grid">
+
+    <!-- LEFT PANEL: ROCK SCAN & TACTILE DATA ENTRY -->
+    <section class="mfd-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="4"></circle>
+          </svg>
+          <span data-i18n="scanData">DONNÉES DU SCAN</span>
+        </div>
+        <div class="panel-subtag" data-i18n="quickTactile">SAISIE RAPIDE TACTILE</div>
+      </div>
+
+      <!-- MASS INPUT SECTION -->
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="rockMass">MASSE DE LA ROCHE</span>
+          <span class="label-val" id="massLabel">5 200 kg</span>
+        </div>
+
+        <div class="mass-display-box">
+          <button class="mass-stepper-btn" id="btnMassMinus" title="-100 kg" aria-label="Decrease mass">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <div class="mass-digital-wrapper">
+            <span class="mass-digital" id="massDigitalDisplay">5200</span>
+            <span class="mass-unit">KG</span>
+          </div>
+          <button class="mass-stepper-btn" id="btnMassPlus" title="+100 kg" aria-label="Increase mass">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Quick Chips (-1000, +500, +1000, +2000, Keypad) -->
+        <div class="quick-chips-row">
+          <button class="chip-btn" data-add-mass="-1000">-1000</button>
+          <button class="chip-btn" data-add-mass="500">+500</button>
+          <button class="chip-btn" data-add-mass="1000">+1000</button>
+          <button class="chip-btn" data-add-mass="2000">+2000</button>
+          <button class="chip-btn accent-keypad" id="btnToggleNumpad" data-i18n="keypad">CLAVIER</button>
+        </div>
+
+        <!-- TACTILE NUMPAD (Toggled or standard) -->
+        <div class="numpad-grid" id="numpadContainer" style="display:none;">
+          <button class="num-btn" data-key="7">7</button>
+          <button class="num-btn" data-key="8">8</button>
+          <button class="num-btn" data-key="9">9</button>
+          <button class="num-btn" data-key="4">4</button>
+          <button class="num-btn" data-key="5">5</button>
+          <button class="num-btn" data-key="6">6</button>
+          <button class="num-btn" data-key="1">1</button>
+          <button class="num-btn" data-key="2">2</button>
+          <button class="num-btn" data-key="3">3</button>
+          <button class="num-btn accent" data-key="C">C</button>
+          <button class="num-btn" data-key="0">0</button>
+          <button class="num-btn" data-key="BACK">⌫</button>
+        </div>
+      </div>
+
+      <!-- MINERAL SELECTION -->
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="primaryMineral">MINERAI PRINCIPAL</span>
+          <span class="label-val" id="selectedMineralLabel">Quantainium</span>
+        </div>
+
+        <!-- SYSTEM FILTER PILLS (STANTON / PYRO / NYX) -->
+        <div class="system-filter-bar" id="systemFilterBar" style="display:flex; gap:6px; margin-bottom:8px; overflow-x:auto; padding-bottom:2px;">
+          <button class="chip-btn active" data-mineral-system="all" data-i18n="filterAll">TOUS LES SYSTÈMES</button>
+          <button class="chip-btn" data-mineral-system="stanton" data-i18n="filterStanton">STANTON</button>
+          <button class="chip-btn" data-mineral-system="pyro" style="border-color:rgba(255,68,68,0.4); color:#ff6b6b;" data-i18n="filterPyro">🔥 PYRO (4.0)</button>
+          <button class="chip-btn" data-mineral-system="nyx" style="border-color:rgba(129,140,248,0.4); color:#a5b4fc;" data-i18n="filterNyx">🚀 NYX</button>
+        </div>
+
+        <div class="ore-grid" id="oreGrid">
+          <!-- Dynamically populated from MINING_DATA -->
+        </div>
+      </div>
+
+      <!-- ORE PERCENTAGE SLIDER & CHIPS -->
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="oreContent">TENEUR EN MINERAI</span>
+          <span class="label-val" id="pctLabel">32.0 %</span>
+        </div>
+
+        <div class="pct-controller">
+          <input type="range" min="1" max="100" step="0.5" value="32" class="pct-slider" id="pctSlider">
+          <span class="pct-val-display" id="pctDisplay">32%</span>
+        </div>
+
+        <div class="quick-chips-row" style="grid-template-columns: repeat(5, 1fr);">
+          <button class="chip-btn" data-set-pct="10">10%</button>
+          <button class="chip-btn" data-set-pct="20">20%</button>
+          <button class="chip-btn" data-set-pct="30">30%</button>
+          <button class="chip-btn" data-set-pct="45">45%</button>
+          <button class="chip-btn" data-set-pct="100">100%</button>
+        </div>
+      </div>
+
+      <!-- RESISTANCE & INSTABILITY SLIDERS -->
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="resistance">RÉSISTANCE</span>
+          <span class="label-val" id="resistanceLabel">40 %</span>
+        </div>
+        <div class="hud-slider-row">
+          <input type="range" min="0" max="95" step="1" value="40" class="hud-slider" id="resistanceSlider">
+        </div>
+
+        <div class="label-row" style="margin-top:12px;">
+          <span data-i18n="instability">INSTABILITÉ</span>
+          <span class="label-val" id="instabilityLabel">50 %</span>
+        </div>
+        <div class="hud-slider-row">
+          <input type="range" min="0" max="100" step="1" value="50" class="hud-slider" id="instabilitySlider">
+        </div>
+      </div>
+
+      <!-- ROC GEM CLUSTER CALCULATOR (Shown for ROC) -->
+      <div class="roc-cluster-box" id="rocClusterBox" style="display:none;">
+        <div class="roc-cluster-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.2rem;">🌸</span>
+            <div>
+              <div class="roc-cluster-title" data-i18n="rocClusterTitle">MODE CLUSTER DE GEMMES (ROC)</div>
+              <div class="roc-cluster-desc" data-i18n="rocClusterDesc">Spécialement conçu pour les filons de surface d'Hadanite, Dolivine et Aphorite.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-top:10px;">
+          <div class="label-row">
+            <span data-i18n="gemNodesCount">NOMBRE DE CAILLOUX DU CLUSTER</span>
+            <span class="label-val" id="rocNodesDisplay">6 Cailloux</span>
+          </div>
+          <div class="quick-chips-row" style="grid-template-columns: repeat(5, 1fr);">
+            <button class="chip-btn" data-roc-nodes="2">2</button>
+            <button class="chip-btn" data-roc-nodes="4">4</button>
+            <button class="chip-btn active" data-roc-nodes="6">6</button>
+            <button class="chip-btn" data-roc-nodes="9">9</button>
+            <button class="chip-btn" data-roc-nodes="12">12</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="label-row">
+            <span data-i18n="avgGemsPerNode">GEMMES ESTIMÉES PAR ROCHE</span>
+            <span class="label-val" id="rocGemsPerNodeDisplay">135 gemmes</span>
+          </div>
+          <input type="range" min="80" max="220" step="5" value="135" class="hud-slider" id="rocGemsSlider">
+        </div>
+
+        <div class="metrics-row" style="margin-top:10px;">
+          <div class="metric-card" style="border-color:var(--accent-purple);">
+            <div class="metric-title" data-i18n="totalGemsEstimate">TOTAL GEMMES RÉCOLTÉES</div>
+            <div class="metric-val purple" id="rocTotalGemsDisplay">810 gemmes (~0.81 SCU)</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="rocHoldStatusNote" data-i18n="rocHoldFillRate">
+              Remplissage soute ROC (0.8 SCU = 800 gemmes)
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary-action" id="btnAddClusterToROC" style="margin-top:10px; background:linear-gradient(135deg, #ec4899, #a855f7); color:#fff;">
+          <span data-i18n="btnAddClusterToROC">CHARGER LE CLUSTER DANS LE ROC</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: VERDICT, PROFIT & SESSION HOLD -->
+    <section class="mfd-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span data-i18n="tacticalAnalysis">ANALYSE TACTIQUE & RENTABILITÉ</span>
+        </div>
+        <div class="panel-subtag" data-i18n="instantCalc">CALCUL IMMÉDIAT</div>
+      </div>
+
+      <!-- GIANT VERDICT BOX -->
+      <div class="verdict-box verdict-great" id="verdictBox">
+        <div class="verdict-icon-badge" id="verdictIconBadge">💎</div>
+        <div class="verdict-status" id="verdictStatus">EXCELLENT FILON</div>
+        <div class="verdict-desc" id="verdictDesc">Haute concentration en Quantainium. Extraction fortement recommandée.</div>
+      </div>
+
+      <!-- FRACTURE FEASIBILITY CHECK -->
+      <div class="fracture-check-box">
+        <div class="fracture-status-row">
+          <span class="fracture-label" data-i18n="fractureFeasibility">FAISABILITÉ DE FRACTURATION</span>
+          <span class="fracture-badge badge-pass" id="fractureBadge" data-i18n="fractureEasy">FRACTURE FACILE</span>
+        </div>
+        <div class="power-bar-wrapper">
+          <div class="power-bar-ticks">
+            <span class="tick-marker tick-min" title="88% Seuil Minimum"></span>
+            <span class="tick-marker tick-opt" title="115% Saturation Optimale"></span>
+          </div>
+          <div class="power-bar-fill" id="powerBarFill" style="width: 82%;"></div>
+        </div>
+        <div class="power-bar-labels">
+          <span data-i18n="powerThresholdMin">88% Seuil Min</span>
+          <span data-i18n="powerThresholdOpt">115% Optimal</span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:8px; line-height:1.4;" id="fractureAdvice" data-i18n="fractureAvailablePower">
+          Puissance laser disponible : suffisante pour saturer la fenêtre optimale sans gadget.
+        </div>
+
+        <!-- SMART GADGET & MODULE TACTICAL ADVISOR -->
+        <div class="gadget-advice-card" id="gadgetAdviceCard" style="display:none;">
+          <div class="gadget-advice-header">
+            <span class="gadget-advice-title" data-i18n="gadgetAdviceTitle">💡 ASSISTANCE TACTIQUE D'ÉQUIPEMENT</span>
+          </div>
+          <div class="gadget-advice-text" id="gadgetAdviceText"></div>
+          <button class="btn-apply-advice" id="btnApplyAdvice" data-i18n="applyAdviceBtn">APPLIQUER CONSEIL</button>
+        </div>
+
+        <!-- SUB-CHUNKS BREAK TREE BUTTON -->
+        <button class="btn-subchunks-action" id="btnOpenBreakTree" style="margin-top:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="6" y1="3" x2="6" y2="15"></line>
+            <circle cx="18" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <path d="M18 9a9 9 0 0 1-9 9"></path>
+          </svg>
+          <span data-i18n="btnBreakTree">🌿 SIMULER SOUS-ROCHES</span>
+        </button>
+      </div>
+
+      <!-- METRICS GRID -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-title" data-i18n="usefulVolume">VOLUME UTILE ESTIMÉ</div>
+          <div class="metric-val cyan" id="metricSCU">11.8 SCU</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="metricCargoPct" data-i18n="cargoShareDefault">
+            Soit ~37% de la soute
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title" data-i18n="rawDirectValue">VALEUR BRUTE (VENTE DIRECTE)</div>
+          <div class="metric-val amber" id="metricRawPrice">147 500 aUEC</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" data-i18n="withoutRefining">Sans raffinage</div>
+        </div>
+      </div>
+
+      <!-- REFINING PROJECTION -->
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="refinedProjection">ESTIMATION RAFFINÉE</span>
+          <select id="refinerySelect" class="hud-select-sm">
+            <!-- Populated via data -->
+          </select>
+        </div>
+        <div class="metric-card" style="border-color:var(--accent-emerald);">
+          <div class="metric-title" data-i18n="netRefinedProfit">GAIN NET APRÈS RAFFINAGE</div>
+          <div class="metric-val emerald" id="metricRefinedPrice">279 800 aUEC</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="refinerySummaryNote">
+            Rendement 93% • Coût estimé déduit
+          </div>
+        </div>
+
+        <!-- STATION RECOMMANDÉE TAG (Interactive) -->
+        <div id="stationRecBox" class="station-rec-box" data-i18n-title="titleStationRec" title="Cliquer pour ouvrir le guide des stations et du Halo">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 14 14"></polyline>
+            </svg>
+            <div>
+              <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;" data-i18n="recommendedStation">STATION DE RAFFINAGE CONSEILLÉE</div>
+              <div id="stationRecName" style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); font-weight:700;">ARC-L1 Wide Forest</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div id="stationRecBonus" style="font-family:var(--font-mono); font-size:0.85rem; color:var(--accent-emerald); font-weight:700;">+10% Bonus</div>
+            <span class="station-rec-arrow" data-i18n="clickForStations">Détails ➔</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTON: ADD TO SHIP HOLD -->
+      <button class="btn-primary-action" id="btnAddToCargo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span data-i18n="loadToHold">CHARGER DANS LA SOUTE</span>
+      </button>
+
+      <!-- SHIP CARGO HOLD PROGRESS -->
+      <div class="cargo-hold-box">
+        <div class="cargo-header-row">
+          <span style="font-family:var(--font-hud); font-size:0.85rem;" data-i18n="cargoHoldFill">REMPLISSAGE SOUTE</span>
+          <span style="font-family:var(--font-mono); font-weight:700;" id="holdProgressLabel">0.0 / 32.0 SCU (0%)</span>
+        </div>
+        <div class="cargo-bar-container" id="cargoBarContainer">
+          <div class="cargo-bar-segment" id="cargoBarFill" style="width: 0%; background: var(--accent-cyan);"></div>
+        </div>
+        
+        <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <button id="btnSendToRefinery" class="chip-btn" style="padding:5px 12px; font-size:0.75rem; border-color:var(--accent-amber); color:var(--accent-amber);" data-i18n-title="titleRefineryJobs" title="Transférer la soute en commande de raffinage" data-i18n="btnSendToRefinery">
+            🏭 Transférer en raffinage
+          </button>
+          <div style="display:flex; gap:8px;">
+            <button id="btnExportDiscord" class="chip-btn" style="padding:5px 12px; font-size:0.75rem; border-color:var(--accent-cyan); color:var(--accent-cyan);" data-i18n-title="titleDiscord" title="Copier un résumé formaté pour Discord" data-i18n="exportDiscord">
+              📋 Rapport Discord
+            </button>
+            <button id="btnClearHold" class="btn-clear-hold" data-i18n="clearHold">
+              Vider la soute
+            </button>
+          </div>
+        </div>
+
+        <!-- LOG OF EXTRACTED ROCKS -->
+        <div class="session-log-list" id="sessionLogList">
+          <!-- Populated when user clicks "CHARGER" -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: LOADOUT CONFIG -->
+  <div class="modal-overlay" id="loadoutModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="loadoutTitle">ÉQUIPEMENT DU VAISSEAU</h2>
+        <button class="btn-close-modal" id="btnCloseLoadout">&times;</button>
+      </div>
+
+      <!-- SINGLE LASER SECTION (Prospector & ROC) -->
+      <div id="singleLaserSection">
+        <div class="input-group">
+          <label class="label-row" data-i18n="miningLaser">TÊTE DE MINAGE (LASER)</label>
+          <select id="laserSelect" class="hud-select-full">
+            <!-- lasers populated -->
+          </select>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; line-height:1.4;" id="laserDescText"></p>
+        </div>
+
+        <div class="input-group">
+          <label class="label-row" data-i18n="module1">MODULE MINIER 1</label>
+          <select id="moduleSelect1" class="hud-select-full">
+            <!-- modules populated -->
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label class="label-row" data-i18n="module2">MODULE MINIER 2</label>
+          <select id="moduleSelect2" class="hud-select-full">
+            <!-- modules populated -->
+          </select>
+        </div>
+      </div>
+
+      <!-- ARGO MOLE 3-TURRETS SECTION -->
+      <div id="moleTurretsSection" style="display:none;">
+        <div style="font-size:0.8rem; color:var(--accent-amber); margin-bottom:12px; font-family:var(--font-hud);" data-i18n="moleTurretsConfig">
+          CONFIGURATION DES 3 TOURELLES SIZE 2
+        </div>
+
+        <!-- Turret 1 -->
+        <div class="input-group" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); padding:10px; border-radius:6px; margin-bottom:10px;">
+          <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); margin-bottom:6px;" data-i18n="moleTurret1">
+            TOURELLE 1 (CENTRALE)
+          </div>
+          <select id="moleLaser1" class="hud-select-full" style="margin-bottom:6px;">
+            <!-- Size 2 lasers -->
+          </select>
+          <select id="moleMod1" class="hud-select-full">
+            <!-- Modules -->
+          </select>
+        </div>
+
+        <!-- Turret 2 -->
+        <div class="input-group" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); padding:10px; border-radius:6px; margin-bottom:10px;">
+          <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); margin-bottom:6px;" data-i18n="moleTurret2">
+            TOURELLE 2 (GAUCHE)
+          </div>
+          <select id="moleLaser2" class="hud-select-full" style="margin-bottom:6px;">
+            <!-- Size 2 lasers -->
+          </select>
+          <select id="moleMod2" class="hud-select-full">
+            <!-- Modules -->
+          </select>
+        </div>
+
+        <!-- Turret 3 -->
+        <div class="input-group" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); padding:10px; border-radius:6px; margin-bottom:10px;">
+          <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); margin-bottom:6px;" data-i18n="moleTurret3">
+            TOURELLE 3 (DROITE)
+          </div>
+          <select id="moleLaser3" class="hud-select-full" style="margin-bottom:6px;">
+            <!-- Size 2 lasers -->
+          </select>
+          <select id="moleMod3" class="hud-select-full">
+            <!-- Modules -->
+          </select>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="label-row" data-i18n="gadget">GADGET ATTACHÉ SUR LA ROCHE</label>
+        <select id="gadgetSelect" class="hud-select-full">
+          <!-- gadgets populated -->
+        </select>
+      </div>
+
+      <button class="btn-primary-action" id="btnSaveLoadout" style="margin-top:14px;" data-i18n="applyLoadout">APPLIQUER LA CONFIGURATION</button>
+    </div>
+  </div>
+
+  <!-- MODAL: CREW SPLIT (PARTAGE D'ÉQUIPAGE) -->
+  <div class="modal-overlay" id="crewModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="crewModalTitle">PARTAGE DES GAINS D'ÉQUIPAGE</h2>
+        <button class="btn-close-modal" id="btnCloseCrew">&times;</button>
+      </div>
+
+      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;" data-i18n="crewDesc">
+        Idéal pour équipages de MOLE ou sorties en flotte (éclaireur + mineur + transporteur).
+      </div>
+
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="crewMembersCount">NOMBRE DE MEMBRES D'ÉQUIPAGE</span>
+          <span class="label-val" id="crewCountDisplay">3 Joueurs</span>
+        </div>
+        <div class="quick-chips-row" style="grid-template-columns:repeat(5, 1fr);">
+          <button class="chip-btn" data-crew="1">1</button>
+          <button class="chip-btn" data-crew="2">2</button>
+          <button class="chip-btn" data-crew="3">3</button>
+          <button class="chip-btn" data-crew="4">4</button>
+          <button class="chip-btn" data-crew="5">5</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="crewReserveLabel">RÉSERVE OPÉRATIONNELLE (CARBURANT & FRAIS)</span>
+          <span class="label-val" id="crewReserveDisplay">10 %</span>
+        </div>
+        <input type="range" min="0" max="30" step="5" value="10" class="hud-slider" id="crewReserveSlider">
+      </div>
+
+      <!-- RESULTS -->
+      <div class="metric-card" style="border-color:var(--accent-cyan); margin-bottom:12px;">
+        <div class="metric-title" data-i18n="crewTotalValue">VALEUR TOTALE DE LA SOUTE ACTUELLE</div>
+        <div class="metric-val cyan" id="crewTotalHoldValue">0 aUEC</div>
+      </div>
+
+      <div class="metric-card" style="border-color:var(--accent-emerald);">
+        <div class="metric-title" data-i18n="crewSharePerMember">PART PAR MEMBRE D'ÉQUIPAGE</div>
+        <div class="metric-val emerald" id="crewSharePerMember">0 aUEC / membre</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="crewReserveDeducted" data-i18n="shipReserveDeducted">
+          Réserve vaisseau déduite
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AARON HALO & STATIONS GUIDE -->
+  <div class="modal-overlay" id="haloModal">
+    <div class="modal-content" style="max-width:680px;">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="haloTitle">AARON HALO & STATIONS</h2>
+        <button class="btn-close-modal" id="btnCloseHalo">&times;</button>
+      </div>
+
+      <!-- SYSTEM TABS (STANTON / PYRO / NYX) -->
+      <div class="guide-tabs" style="margin-bottom:14px;">
+        <button class="guide-tab-btn active" id="tabAtlasStanton" data-atlas-tab="stanton" data-i18n="tabAtlasStanton">🌌 STANTON & AARON HALO</button>
+        <button class="guide-tab-btn" id="tabAtlasPyro" data-atlas-tab="pyro" style="border-color:rgba(255,68,68,0.4); color:#ff6b6b;" data-i18n="tabAtlasPyro">🔥 SYSTÈME PYRO (HAUT RISQUE)</button>
+        <button class="guide-tab-btn" id="tabAtlasNyx" data-atlas-tab="nyx" data-i18n="tabAtlasNyx">🚀 SYSTÈME NYX (DELAMAR & GLACIEM)</button>
+      </div>
+
+      <!-- STANTON PANEL -->
+      <div id="atlasPanelStanton">
+
+      <!-- AARON HALO QT RANGEFINDER CALCULATOR -->
+      <div class="halo-rangefinder-box" id="haloRangefinderBox" style="margin-bottom:18px;">
+        <div class="rangefinder-title-row">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="m4.93 4.93 4.24 4.24"></path>
+            <path d="m14.83 9.17 4.24-4.24"></path>
+            <path d="m14.83 14.83 4.24 4.24"></path>
+            <path d="m9.17 14.83-4.24 4.24"></path>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+          <span style="font-family:var(--font-hud); font-size:0.95rem; color:var(--accent-amber);" data-i18n="haloCalcTitle">TÉLÉMÈTRE DE COUPE QT (AARON HALO)</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:10px; margin-top:10px;">
+          <div>
+            <label class="label-row" style="font-size:0.75rem;" data-i18n="haloRouteLabel">ROUTE DU HALO</label>
+            <select id="haloRouteSelect" class="hud-select-full">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="label-row" style="font-size:0.75rem;" data-i18n="currentDistanceLabel">Distance actuelle (M km)</label>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input type="number" step="0.1" min="0" max="60" value="15.0" id="haloCurrentDist" class="hud-select-full" style="padding:6px 10px;">
+              <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted);">M km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rangefinder-status-panel" id="rangefinderStatusPanel" style="margin-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; color:var(--text-muted);" data-i18n="haloDropRemaining">Distance restante avant coupure QT :</span>
+            <span id="rangefinderDiffDisplay" style="font-family:var(--font-mono); font-size:1.1rem; font-weight:700; color:var(--accent-cyan);">+1.4 M km</span>
+          </div>
+          <div class="rangefinder-progress-track" style="margin-top:6px;">
+            <div class="rangefinder-progress-fill" id="rangefinderProgressFill" style="width: 85%;"></div>
+          </div>
+          <div id="rangefinderAlertText" class="rangefinder-alert-text" style="display:none;"></div>
+        </div>
+      </div>
+
+      <h3 style="font-family:var(--font-hud); font-size:0.9rem; color:var(--accent-amber); margin-bottom:8px;" data-i18n="haloCoordsTitle">
+        COORDONNÉES DE COUPE QUANTUM (AARON HALO)
+      </h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="haloRoutesContainer">
+        <!-- populated dynamically from MINING_DATA -->
+      </div>
+
+      <h3 style="font-family:var(--font-hud); font-size:0.9rem; color:var(--accent-cyan); margin-bottom:8px;" data-i18n="refineryBonusesTitle">
+        BONUS DES STATIONS DE RAFFINAGE
+      </h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="stationsContainer">
+        <!-- populated dynamically from MINING_DATA -->
+      </div>
+
+      <h3 style="font-family:var(--font-hud); font-size:0.9rem; color:#a855f7; margin-bottom:8px;" data-i18n="hotspotsTitle">
+        ATLAS GÉOLOGIQUE DES MEILLEURS FILONS
+      </h3>
+      <div style="display:flex; flex-direction:column; gap:8px;" id="hotspotsStantonContainer">
+        <!-- populated dynamically from MINING_DATA -->
+      </div>
+    </div>
+
+    <!-- NYX PANEL -->
+    <div id="atlasPanelNyx" style="display:none;">
+      <div style="background:rgba(255,107,0,0.06); border:1px solid rgba(255,107,0,0.3); border-radius:8px; padding:12px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+          <span style="font-size:1.2rem;">🪐</span>
+          <strong style="font-family:var(--font-hud); font-size:0.95rem; color:var(--accent-amber);" data-i18n="nyxHeaderTitle">SYSTÈME NYX (ZONE INDÉPENDANTE)</strong>
+        </div>
+        <p style="margin:0; font-size:0.82rem; color:var(--text-muted); line-height:1.4;" data-i18n="nyxHeaderDesc">
+          Fief minier historique célèbre pour l'astéroïde Delamar et la cité rebelle de Levski. La ceinture de Glaciem Ring offre des gisements de Quantainium ultra-riches hors juridiction UEE.
+        </p>
+      </div>
+
+      <h3 style="font-family:var(--font-hud); font-size:0.9rem; color:var(--accent-cyan); margin-bottom:8px;" data-i18n="refineryBonusesTitle">
+        BONUS DES STATIONS DE RAFFINAGE
+      </h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="stationsNyxContainer">
+        <!-- populated dynamically from MINING_DATA -->
+      </div>
+
+      <h3 style="font-family:var(--font-hud); font-size:0.9rem; color:#a855f7; margin-bottom:8px;" data-i18n="hotspotsTitle">
+        ATLAS GÉOLOGIQUE DES MEILLEURS FILONS
+      </h3>
+      <div style="display:flex; flex-direction:column; gap:8px;" id="hotspotsNyxContainer">
+        <!-- populated dynamically from MINING_DATA -->
+      </div>
+    </div>
+
+    <!-- PYRO PANEL (ALPHA 4.0) -->
+    <div id="atlasPanelPyro" style="display:none;">
+      <div style="background:rgba(255,68,68,0.06); border:1px solid rgba(255,68,68,0.3); border-radius:8px; padding:12px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+          <span style="font-size:1.2rem;">🔥</span>
+          <strong style="font-family:var(--font-hud); font-size:0.95rem; color:#ff6b6b;" data-i18n="pyroHeaderTitle">SYSTÈME PYRO (ZONE FRONTIÈRE SANS LOI)</strong>
+        </div>
+        <p style="margin:0; font-size:0.82rem; color:var(--text-muted); line-height:1.4;" data-i18n="pyroHeaderDesc">
+          Système stellaire sauvage autour d'une étoile instable. Abrite des gisements colossaux de Stileron, Riccite et Lindinium. Présence pirate constante et tempêtes solaires mortelles, mais rentabilité industrielle inégalée.
+        </p>
+      </div>
+
+      <h3 style="font-family:var(--font-hud); font-size:0.9rem; color:var(--accent-cyan); margin-bottom:8px;" data-i18n="refineryBonusesTitle">
+        BONUS DES STATIONS DE RAFFINAGE
+      </h3>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="stationsPyroContainer">
+        <!-- populated dynamically from MINING_DATA -->
+      </div>
+
+      <h3 style="font-family:var(--font-hud); font-size:0.9rem; color:#a855f7; margin-bottom:8px;" data-i18n="hotspotsTitle">
+        ATLAS GÉOLOGIQUE DES MEILLEURS FILONS
+      </h3>
+      <div style="display:flex; flex-direction:column; gap:8px;" id="hotspotsPyroContainer">
+        <!-- populated dynamically from MINING_DATA -->
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- MODAL: DONATION / SUPPORT -->
+  <div class="modal-overlay" id="donateModal">
+    <div class="modal-content" style="text-align:center;">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:#fbbf24;" data-i18n="donationTitle">SOUTENIR LE PROJET</h2>
+        <button class="btn-close-modal" id="btnCloseDonate">&times;</button>
+      </div>
+
+      <div style="margin: 16px 0;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="margin-bottom:8px;">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+        <h3 style="color:#fff; font-size:1.15rem; margin-bottom:6px;" data-i18n="donationHeader">100% Gratuit & Pour la Communauté</h3>
+        <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.4;" data-i18n="donationDesc">
+          Cette application tourne à 100% sur ton appareil, sans frais de serveur ni abonnement. Si elle t'aide à rentabiliser tes sorties et à sécuriser des millions d'aUEC, tu peux offrir un café ou un don pour encourager les futures améliorations !
+        </p>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+        <a href="https://ko-fi.com" target="_blank" rel="noopener" class="btn-primary-action" style="background:#fbbf24; color:#000; text-decoration:none;" data-i18n="kofiBtn">
+          ☕ OFFRIR UN CAFÉ SUR KO-FI
+        </a>
+        <a href="https://buymeacoffee.com" target="_blank" rel="noopener" class="chip-btn" style="padding:10px; text-decoration:none; color:#fff;" data-i18n="bmacBtn">
+          Soutenir via Buy Me A Coffee
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VOICE STATUS -->
+  <div class="modal-overlay" id="voiceModal">
+    <div class="modal-content" style="text-align:center;">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="voiceTitle">COMMANDE VOCALE</h2>
+        <button class="btn-close-modal" id="btnCloseVoice">&times;</button>
+      </div>
+      <div style="padding:20px 0;">
+        <div style="width:60px; height:60px; border-radius:50%; background:rgba(0,240,255,0.2); border:2px solid var(--accent-cyan); display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto; animation:pulse-danger 1.5s infinite ease-in-out;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          </svg>
+        </div>
+        <p style="color:#fff; font-size:1.1rem; font-weight:600; margin-bottom:8px;" id="voiceStatusHead" data-i18n="voiceListening">Écoute en cours...</p>
+        <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.4;" id="voiceExampleText" data-i18n="voiceExample">
+          Exemple : <em>"Roche 5400 kg, 32% Quantainium, résistance 40"</em>
+        </p>
+        <div id="voiceTranscript" style="margin-top:14px; min-height:40px; font-family:var(--font-mono); color:var(--accent-cyan); background:rgba(0,0,0,0.5); padding:8px; border-radius:4px; font-size:0.95rem;" data-i18n="voiceWaiting">
+          En attente de voix...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BREAK TREE / SUB-CHUNKS SIMULATOR -->
+  <div class="modal-overlay" id="breakTreeModal">
+    <div class="modal-content" style="max-width:650px;">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="breakTreeTitle">ARBRE DE FRACTURATION (SOUS-ROCHES)</h2>
+        <button class="btn-close-modal" id="btnCloseBreakTree">&times;</button>
+      </div>
+
+      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px; line-height:1.4;" id="breakTreeDescText" data-i18n="breakTreeDesc">
+        Analyse des morceaux résultants de la fracture de la roche. Sélectionnez les morceaux aspirables.
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:0.8rem; color:var(--text-muted);">
+          <strong id="breakTreeParentInfo" style="color:#fff; font-family:var(--font-mono);">5 200 kg • 32% Quantainium</strong>
+        </span>
+        <button class="chip-btn" id="btnRegenerateChunks" style="border-color:var(--accent-cyan); color:var(--accent-cyan); padding:5px 12px; font-size:0.75rem;" data-i18n="btnRegenerateChunks">
+          🔄 Re-simuler la fracture
+        </button>
+      </div>
+
+      <!-- CHUNKS CONTAINER -->
+      <div class="subchunks-grid" id="subchunksContainer">
+        <!-- Generated dynamically via app.js -->
+      </div>
+
+      <div class="break-tree-footer" style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:0.8rem; color:var(--text-muted);">
+          <span data-i18n="chunkTotalExtracted">Volume extrait :</span>
+          <strong id="breakTreeExtractedTotal" style="color:var(--accent-emerald); font-family:var(--font-mono); margin-left:4px;">0.0 SCU</strong>
+        </div>
+        <button class="btn-primary-action" id="btnFinishBreakTree" style="padding:8px 18px; font-size:0.85rem;" data-i18n="closeBtn">
+          FERMER
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REFINERY ORDERS TRACKER -->
+  <div class="modal-overlay" id="refineryModal">
+    <div class="modal-content" style="max-width:680px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2">
+            <path d="M2 20h20"></path>
+            <path d="M5 20V8l5 4V4l9 7v9"></path>
+            <line x1="14" y1="12" x2="14" y2="12.01"></line>
+          </svg>
+          <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-amber);" data-i18n="refineryModalTitle">COMMANDES DE RAFFINAGE EN COURS</h2>
+        </div>
+        <button class="btn-close-modal" id="btnCloseRefinery">&times;</button>
+      </div>
+
+      <!-- REFINERY SUMMARY STATS -->
+      <div class="metrics-row" style="margin-bottom:14px;">
+        <div class="metric-card" style="border-color:var(--accent-amber);">
+          <div class="metric-title" data-i18n="refineryJobsCount">LOTS ACTIFS</div>
+          <div class="metric-val amber" id="refineryActiveCount">0 Lot(s)</div>
+        </div>
+        <div class="metric-card" style="border-color:var(--accent-emerald);">
+          <div class="metric-title" data-i18n="refineryTotalValue">VALEUR TOTALE EN RAFFINAGE</div>
+          <div class="metric-val emerald" id="refineryTotalValueDisplay">0 aUEC</div>
+        </div>
+      </div>
+
+      <!-- CREATE NEW REFINERY ORDER SECTION -->
+      <div class="refinery-new-order-card" style="background:rgba(255,255,255,0.02); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:12px; margin-bottom:16px;">
+        <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-amber); margin-bottom:8px;" data-i18n="refineryNewOrderTitle">
+          NOUVELLE COMMANDE (DEPUIS LA SOUTE)
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+          <div>
+            <label class="label-row" style="font-size:0.75rem;" data-i18n="selectStationLabel">Station de raffinage</label>
+            <select id="refineryOrderStationSelect" class="hud-select-full">
+              <!-- Populated with stations -->
+            </select>
+          </div>
+          <div>
+            <label class="label-row" style="font-size:0.75rem;" data-i18n="selectMethodLabel">Méthode de procédé</label>
+            <select id="refineryOrderMethodSelect" class="hud-select-full">
+              <!-- Populated with methods -->
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary-action" id="btnConfirmRefineryJob" style="background:var(--accent-amber); color:#000;">
+          <span data-i18n="btnConfirmRefineryJob">LANCER LA COMMANDE DE RAFFINAGE</span>
+        </button>
+      </div>
+
+      <!-- ACTIVE ORDERS LIST -->
+      <div style="font-family:var(--font-hud); font-size:0.85rem; color:#fff; margin-bottom:8px;" data-i18n="refineryActiveLotsTitle">
+        LOTS EN TRAITEMENT DANS STANTON
+      </div>
+      <div class="refinery-jobs-list" id="refineryJobsList">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FLIGHT LEDGER & STATISTICS -->
+  <div class="modal-overlay" id="ledgerModal">
+    <div class="modal-content" style="max-width:700px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="ledgerModalTitle">JOURNAL DE VOL & STATISTIQUES</h2>
+        </div>
+        <button class="btn-close-modal" id="btnCloseLedger">&times;</button>
+      </div>
+
+      <!-- LEDGER STAT CARDS GRID -->
+      <div class="ledger-stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+        <div class="metric-card">
+          <div class="metric-title" data-i18n="statTotalEarned">TOTAL DES GAINS</div>
+          <div class="metric-val emerald" id="statTotalEarnedDisplay">0 aUEC</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title" data-i18n="statTodayEarned">SESSION (AUJOURD'HUI)</div>
+          <div class="metric-val cyan" id="statTodayEarnedDisplay">0 aUEC</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title" data-i18n="statTotalSCU">VOLUME TOTAL</div>
+          <div class="metric-val amber" id="statTotalSCUDisplay">0.0 SCU</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title" data-i18n="statRunsCount">ROCHES EXTRAITES</div>
+          <div class="metric-val purple" id="statRunsCountDisplay">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title" data-i18n="statHourlyRate">RENTABILITÉ HORAIRE</div>
+          <div class="metric-val cyan" id="statHourlyRateDisplay">0 aUEC/h</div>
+        </div>
+      </div>
+
+      <!-- EXPORT ACTIONS BAR -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div style="font-family:var(--font-hud); font-size:0.85rem; color:#fff;" data-i18n="ledgerRunsHistory">
+          HISTORIQUE DES RUNS & LOTS
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="chip-btn" id="btnExportJson" data-i18n="btnExportJson">Exporter (JSON)</button>
+          <button class="chip-btn" id="btnExportCsv" data-i18n="btnExportCsv">Exporter (CSV)</button>
+          <button class="btn-clear-hold" id="btnClearLedger" data-i18n="btnClearLedger">Effacer</button>
+        </div>
+      </div>
+
+      <!-- LEDGER TABLE / RUNS LIST -->
+      <div class="ledger-runs-list" id="ledgerRunsList">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: WELCOME & USER GUIDE (MULTILINGUAL) -->
+  <div class="modal-overlay" id="guideModal">
+    <div class="modal-content guide-modal-content">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div>
+            <h2 style="font-family:var(--font-hud); font-size:1.05rem; color:var(--accent-cyan); margin:0;" data-i18n="guideModalTitle">AARON MFD • GUIDE & PRISE EN MAIN</h2>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;" data-i18n="guideModalSubtitle">Système Tactique de Minage pour Star Citizen • 100% Hors-ligne</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="guide-lang-pills">
+            <button class="guide-lang-btn active" id="btnGuideLangFr" data-lang="fr">🇫🇷 FR</button>
+            <button class="guide-lang-btn" id="btnGuideLangEn" data-lang="en">🇬🇧 EN</button>
+          </div>
+          <button class="btn-close-modal" id="btnCloseGuide">&times;</button>
+        </div>
+      </div>
+
+      <!-- TABS NAVIGATION -->
+      <div class="guide-tabs">
+        <button class="guide-tab-btn active" data-guide-tab="quickstart" data-i18n="guideTabQuickstart">🚀 DÉMARRAGE RAPIDE</button>
+        <button class="guide-tab-btn" data-guide-tab="tools" data-i18n="guideTabTools">🛠️ LES OUTILS MINIERS</button>
+        <button class="guide-tab-btn" data-guide-tab="tips" data-i18n="guideTabTips">💡 ASTUCES & CONSEILS</button>
+      </div>
+
+      <!-- TAB 1: QUICK START -->
+      <div class="guide-tab-panel" id="guidePanelQuickstart">
+        <div class="guide-step-card">
+          <div class="guide-step-badge">1</div>
+          <div class="guide-step-body">
+            <h4 data-i18n="guideStep1Title">1. Vaisseau & Équipement</h4>
+            <p data-i18n="guideStep1Desc">Sélectionnez votre vaisseau en haut à gauche : MISC Prospector (32 SCU), Argo MOLE (96 SCU avec configuration de 1 à 3 tourelles actives) ou Greycat ROC (0.8 SCU). Cliquez sur le bouton laser pour équiper têtes de minage et modules.</p>
+          </div>
+        </div>
+        <div class="guide-step-card">
+          <div class="guide-step-badge">2</div>
+          <div class="guide-step-body">
+            <h4 data-i18n="guideStep2Title">2. Saisie du Scan Roche</h4>
+            <p data-i18n="guideStep2Desc">Dans le panneau de gauche, réglez la masse (pavé tactile ou pas à pas), la teneur en minerai (%), la résistance et l'instabilité. Vous pouvez aussi utiliser les préréglages rapides ou la commande vocale.</p>
+          </div>
+        </div>
+        <div class="guide-step-card">
+          <div class="guide-step-badge">3</div>
+          <div class="guide-step-body">
+            <h4 data-i18n="guideStep3Title">3. Verdict Tactique & Action</h4>
+            <p data-i18n="guideStep3Desc">Observez le verdict instantané dans le panneau de droite : faisabilité de charge laser, rentabilité brute vs raffinée, recommandation de gadget et station idéale. Chargez la soute, simulez les sous-roches ou envoyez en raffinage !</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MINING TOOLS -->
+      <div class="guide-tab-panel" id="guidePanelTools" style="display:none;">
+        <div class="guide-tools-grid">
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">🌿</span>
+              <strong data-i18n="guideToolBreakTreeTitle">Simulateur de Sous-Roches (Break Tree)</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolBreakTreeDesc">Modélise la division de la roche en 3 morceaux selon les règles de Star Citizen : Violet (aspirable direct dans la soute), Orange (à re-fracturer, rechargeable en 1 clic dans le scanner), Gris (déchets inertes à ignorer).</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">🏭</span>
+              <strong data-i18n="guideToolRefineryTitle">Suivi des Ordres de Raffinage en Direct</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolRefineryDesc">Planifiez vos commandes depuis la soute. Calcule les temps de traitement selon les 4 procédés industriels (Dinyx, Ferris, Cormack, Pyro-Burst). Minuteurs hh:mm:ss en temps réel et versement des aUEC dans votre journal dès ramassage.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">💡</span>
+              <strong data-i18n="guideToolGadgetTitle">Assistant Tactique de Gadgets & Modules</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolGadgetDesc">Calcule en direct le déficit de puissance laser et suggère le gadget adapté (Sabir 21, BoreMax, Stalwart, Surge). Cliquez sur APPLIQUER CONSEIL pour l'équiper immédiatement.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">🌸</span>
+              <strong data-i18n="guideToolRocTitle">Mode Cluster de Gemmes ROC</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolRocDesc">Apparaît automatiquement quand le Greycat ROC est sélectionné. Configurez le nombre de cailloux et gemmes par filon d'Hadanite/Dolivine/Aphorite pour calculer le remplissage 0.8 SCU et le montant en aUEC.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">⏱️</span>
+              <strong data-i18n="guideToolHaloTitle">Télémètre Aaron Halo & Stations</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolHaloDesc">Consultez les coordonnées des Bandes 4, 5 et 6 du Halo d'Aaron. Le télémètre calcule la distance restante avant la coupure QT avec alerte sonore et clignotante de largage.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">📊</span>
+              <strong data-i18n="guideToolLedgerTitle">Journal de Vol & Statistiques</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolLedgerDesc">Suivi de vos gains totaux, volume en SCU et rentabilité horaire (aUEC/h). Exportez vos données en 1 clic au format JSON ou CSV (Excel / Tableur).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: PRO TIPS -->
+      <div class="guide-tab-panel" id="guidePanelTips" style="display:none;">
+        <div class="guide-tools-grid">
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">👥</span>
+              <strong data-i18n="guideTipCrewTitle">Argo MOLE & Partage d'Équipage</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideTipCrewDesc">Passez de 1 (Solo) à 3 tourelles actives (Trio) pour cumuler la puissance laser. Le calculateur d'équipage répartit équitablement les gains et permet de déduire une réserve carburant/réparations.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">📱</span>
+              <strong data-i18n="guideTipPwaTitle">PWA Hors-Ligne & Garde d'Écran</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideTipPwaDesc">Installez AARON MFD sur votre tablette ou téléphone comme application autonome. Activez l'icône Écran actif (Wake Lock) pour empêcher la mise en veille pendant vos sessions de vol.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">⚠️</span>
+              <strong data-i18n="guideTipQtTitle">Sécurité Quantainium (15 Min)</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideTipQtDesc">Dès qu'un morceau de Quantainium entre dans la soute, un compte à rebours de 15 minutes démarre avec alertes sonores critiques pour vous éviter l'explosion en vol.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">🎨</span>
+              <strong data-i18n="guideTipThemesTitle">4 Thèmes Cockpit Constructeurs</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideTipThemesDesc">Choisissez entre les ambiances MISC (Cyan), Drake (Ambre), Aegis (Émeraude) et RSI (Glace arctique) pour assortir votre MFD à votre tableau de bord de vaisseau.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER ACTION BAR -->
+      <div class="guide-footer-bar">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-muted); cursor:pointer;">
+          <input type="checkbox" id="chkGuideDismiss">
+          <span data-i18n="guideDismissCheckbox">Ne plus afficher automatiquement au démarrage</span>
+        </label>
+        <button class="btn-primary-action" id="btnLaunchFromGuide" style="padding:9px 22px; font-size:0.88rem;">
+          <span data-i18n="guideLaunchBtn">ACCÉDER AU MFD TACTIQUE</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGELOG / RELEASE NOTES -->
+  <div class="modal-overlay" id="changelogModal">
+    <div class="modal-content" style="max-width:720px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="changelogTitle">NOTES DE VERSION (CHANGELOG)</h2>
+        </div>
+        <button class="btn-close-modal" id="btnCloseChangelog">&times;</button>
+      </div>
+
+      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;" data-i18n="changelogSubtitle">
+        Historique des ajouts, améliorations et correctifs
+      </div>
+
+      <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
+
+        <!-- VERSION 1.2 -->
+        <div class="changelog-card current-version">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill current">v1.2</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Tactical Overhaul & 6 Mining Tools</strong>
+            </div>
+            <span class="changelog-date">Dernière version</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Simulateur de Sous-Roches (Break Tree)</strong> : Découpe physique des roches en sous-blocs avec indication visuelle (Apirable violet, À re-fracturer orange, Inerte gris) et aspiration 1-clic.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Gestionnaire de Raffinage en direct</strong> : Minuteurs en temps réel pour chaque commande de raffinage dans Stanton (Dinyx, Ferris, Cormack, Pyro-Burst) avec alertes de fin de traitement.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Assistant Tactique de Gadgets & Modules</strong> : Recommandation dynamique de Sabir 21, BoreMax, Stalwart ou Surge selon le déficit laser, avec bouton 1-clic pour appliquer.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Mode Cluster ROC Terrestre</strong> : Calculateur dédié aux filons de gemmes de surface (Hadanite, Dolivine, Aphorite) avec contrôleur de cailloux et jauge 0.8 SCU.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Journal de Vol & Statistiques</strong> : Suivi des gains totaux, rentabilité horaire (aUEC/h), volume extrait et exports complets en <strong>JSON</strong> et <strong>CSV (Excel)</strong>.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Télémètre Aaron Halo</strong> : Calculateur interactif de distance de coupe Quantum avec jauge de proximité et alerte sonore d'arrêt d'urgence.</span>
+            </li>
+            <li>
+              <span class="badge-tag improved" data-i18n="tagImproved">OPTIMISÉ</span>
+              <span><strong>Support Bilingue Intégral</strong> : Bascule instantanée Français 🇫🇷 / Anglais 🇬🇧 sur 100% des textes, boutons, badges et infobulles.</span>
+            </li>
+            <li>
+              <span class="badge-tag fix" data-i18n="tagFix">CORRECTIF</span>
+              <span>Ajustement de la persistance locale (`localStorage`) et mise en cache PWA Service Worker v5 pour fonctionnement sans connexion.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- VERSION 1.1 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill">v1.1</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Argo MOLE Multi-Crew & Cockpit HUD</strong>
+            </div>
+            <span class="changelog-date">Mise à jour majeure</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Gestion des 3 tourelles du MOLE</strong> : Sélecteur Solo (1 tourelle), Duo (2 tourelles) ou Trio (3 tourelles actives) avec calcul de puissance combinée et configuration laser par tourelle.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Partage d'équipage Multi-crew</strong> : Calculateur de répartition des gains avec déduction de réserve de bord (carburant & réparations).</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>4 Thèmes Cockpit</strong> : MISC Cyan, Drake Ambre, Aegis Émeraude et RSI Glace avec adaptation chromatique complète du HUD.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Garde d'écran active (Wake Lock)</strong> : Empêche la mise en veille automatique de la tablette ou smartphone en vol.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Export Rapport Discord</strong> : Synthèse visuelle formatée prête à coller dans les salons Discord de corporation.</span>
+            </li>
+            <li>
+              <span class="badge-tag improved" data-i18n="tagImproved">OPTIMISÉ</span>
+              <span>Refonte ergonomique tactile (cibles tactiles minimales 44px, retour haptique vibrant).</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- VERSION 1.0 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill">v1.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Lancement Initial</strong>
+            </div>
+            <span class="changelog-date">Fondation</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span>Calculateur immédiat de faisabilité laser et rentabilité brute/raffinée.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span>Minuteur d'instabilité Quantainium de 15 minutes avec alertes critiques.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span>Base de données des minerais de Stanton (Quantainium, Bexalite, Taranite, Hadanite, etc.).</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span>Guide des bonus des stations de raffinage et coordonnées de l'Aaron Halo.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span>PWA installable hors-ligne avec synthèse audio Web Audio API.</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotice" class="toast-notice"></div>
+
+  <!-- FOOTER -->
+  <footer class="hud-footer">
+    <div class="footer-links">
+      <span class="footer-link" id="btnOpenGuideFooter" data-i18n="guideLink">📖 Guide & Prise en main</span>
+      <span>•</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.3)</span>
+      <span>•</span>
+      <span class="footer-link" id="btnInstallPWA" data-i18n="installPWA">📱 Installer sur écran d'accueil</span>
+      <span>•</span>
+      <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
+      <span>•</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.3)</span>
+    </div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.3 • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+  </footer>
+
+  <script type="module" src="app.js?v=1.3"></script>
+</body>
+</html>
