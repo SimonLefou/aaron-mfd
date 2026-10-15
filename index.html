@@ -33,7 +33,11 @@
       <div class="mg-sys-sub">
         <span class="mg-sub-item"><span data-i18n="mgComms">COMMS :</span> <span class="mg-status-online">CONNECTÉ [|||||]</span></span>
         <span class="mg-sub-sep">//</span>
-        <span class="mg-sub-item"><span data-i18n="mgCallsign">INDICATIF :</span> <strong id="mgCallsignVal">CITIZEN-1</strong></span>
+        <span class="mg-sub-item mg-callsign-wrapper" id="btnEditMgCallsign" data-i18n-title="editCallsignTitle" title="Modifier votre indicatif de pilote (Cliquer pour éditer)">
+          <span data-i18n="mgCallsign">INDICATIF :</span>
+          <strong id="mgCallsignVal">CITIZEN-1</strong>
+          <span class="mg-callsign-icon" aria-hidden="true">✎</span>
+        </span>
       </div>
     </div>
 
@@ -110,7 +114,7 @@
         </svg>
       </div>
       <div>
-        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.5.0</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.5.1</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
         <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
       </div>
     </div>
@@ -958,7 +962,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="background:var(--accent-cyan); color:#000; font-family:var(--font-hud); font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:3px;" data-i18n="squadLeaderBadge">CHEF D'ESCADRE (VOUS)</span>
-            <strong id="squadLeaderName" style="color:#fff; font-family:var(--font-hud); font-size:0.9rem;">CITIZEN-1</strong>
+            <input type="text" id="squadLeaderNameInput" class="hud-input" maxlength="20" value="CITIZEN-1" style="background:rgba(0,0,0,0.5); border:1px solid rgba(0,240,255,0.4); border-radius:4px; padding:2px 8px; font-family:var(--font-hud); font-size:0.85rem; font-weight:700; color:var(--accent-cyan); width:150px;" data-i18n-title="editCallsignTitle" title="Modifier votre indicatif" />
           </div>
           <span style="font-size:0.75rem; color:#10b981; font-family:var(--font-mono); font-weight:700;">● ACTIF</span>
         </div>
@@ -1197,15 +1201,8 @@
             DÉCODER
           </button>
         </div>
-
-        <div class="quick-chips-row" style="margin-top:8px;">
-          <button class="chip-btn" data-preset-rs="3170">Quant 1x (3170)</button>
-          <button class="chip-btn" data-preset-rs="6340">Quant 2x (6340)</button>
-          <button class="chip-btn" data-preset-rs="3185">Stileron (3185)</button>
-          <button class="chip-btn" data-preset-rs="3385">Riccite (3385)</button>
-          <button class="chip-btn" data-preset-rs="3600">Bexalite (3600)</button>
-        </div>
       </div>
+
 
       <!-- DECODED RESULTS -->
       <div style="font-family:var(--font-hud); font-size:0.85rem; color:#fff; margin-bottom:8px;" data-i18n="radarMatchResults">
@@ -1250,6 +1247,32 @@
         <a href="https://buymeacoffee.com" target="_blank" rel="noopener" class="chip-btn" style="padding:10px; text-decoration:none; color:#fff;" data-i18n="bmacBtn">
           Soutenir via Buy Me A Coffee
         </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT CALLSIGN / INDICATIF -->
+  <div class="modal-overlay" id="callsignModal">
+    <div class="modal-content" style="max-width:440px; text-align:center;">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.05rem; color:var(--accent-cyan);" data-i18n="callsignModalTitle">INDICATIF DU PILOTE</h2>
+        <button class="btn-close-modal" id="btnCloseCallsignModal">&times;</button>
+      </div>
+
+      <div style="margin:16px 0; text-align:left;">
+        <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;" data-i18n="callsignModalDesc">
+          Saisissez votre indicatif opérationnel (affiché sur le mobiGlas et en escadre) :
+        </label>
+        <input type="text" id="callsignModalInput" maxlength="20" class="hud-input" style="font-family:var(--font-hud); font-size:1.15rem; font-weight:700; text-align:center; letter-spacing:1px; color:#fff; background:rgba(0,0,0,0.6); border:1px solid var(--accent-cyan); padding:8px 12px; border-radius:6px; width:100%; box-sizing:border-box;" placeholder="EX: CITIZEN-1, VORTEX..." value="CITIZEN-1">
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+        <button type="button" class="btn-primary-action" id="btnSaveCallsignModal" style="width:auto; padding:8px 22px;" data-i18n="btnSaveCallsign">
+          CONFIRMER
+        </button>
+        <button type="button" class="chip-btn" id="btnCancelCallsignModal" style="width:auto; padding:8px 16px;" data-i18n="btnCancelCallsign">
+          ANNULER
+        </button>
       </div>
     </div>
   </div>
@@ -1610,12 +1633,12 @@
 
       <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
 
-        <!-- VERSION 1.5.0 -->
+        <!-- VERSION 1.5.1 -->
         <div class="changelog-card current-version">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill current">v1.5.0</span>
-              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Refonte mobiGlas 4.0, Coordination de Flotte & Tourelles Unifiées</strong>
+              <span class="version-tag-pill current">v1.5.1</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Personnalisation Indicatif Pilote & Épuration Radar RS</strong>
             </div>
             <span class="changelog-date">Dernière version (Alpha 4.10)</span>
           </div>
@@ -1623,23 +1646,11 @@
           <ul class="changelog-list">
             <li>
               <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
-              <span><strong>Coordination d'Escouade & Flotte Multi-Vaisseaux</strong> : Gérez une escadre complète (Prospector, MOLE, ROC, C2 Hercules, etc.) avec cumul automatique des tirs laser, réduction conjointe de la résistance et répartition équitable des profits.</span>
-            </li>
-            <li>
-              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
-              <span><strong>Intégration RSI Arrastra & RSI Orion</strong> : Support des 3 tourelles Size 3 de l'Arrastra (576 SCU) et des 2 tourelles lourdes de l'Orion (2 880 SCU) avec 6 têtes laser Size 3 authentiques.</span>
-            </li>
-            <li>
-              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
-              <span><strong>Présentation Holographique mobiGlas 4.0 & Dock</strong> : Interface holographique inspirée du mobiGlas Star Citizen et dock d'applications rapide avec accès instantané aux 9 outils.</span>
+              <span><strong>Personnalisation de l'Indicatif de Pilote (Callsign)</strong> : Modifiez et persistez votre indicatif directement depuis le bandeau supérieur mobiGlas ou depuis la carte Chef d'escadre, avec boîte de dialogue dédiée et sauvegarde hors-ligne.</span>
             </li>
             <li>
               <span class="badge-tag improved" data-i18n="tagImproved">OPTIMISÉ</span>
-              <span><strong>Architecture Unifiée des Tourelles</strong> : Élimination du doublon de la première tourelle et bloc de configuration pliable unifié (1 à 3 tourelles) avec slots de modules dynamiques pour tous les vaisseaux.</span>
-            </li>
-            <li>
-              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
-              <span><strong>Bouton Soutenir Dédié</strong> : Remplacement des boutons de bascule en faveur du bouton « Soutenir » dans le bandeau supérieur, le dock et le pied de page.</span>
+              <span><strong>Épuration de la Modale Radar RS</strong> : Retrait des préréglages rapides superflus pour laisser place à la saisie directe de la signature scannée sur le HUD.</span>
             </li>
           </ul>
         </div>
@@ -1944,17 +1955,17 @@
       <span>•</span>
       <span class="footer-link" id="btnOpenDonateFooter" style="color:#fbbf24; font-weight:700;" data-i18n="support">💛 Soutenir</span>
       <span>•</span>
-      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.5.0)</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.5.1)</span>
       <span>•</span>
       <span class="footer-link" id="btnInstallPWA" data-i18n="installPWA">📱 Installer sur écran d'accueil</span>
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.5.0)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.5.1)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.5.0 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.5.1 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
-  <script type="module" src="app.js?v=1.5.0"></script>
+  <script type="module" src="app.js?v=1.5.1"></script>
 </body>
 </html>

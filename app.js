@@ -8,6 +8,7 @@ const state = {
   currentLang: localStorage.getItem('aaron_mfd_lang') || 'fr',
   currentTheme: localStorage.getItem('aaron_mfd_theme') || 'mobiglas',
   layoutMode: localStorage.getItem('aaron_mfd_layout_mode') || 'mobiglas',
+  callsign: localStorage.getItem('aaron_mfd_callsign') || 'CITIZEN-1',
   mobileView: 'scanner',
   wakeLock: null,
 
@@ -139,12 +140,32 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.5.0',
+    version: 'v1.5.1',
     isCurrent: true,
-    title_fr: 'Refonte mobiGlas 4.0, Coordination de Flotte & Tourelles Unifiées',
-    title_en: 'mobiGlas 4.0 Layout, Fleet Coordination & Unified Turrets',
+    title_fr: 'Personnalisation Indicatif Pilote & Épuration Radar RS',
+    title_en: 'Pilot Callsign Customization & RS Radar Clean-up',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Personnalisation de l\'Indicatif (Callsign)</strong> : Modifiez et persistez votre indicatif de pilote depuis le bandeau supérieur mobiGlas ou depuis la carte Chef d\'escadre avec sauvegarde automatique locale.',
+        text_en: '<strong>Pilot Callsign Customization</strong>: Edit and persist your operational radio callsign from the top mobiGlas status bar or the Fleet squad leader card with offline storage.'
+      },
+      {
+        tag: 'improved',
+        text_fr: '<strong>Épuration Radar RS</strong> : Retrait des préréglages rapides superflus pour optimiser la saisie directe de la signature scannée sur le HUD.',
+        text_en: '<strong>RS Radar Clean-up</strong>: Removed cluttered signature presets in favor of direct input and HUD scan matching.'
+      }
+    ]
+  },
+  {
+    version: 'v1.5.0',
+    isCurrent: false,
+    title_fr: 'Refonte mobiGlas 4.0, Coordination de Flotte & Tourelles Unifiées',
+    title_en: 'mobiGlas 4.0 Layout, Fleet Coordination & Unified Turrets',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'new',
@@ -517,6 +538,7 @@ const DOM = {
   // mobiGlas 4.0 Layout & System Header
   mobiglasSystemHeader: document.getElementById('mobiglasSystemHeader'),
   mgLoreClock: document.getElementById('mgLoreClock'),
+  btnEditMgCallsign: document.getElementById('btnEditMgCallsign'),
   mgCallsignVal: document.getElementById('mgCallsignVal'),
   mgMoleTurretBar: document.getElementById('mgMoleTurretBar'),
   mgBalanceVal: document.getElementById('mgBalanceVal'),
@@ -758,11 +780,19 @@ const DOM = {
   fleetStatCargo: document.getElementById('fleetStatCargo'),
   fleetStatShare: document.getElementById('fleetStatShare'),
   squadLeaderName: document.getElementById('squadLeaderName'),
+  squadLeaderNameInput: document.getElementById('squadLeaderNameInput'),
   squadLeaderShipDesc: document.getElementById('squadLeaderShipDesc'),
   squadLeaderLaserDesc: document.getElementById('squadLeaderLaserDesc'),
   btnSquadEditLoadout: document.getElementById('btnSquadEditLoadout'),
   squadWingmenContainer: document.getElementById('squadWingmenContainer'),
   btnAddSquadMember: document.getElementById('btnAddSquadMember'),
+
+  // Callsign Modal
+  callsignModal: document.getElementById('callsignModal'),
+  callsignModalInput: document.getElementById('callsignModalInput'),
+  btnSaveCallsignModal: document.getElementById('btnSaveCallsignModal'),
+  btnCancelCallsignModal: document.getElementById('btnCancelCallsignModal'),
+  btnCloseCallsignModal: document.getElementById('btnCloseCallsignModal'),
 
   haloModal: document.getElementById('haloModal'),
   btnCloseHalo: document.getElementById('btnCloseHalo'),
@@ -829,6 +859,7 @@ function init() {
   setTheme(state.currentTheme);
   setLayoutMode(state.layoutMode, false);
   setMobileView(state.mobileView || 'scanner');
+  setCallsign(state.callsign, false);
   updateLoreClock();
   setInterval(updateLoreClock, 1000);
   bindEventListeners();
@@ -2503,12 +2534,36 @@ function updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoS
   }
 }
 
+function setCallsign(newCallsign, notify = true) {
+  const clean = (newCallsign || '').trim().toUpperCase().slice(0, 20);
+  state.callsign = clean || 'CITIZEN-1';
+  try {
+    localStorage.setItem('aaron_mfd_callsign', state.callsign);
+  } catch (e) {
+    console.warn('LocalStorage callsign save error', e);
+  }
+  if (DOM.mgCallsignVal) DOM.mgCallsignVal.textContent = state.callsign;
+  if (DOM.squadLeaderName) DOM.squadLeaderName.textContent = state.callsign;
+  if (DOM.squadLeaderNameInput && DOM.squadLeaderNameInput.value !== state.callsign) {
+    DOM.squadLeaderNameInput.value = state.callsign;
+  }
+  if (DOM.callsignModalInput && DOM.callsignModalInput.value !== state.callsign) {
+    DOM.callsignModalInput.value = state.callsign;
+  }
+  if (notify) {
+    const t = I18N[state.currentLang] || I18N.fr;
+    const msg = (t.toastCallsignUpdated || '✅ Indicatif mis à jour : {callsign}').replace('{callsign}', state.callsign);
+    showToast(msg);
+  }
+}
+
 function renderSquadWingmen() {
   const t = I18N[state.currentLang] || I18N.fr;
   const isEn = state.currentLang === 'en';
   const allShips = [...MINING_DATA.ships, ...(MINING_DATA.supportShips || [])];
 
   // 1. Leader card update
+  if (DOM.squadLeaderNameInput) DOM.squadLeaderNameInput.value = state.callsign || 'CITIZEN-1';
   if (DOM.squadLeaderName) DOM.squadLeaderName.textContent = state.callsign || 'CITIZEN-1';
   if (DOM.squadLeaderShipDesc) DOM.squadLeaderShipDesc.textContent = `${state.selectedShip.name} (${state.selectedShip.scu} SCU)`;
   if (DOM.squadLeaderLaserDesc) {
@@ -3298,6 +3353,68 @@ function bindEventListeners() {
     });
   }
 
+  // Pilot Callsign Editor listeners
+  if (DOM.btnEditMgCallsign) {
+    DOM.btnEditMgCallsign.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(15);
+      if (DOM.callsignModalInput) {
+        DOM.callsignModalInput.value = state.callsign;
+      }
+      openModal(DOM.callsignModal);
+      setTimeout(() => {
+        if (DOM.callsignModalInput) {
+          DOM.callsignModalInput.focus();
+          DOM.callsignModalInput.select();
+        }
+      }, 50);
+    });
+  }
+
+  if (DOM.btnSaveCallsignModal) {
+    DOM.btnSaveCallsignModal.addEventListener('click', () => {
+      sfx.playSuccess();
+      triggerHaptic(20);
+      const val = DOM.callsignModalInput ? DOM.callsignModalInput.value : '';
+      setCallsign(val, true);
+      closeModal(DOM.callsignModal);
+    });
+  }
+
+  if (DOM.callsignModalInput) {
+    DOM.callsignModalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sfx.playSuccess();
+        triggerHaptic(20);
+        setCallsign(DOM.callsignModalInput.value, true);
+        closeModal(DOM.callsignModal);
+      } else if (e.key === 'Escape') {
+        closeModal(DOM.callsignModal);
+      }
+    });
+  }
+
+  if (DOM.btnCancelCallsignModal) {
+    DOM.btnCancelCallsignModal.addEventListener('click', () => closeModal(DOM.callsignModal));
+  }
+  if (DOM.btnCloseCallsignModal) {
+    DOM.btnCloseCallsignModal.addEventListener('click', () => closeModal(DOM.callsignModal));
+  }
+
+  if (DOM.squadLeaderNameInput) {
+    DOM.squadLeaderNameInput.addEventListener('change', (e) => {
+      sfx.playBeep(600, 'sine', 0.04);
+      setCallsign(e.target.value, false);
+    });
+    DOM.squadLeaderNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sfx.playSuccess();
+        setCallsign(e.target.value, true);
+        e.target.blur();
+      }
+    });
+  }
+
   document.querySelectorAll('[data-squad-template]').forEach(btn => {
     btn.addEventListener('click', () => {
       applySquadTemplate(btn.dataset.squadTemplate);
@@ -3855,16 +3972,6 @@ function bindEventListeners() {
     });
   }
 
-  // RS Presets in Radar Modal
-  document.querySelectorAll('[data-preset-rs]').forEach(chip => {
-    chip.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(10);
-      const rsVal = parseFloat(chip.dataset.presetRs);
-      if (DOM.radarRsInput) DOM.radarRsInput.value = rsVal;
-      decodeRadarRS(rsVal);
-    });
-  });
 
   // Alpha 4.10: Cockpit Voice Assistant (TTS)
   if (DOM.btnVoiceTTS) {

@@ -8,6 +8,14 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [1.5.1] - 2026-10-15 - *Personnalisation de l'Indicatif Pilote & Épuration du Radar RS*
+
+#### ✨ Ajouté (Added)
+- **Personnalisation & Persistance de l'Indicatif de Pilote (Callsign)** : Modification et mémorisation automatique (`localStorage`) de l'indicatif opérationnel depuis le bandeau supérieur mobiGlas et depuis la carte Chef d'escadre avec boîte de dialogue dédiée.
+
+#### 🗑️ Supprimé (Removed)
+- **Préréglages Rapides du Radar RS** : Retrait des boutons superflus (Quant 1x à Bexalite) dans la modale du radar pour privilégier la saisie directe de la signature scannée sur le HUD.
+
 ### [1.5.0] - 2026-10-15 - *Refonte mobiGlas 4.0, Coordination de Flotte & Tourelles Unifiées*
 
 #### ✨ Ajouté (Added)
@@ -164,6 +172,14 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [1.5.1] - 2026-10-15 - *Pilot Callsign Customization & RS Radar Clean-up*
+
+#### ✨ Added
+- **Pilot Callsign Customization & Offline Persistence**: Edit and persist operational radio callsign via top mobiGlas header and Fleet squad leader card with dedicated modal editor and `localStorage` syncing.
+
+#### 🗑️ Removed
+- **RS Radar Signature Quick Presets**: Removed redundant signature chips (Quant 1x to Bexalite) from the radar modal in favor of direct HUD scan input.
 
 ### [1.5.0] - 2026-10-15 - *mobiGlas 4.0 Layout, Fleet Coordination & Unified Turrets*
 

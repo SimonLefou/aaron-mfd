@@ -426,6 +426,37 @@ html[data-layout="classic"] body {
   opacity: 0.35;
 }
 
+.mg-callsign-wrapper {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.mg-callsign-wrapper:hover {
+  background: rgba(0, 240, 255, 0.22);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.45);
+}
+
+.mg-callsign-icon {
+  font-size: 0.68rem;
+  color: var(--accent-cyan);
+  opacity: 0.8;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.mg-callsign-wrapper:hover .mg-callsign-icon {
+  opacity: 1;
+  transform: scale(1.25);
+}
+
 /* Center Live Lore Clock (2954 UTC) */
 .mg-header-center {
   display: flex;
