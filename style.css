@@ -467,11 +467,46 @@ html[data-layout="classic"] body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mobiglas);
-  font-size: 0.75rem;
-  font-weight: 700;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.mg-active-ship-tag:hover {
+  background: rgba(0, 240, 255, 0.16);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+.mg-ship-select {
+  background: transparent;
+  border: none;
   color: var(--accent-amber);
+  font-family: var(--font-mobiglas);
+  font-size: 0.8rem;
+  font-weight: 700;
   letter-spacing: 0.5px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 14px;
+}
+.mg-ship-select option {
+  background: #08121f;
+  color: #fff;
+  font-family: var(--font-hud);
+  font-size: 0.85rem;
+}
+.mg-ship-chevron {
+  font-size: 0.75rem;
+  color: var(--accent-cyan);
+  pointer-events: none;
+  margin-left: -10px;
 }
 
 .mg-ship-indicator {
@@ -483,6 +518,46 @@ html[data-layout="classic"] body {
 @keyframes pulseIndicator {
   0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 2px var(--accent-emerald)); }
   50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* MOLE Turret Bar in mobiGlas Header */
+.mg-mole-turret-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mobiglas);
+  font-size: 0.7rem;
+}
+.mg-turret-tag {
+  color: var(--accent-amber);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 0.68rem;
+}
+.mg-turret-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--font-mobiglas);
+  font-size: 0.68rem;
+  transition: all 0.15s ease;
+}
+.mg-turret-btn:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fff;
+}
+.mg-turret-btn.active {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+  color: #000;
+  font-weight: 700;
 }
 
 /* Right Header Controls */

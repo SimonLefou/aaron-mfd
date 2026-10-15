@@ -39,6 +39,7 @@ export const I18N = {
     titleStationRec: "Cliquer pour ouvrir le guide des stations et du Halo",
 
     // Ship options
+    loadoutSelectShip: "SÉLECTION DU VAISSEAU ACTIF",
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",
@@ -498,6 +499,7 @@ export const I18N = {
     titleStationRec: "Click to view Halo routes and refinery bonuses",
 
     // Ship options
+    loadoutSelectShip: "ACTIVE SHIP SELECTION",
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",

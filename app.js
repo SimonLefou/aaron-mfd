@@ -432,6 +432,9 @@ const cockpitVoice = new CockpitVoice();
 // ==========================================
 const DOM = {
   shipSelect: document.getElementById('shipSelect'),
+  mgShipSelect: document.getElementById('mgShipSelect'),
+  loadoutShipSelect: document.getElementById('loadoutShipSelect'),
+  mgShipBadge: document.getElementById('mgShipBadge'),
   btnOpenLoadout: document.getElementById('btnOpenLoadout'),
   loadoutSummary: document.getElementById('loadoutSummary'),
   qtTimerPill: document.getElementById('qtTimerPill'),
@@ -445,7 +448,7 @@ const DOM = {
   mobiglasSystemHeader: document.getElementById('mobiglasSystemHeader'),
   mgLoreClock: document.getElementById('mgLoreClock'),
   mgCallsignVal: document.getElementById('mgCallsignVal'),
-  mgActiveShipDisplay: document.getElementById('mgActiveShipDisplay'),
+  mgMoleTurretBar: document.getElementById('mgMoleTurretBar'),
   mgBalanceVal: document.getElementById('mgBalanceVal'),
   btnLayoutToggle: document.getElementById('btnLayoutToggle'),
   btnClassicLayoutToggle: document.getElementById('btnClassicLayoutToggle'),
@@ -1381,11 +1384,33 @@ function updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, lase
   }
 }
 
+function setShip(shipId) {
+  state.selectedShip = MINING_DATA.ships.find(s => s.id === shipId) || MINING_DATA.ships[0];
+  if (DOM.shipSelect && DOM.shipSelect.value !== state.selectedShip.id) {
+    DOM.shipSelect.value = state.selectedShip.id;
+  }
+  if (DOM.mgShipSelect && DOM.mgShipSelect.value !== state.selectedShip.id) {
+    DOM.mgShipSelect.value = state.selectedShip.id;
+  }
+  if (DOM.loadoutShipSelect && DOM.loadoutShipSelect.value !== state.selectedShip.id) {
+    DOM.loadoutShipSelect.value = state.selectedShip.id;
+  }
+
+  updateLaserOptions();
+  populateSecondaryOreSelect();
+  updateSaddlebagsUI();
+  updateHoldDisplay();
+  calculateAll();
+}
+
 function updateMobiglasHeader(ship, pureSCU, refinedPrice) {
   if (!DOM.mobiglasSystemHeader) return;
   const locale = getLocale();
-  if (DOM.mgActiveShipDisplay) {
-    DOM.mgActiveShipDisplay.textContent = `${ship.name.toUpperCase()} [${ship.scu} SCU]`;
+  if (DOM.mgShipSelect && DOM.mgShipSelect.value !== ship.id) {
+    DOM.mgShipSelect.value = ship.id;
+  }
+  if (DOM.loadoutShipSelect && DOM.loadoutShipSelect.value !== ship.id) {
+    DOM.loadoutShipSelect.value = ship.id;
   }
   if (DOM.mgBalanceVal) {
     let totalRefined = state.sessionLog.reduce((acc, x) => acc + x.refinedVal, 0);
@@ -1744,6 +1769,9 @@ function updateLaserOptions() {
   // Toggle header active turrets bar for MOLE
   if (DOM.moleTurretBar) {
     DOM.moleTurretBar.style.display = isMole ? 'flex' : 'none';
+  }
+  if (DOM.mgMoleTurretBar) {
+    DOM.mgMoleTurretBar.style.display = isMole ? 'flex' : 'none';
   }
 
   // Toggle modal sections
@@ -2250,15 +2278,17 @@ function setLanguage(lang) {
     DOM.btnToggleNumpad.textContent = isOpen ? t.closeKeypad : t.keypad;
   }
 
-  // 6. Update Ship select options text
-  if (DOM.shipSelect) {
-    const shipOpts = DOM.shipSelect.querySelectorAll('option');
+  // 6. Update Ship select options text across all ship selectors
+  [DOM.shipSelect, DOM.mgShipSelect, DOM.loadoutShipSelect].forEach(sel => {
+    if (!sel) return;
+    const shipOpts = sel.querySelectorAll('option');
     shipOpts.forEach(opt => {
       if (opt.value === 'prospector') opt.textContent = t.shipProspector;
       if (opt.value === 'mole') opt.textContent = t.shipMole;
       if (opt.value === 'roc') opt.textContent = t.shipRoc;
+      if (opt.value === 'roc_ds') opt.textContent = t.shipRocDs;
     });
-  }
+  });
 
   // 7. Update Theme select options text
   if (DOM.themeSelect) {
@@ -2474,13 +2504,7 @@ function applyPreset(preset) {
     setResistance(30);
     setInstability(25);
   } else if (preset === 'gem') {
-    const roc = MINING_DATA.ships.find(s => s.id === 'roc');
-    if (roc) {
-      state.selectedShip = roc;
-      DOM.shipSelect.value = 'roc';
-      updateLaserOptions();
-      updateHoldDisplay();
-    }
+    setShip('roc');
     const hd = MINING_DATA.minerals.find(m => m.id === 'hadanite');
     if (hd) selectMineral(hd);
     setMass(800);
@@ -2494,16 +2518,16 @@ function applyPreset(preset) {
 // TACTILE NUMPAD & QUICK CONTROLS
 // ==========================================
 function bindEventListeners() {
-  // Ship selection change
-  DOM.shipSelect.addEventListener('change', (e) => {
+  // Ship selection changes (classic header, mobiGlas header, loadout modal)
+  const onShipChange = (e) => {
     sfx.playBeep(600, 'sine', 0.05);
-    state.selectedShip = MINING_DATA.ships.find(s => s.id === e.target.value) || MINING_DATA.ships[0];
-    updateLaserOptions();
-    populateSecondaryOreSelect();
-    updateSaddlebagsUI();
-    updateHoldDisplay();
-    calculateAll();
-  });
+    triggerHaptic(15);
+    setShip(e.target.value);
+  };
+
+  if (DOM.shipSelect) DOM.shipSelect.addEventListener('change', onShipChange);
+  if (DOM.mgShipSelect) DOM.mgShipSelect.addEventListener('change', onShipChange);
+  if (DOM.loadoutShipSelect) DOM.loadoutShipSelect.addEventListener('change', onShipChange);
 
   // Quick Presets bar
   document.querySelectorAll('[data-preset]').forEach(btn => {
@@ -3562,8 +3586,7 @@ function loadSavedSession() {
       state.holdSCU = parsed.holdSCU || 0.0;
       state.sessionLog = parsed.sessionLog || [];
       if (parsed.shipId) {
-        state.selectedShip = MINING_DATA.ships.find(s => s.id === parsed.shipId) || state.selectedShip;
-        DOM.shipSelect.value = state.selectedShip.id;
+        setShip(parsed.shipId);
       }
       updateHoldDisplay();
     }
