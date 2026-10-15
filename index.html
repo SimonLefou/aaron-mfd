@@ -114,7 +114,7 @@
         </svg>
       </div>
       <div>
-        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.6.2</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.6.3</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
         <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
       </div>
     </div>
@@ -1538,22 +1538,22 @@
         <div class="guide-step-card">
           <div class="guide-step-badge">1</div>
           <div class="guide-step-body">
-            <h4 data-i18n="guideStep1Title">1. Vaisseau & Équipement</h4>
-            <p data-i18n="guideStep1Desc">Sélectionnez votre vaisseau en haut à gauche : MISC Prospector (32 SCU), Argo MOLE (96 SCU avec configuration de 1 à 3 tourelles actives) ou Greycat ROC (0.8 SCU). Cliquez sur le bouton laser pour équiper têtes de minage et modules.</p>
+            <h4 data-i18n="guideStep1Title">1. Vaisseau, Tourelles & Profils</h4>
+            <p data-i18n="guideStep1Desc">Sélectionnez votre vaisseau : MISC Prospector (32 SCU), Argo MOLE (96 SCU, 3 tourelles), RSI Arrastra (576 SCU, 3 tourelles S3), RSI Orion (2 880 SCU) ou Greycat ROC / ROC-DS. Ouvrez la modale Équipement pour configurer vos têtes laser, modules, gadgets et sauvegarder vos profils nommés personnalisés.</p>
           </div>
         </div>
         <div class="guide-step-card">
           <div class="guide-step-badge">2</div>
           <div class="guide-step-body">
-            <h4 data-i18n="guideStep2Title">2. Saisie du Scan Roche</h4>
-            <p data-i18n="guideStep2Desc">Dans le panneau de gauche, réglez la masse (pavé tactile ou pas à pas), la teneur en minerai (%), la résistance et l'instabilité, ou utilisez la commande vocale.</p>
+            <h4 data-i18n="guideStep2Title">2. Scan Roche, Géologie & Multi-Minerais</h4>
+            <p data-i18n="guideStep2Desc">Dans le panneau de scan, choisissez l'archétype géologique (Basalte, Granite, Obsidienne, etc.) et vos minerais (primaire et secondaire) : la résistance et l'instabilité sont recalculées automatiquement en direct ! Ajustez la masse et le pourcentage ou utilisez la commande vocale.</p>
           </div>
         </div>
         <div class="guide-step-card">
           <div class="guide-step-badge">3</div>
           <div class="guide-step-body">
-            <h4 data-i18n="guideStep3Title">3. Verdict Tactique & Action</h4>
-            <p data-i18n="guideStep3Desc">Observez le verdict instantané dans le panneau de droite : faisabilité de charge laser, rentabilité brute vs raffinée, recommandation de gadget et station idéale. Chargez la soute, simulez les sous-roches ou envoyez en raffinage !</p>
+            <h4 data-i18n="guideStep3Title">3. Verdict Tactique, Soute & Actions</h4>
+            <p data-i18n="guideStep3Desc">Consultez le verdict instantané dans le panneau tactique : faisabilité de charge laser, rentabilité brute vs raffinée, recommandation de gadget et raffinerie optimale. Chargez la soute, détachez vos sacoches amovibles, simulez les sous-roches ou envoyez en raffinage !</p>
           </div>
         </div>
       </div>
@@ -1584,6 +1584,27 @@
           </div>
           <div class="guide-tool-card">
             <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">📡</span>
+              <strong data-i18n="guideToolRadarTitle">Décodeur Radar Ping RS 2.0</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolRadarDesc">Décode la signature radar (RS) scannée à distance sur le HUD. Identifie en un clin d'œil la composition minérale probable, la masse et le multiplicateur de roche (x1 à x8), avec bouton de chargement direct dans le scanner.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">👥</span>
+              <strong data-i18n="guideToolFleetTitle">Coordination d'Escouade & Flotte</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolFleetDesc">Ajoutez vos ailiers (Prospector, MOLE, ROC, cargos C2). Cumule la puissance de feu de tous les lasers de la flotte, réduit conjointement la résistance des roches colossales et calcule la répartition nette des gains par joueur.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">🎒</span>
+              <strong data-i18n="guideToolProfilesTitle">Profils Nommés & Sacoches Détachables</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideToolProfilesDesc">Enregistrez et nommez plusieurs configurations d'équipement (têtes, modules, gadgets) avec persistance hors-ligne. Suivez et détachez vos sacoches amovibles (Saddlebags 4.10) au rayon tracteur pour continuer à miner sans retour station.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
               <span style="font-size:1.1rem;">🌸</span>
               <strong data-i18n="guideToolRocTitle">Mode Cluster de Gemmes ROC</strong>
             </div>
@@ -1609,6 +1630,20 @@
       <!-- TAB 3: PRO TIPS -->
       <div class="guide-tab-panel" id="guidePanelTips" style="display:none;">
         <div class="guide-tools-grid">
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">⚡</span>
+              <strong data-i18n="guideTipMobiglasTitle">Interface mobiGlas 4.0 & Dock Tactique</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideTipMobiglasDesc">Basculez entre le mode Cockpit MFD classique et la vue holographique mobiGlas 4.0 (grille néon, cornières tactiques et scanlines CRT). Accédez instantanément aux 9 applications via le dock inférieur.</div>
+          </div>
+          <div class="guide-tool-card">
+            <div class="guide-tool-header">
+              <span style="font-size:1.1rem;">🎙️</span>
+              <strong data-i18n="guideTipVoiceTtsTitle">Voix de Bord (TTS) & Indicatif Pilote</strong>
+            </div>
+            <div class="guide-tool-desc" data-i18n="guideTipVoiceTtsDesc">Activez les alertes et annonces vocales cockpit 100% hors-ligne (cible verrouillée, saturation laser, surchauffe). Personnalisez votre indicatif radio (Callsign) directement depuis le bandeau mobiGlas supérieur.</div>
+          </div>
           <div class="guide-tool-card">
             <div class="guide-tool-header">
               <span style="font-size:1.1rem;">👥</span>
@@ -1676,14 +1711,32 @@
 
       <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
 
-        <!-- VERSION 1.6.2 -->
+        <!-- VERSION 1.6.3 -->
         <div class="changelog-card current-version">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill current">v1.6.2</span>
-              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Recalcul Réactif Automatique Géologie & Minerais</strong>
+              <span class="version-tag-pill current">v1.6.3</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Refonte du Manuel & Guide Prise en Main (4.10)</strong>
             </div>
             <span class="changelog-date">Dernière version (Alpha 4.10)</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag improved" data-i18n="tagImproved">OPTIMISÉ</span>
+              <span><strong>Manuel Interactif Entièrement Actualisé</strong> : Intégration des nouveaux vaisseaux (Arrastra, Orion, ROC-DS), des archétypes géologiques avec calcul réactif, du décodeur Radar RS 2.0, de la coordination d'escouade multi-joueurs et du mode mobiGlas 4.0.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- VERSION 1.6.2 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill">v1.6.2</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Recalcul Réactif Automatique Géologie & Minerais</strong>
+            </div>
+            <span class="changelog-date">Version précédente (Alpha 4.10)</span>
           </div>
 
           <ul class="changelog-list">
@@ -2056,17 +2109,17 @@
       <span>•</span>
       <span class="footer-link" id="btnOpenDonateFooter" style="color:#fbbf24; font-weight:700;" data-i18n="support">💛 Soutenir</span>
       <span>•</span>
-      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.6.2)</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.6.3)</span>
       <span>•</span>
       <span class="footer-link" id="btnInstallPWA" data-i18n="installPWA">📱 Installer sur écran d'accueil</span>
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.6.2)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.6.3)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.6.2 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.6.3 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
-  <script type="module" src="app.js?v=1.6.2"></script>
+  <script type="module" src="app.js?v=1.6.3"></script>
 </body>
 </html>

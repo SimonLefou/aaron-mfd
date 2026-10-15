@@ -141,12 +141,27 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.6.2',
+    version: 'v1.6.3',
     isCurrent: true,
-    title_fr: 'Recalcul Réactif Automatique Géologie & Minerais',
-    title_en: 'Automatic Reactive Recalculation for Geology & Minerals',
+    title_fr: 'Refonte du Manuel & Guide Prise en Main (4.10)',
+    title_en: 'Operating Manual & Walkthrough Guide Overhaul (4.10)',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'improved',
+        text_fr: '<strong>Manuel Interactif Complètement Actualisé</strong> : Intégration des nouveaux vaisseaux (Arrastra, Orion, ROC-DS), des archétypes géologiques réactifs, du décodeur Radar RS 2.0, de la coordination d\'escouade et du mode mobiGlas 4.0.',
+        text_en: '<strong>Operating Manual Fully Updated</strong>: Detailed walkthroughs for new mining ships (Arrastra, Orion, ROC-DS), reactive archetypes, Radar RS 2.0 decoder, wing multiplayer coordination, and holographic mobiGlas 4.0.'
+      }
+    ]
+  },
+  {
+    version: 'v1.6.2',
+    isCurrent: false,
+    title_fr: 'Recalcul Réactif Automatique Géologie & Minerais',
+    title_en: 'Automatic Reactive Recalculation for Geology & Minerals',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'improved',

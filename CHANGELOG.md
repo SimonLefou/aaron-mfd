@@ -8,6 +8,13 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [1.6.3] - 2026-10-15 - *Refonte du Manuel & Guide Prise en Main (Alpha 4.10)*
+
+#### 📖 Documentation & Ergonomie (Manual & Guide Overhaul)
+- **Manuel & Prise en Main Mis à Jour** : Réécriture complète des 3 étapes du démarrage rapide pour intégrer les vaisseaux lourds (Arrastra, Orion, ROC-DS), le gestionnaire de profils nommés et les archétypes géologiques réactifs.
+- **Nouveaux Outils Tactiques Documentés** : Ajout de fiches explicatives détaillées pour le Décodeur Radar RS 2.0, la Coordination d'escouade & flotte multi-joueurs, et le détachement des sacoches amovibles (Saddlebags).
+- **Astuces mobiGlas 4.0 & Cockpit** : Présentation du mode holographique avec dock d'applications rapide, de la synthèse vocale (TTS) et de la personnalisation de l'indicatif pilote.
+
 ### [1.6.2] - 2026-10-15 - *Recalcul Réactif Automatique Géologie & Minerais*
 
 #### ⚡ Optimisé (Improved)
@@ -192,6 +199,13 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [1.6.3] - 2026-10-15 - *Operating Manual & Walkthrough Guide Overhaul (Alpha 4.10)*
+
+#### 📖 Documentation & Walkthrough
+- **Full Guide Overhaul**: Completely updated Quickstart steps to cover heavy industrial mining ships (RSI Arrastra, RSI Orion, Greycat ROC-DS), named custom loadout profiles, and reactive rock archetypes.
+- **Newly Added Tool Reference Cards**: Detailed operating guides for Radar Ping RS 2.0 Decoder, Multiplayer Fleet & Wing Coordination, and Tractor Beam Saddlebags management.
+- **mobiGlas 4.0 & Flight Tips**: Step-by-step guidance on holographic mobiGlas layout with quick app dock, 100% offline Cockpit Voice TTS callouts, and pilot callsign customization.
 
 ### [1.6.2] - 2026-10-15 - *Automatic Reactive Recalculation for Geology & Minerals*
 
