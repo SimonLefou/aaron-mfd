@@ -435,6 +435,9 @@ const DOM = {
   mgShipSelect: document.getElementById('mgShipSelect'),
   loadoutShipSelect: document.getElementById('loadoutShipSelect'),
   mgShipBadge: document.getElementById('mgShipBadge'),
+  mainLaserSelect: document.getElementById('mainLaserSelect'),
+  btnQuickOpenLoadout: document.getElementById('btnQuickOpenLoadout'),
+  laserSectionLabel: document.getElementById('laserSectionLabel'),
   btnOpenLoadout: document.getElementById('btnOpenLoadout'),
   loadoutSummary: document.getElementById('loadoutSummary'),
   qtTimerPill: document.getElementById('qtTimerPill'),
@@ -1702,7 +1705,7 @@ function updateMoleTurretHeaderSummary(turretNum) {
   const cfg = state.moleTurrets ? state.moleTurrets[tKey] : null;
   const summaryEl = DOM[`moleTurret${turretNum}Summary`];
   if (!cfg || !summaryEl) return;
-  const laser = MINING_DATA.lasers.find(l => l.id === cfg.laserId) || MINING_DATA.lasers[4];
+  const laser = MINING_DATA.lasers.find(l => l.id === cfg.laserId && l.size === 2) || MINING_DATA.lasers.find(l => l.size === 2) || MINING_DATA.lasers[0];
   const slotCount = laser.slots ?? 2;
   const activeModsCount = (cfg.moduleIds || []).slice(0, slotCount).filter(m => m !== 'none').length;
   summaryEl.textContent = `${laser.name} (${activeModsCount}/${slotCount} mods)`;
@@ -1740,7 +1743,7 @@ function populateMoleSelects() {
     item.sel.innerHTML = '';
     size2Lasers.forEach(l => {
       const desc = getLocalized(l, 'desc');
-      const opt = new Option(`${l.name} (${l.power} W • ${l.slots} slots) - ${desc.slice(0, 35)}...`, l.id);
+      const opt = new Option(`${l.name} (S2 • ${l.slots} slots • ${l.power} W) - ${desc.slice(0, 32)}...`, l.id);
       item.sel.appendChild(opt);
     });
     item.sel.value = item.cfg.laserId;
@@ -1754,6 +1757,14 @@ function populateMoleSelects() {
       sfx.playBeep(600, 'sine', 0.04);
       item.cfg.laserId = e.target.value;
       const newL = MINING_DATA.lasers.find(l => l.id === e.target.value) || size2Lasers[0];
+      if (idx === 0) {
+        state.selectedLaser = newL;
+        if (DOM.laserSelect) DOM.laserSelect.value = newL.id;
+        if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = newL.id;
+        if (DOM.laserDescText) DOM.laserDescText.textContent = getLocalized(newL, 'desc');
+        renderLaserStatsStrip(DOM.laserStatsStrip, newL);
+        renderLaserModuleSlots(DOM.singleLaserSlotsContainer, newL.slots ?? 0, item.cfg.moduleIds, 'mole_t1');
+      }
       renderLaserStatsStrip(item.statsStrip, newL);
       renderLaserModuleSlots(item.container, newL.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
       updateMoleTurretHeaderSummary(idx + 1);
@@ -1765,6 +1776,8 @@ function populateMoleSelects() {
 
 function updateLaserOptions() {
   const isMole = state.selectedShip.id === 'mole';
+  const shipSize = state.selectedShip.laserSize;
+  const t = I18N[state.currentLang] || I18N.fr;
 
   // Toggle header active turrets bar for MOLE
   if (DOM.moleTurretBar) {
@@ -1774,34 +1787,57 @@ function updateLaserOptions() {
     DOM.mgMoleTurretBar.style.display = isMole ? 'flex' : 'none';
   }
 
-  // Toggle modal sections
+  // Toggle modal sections: keep singleLaserSection visible for all ships (represents Primary Turret 1 for MOLE)
   if (DOM.singleLaserSection && DOM.moleTurretsSection) {
-    DOM.singleLaserSection.style.display = isMole ? 'none' : 'block';
+    DOM.singleLaserSection.style.display = 'block';
     DOM.moleTurretsSection.style.display = isMole ? 'block' : 'none';
+  }
+
+  if (DOM.laserSectionLabel) {
+    DOM.laserSectionLabel.textContent = isMole 
+      ? (state.currentLang === 'en' ? "SIZE 2 MINING LASER (PRIMARY TURRET 1)" : "TÊTE DE MINAGE SIZE 2 (TOURELLE CENTRALE 1)")
+      : (t.miningLaser || "TÊTE DE MINAGE (LASER)");
+  }
+
+  // Lasers compatible with current ship size (S1 for Prospector/ROC, S2 for MOLE)
+  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === shipSize || (shipSize === 0 && l.size === 0));
+
+  // Populate main laser selects across modal and Panel 1
+  [DOM.laserSelect, DOM.mainLaserSelect].forEach(sel => {
+    if (!sel) return;
+    sel.innerHTML = '';
+    compatibleLasers.forEach(laser => {
+      const slotText = laser.slots !== undefined ? ` • ${laser.slots} slot(s)` : '';
+      const opt = new Option(`${laser.name} (S${laser.size}${slotText})`, laser.id);
+      sel.appendChild(opt);
+    });
+  });
+
+  if (compatibleLasers.length > 0) {
+    if (isMole) {
+      const moleLaser = compatibleLasers.find(l => l.id === state.moleTurrets.turret1.laserId) || compatibleLasers[0];
+      state.selectedLaser = moleLaser;
+      state.moleTurrets.turret1.laserId = moleLaser.id;
+    } else {
+      if (!compatibleLasers.some(l => l.id === state.selectedLaser.id)) {
+        state.selectedLaser = compatibleLasers[0];
+      }
+    }
+
+    if (DOM.laserSelect) DOM.laserSelect.value = state.selectedLaser.id;
+    if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = state.selectedLaser.id;
+    if (DOM.laserDescText) DOM.laserDescText.textContent = getLocalized(state.selectedLaser, 'desc');
+    renderLaserStatsStrip(DOM.laserStatsStrip, state.selectedLaser);
+    renderLaserModuleSlots(
+      DOM.singleLaserSlotsContainer,
+      state.selectedLaser.slots ?? 0,
+      isMole ? state.moleTurrets.turret1.moduleIds : state.selectedModules,
+      isMole ? 'mole_t1' : 'single'
+    );
   }
 
   if (isMole) {
     populateMoleSelects();
-  } else {
-    DOM.laserSelect.innerHTML = '';
-    const shipSize = state.selectedShip.laserSize;
-    const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === shipSize || (shipSize === 0 && l.size === 0));
-
-    compatibleLasers.forEach(laser => {
-      const slotText = laser.slots !== undefined ? ` • ${laser.slots} slot(s)` : '';
-      const opt = new Option(`${laser.name} (S${laser.size}${slotText})`, laser.id);
-      DOM.laserSelect.appendChild(opt);
-    });
-
-    if (compatibleLasers.length > 0) {
-      if (!compatibleLasers.some(l => l.id === state.selectedLaser.id)) {
-        state.selectedLaser = compatibleLasers[0];
-      }
-      DOM.laserSelect.value = state.selectedLaser.id;
-      DOM.laserDescText.textContent = getLocalized(state.selectedLaser, 'desc');
-      renderLaserStatsStrip(DOM.laserStatsStrip, state.selectedLaser);
-      renderLaserModuleSlots(DOM.singleLaserSlotsContainer, state.selectedLaser.slots ?? 0, state.selectedModules, 'single');
-    }
   }
 
   updateLoadoutButtonSummary();
@@ -1911,7 +1947,7 @@ function calculateAll() {
 
     for (let i = 0; i < activeCount; i++) {
       const item = turretList[i];
-      const l = MINING_DATA.lasers.find(x => x.id === item.cfg.laserId) || MINING_DATA.lasers[4];
+      const l = MINING_DATA.lasers.find(x => x.id === item.cfg.laserId && x.size === 2) || MINING_DATA.lasers.find(x => x.size === 2) || MINING_DATA.lasers[0];
       const slotCount = l.slots !== undefined ? l.slots : 2;
       const turretMods = (item.cfg.moduleIds || []).slice(0, slotCount).map(id => MINING_DATA.modules.find(m => m.id === id) || MINING_DATA.modules[0]);
 
@@ -2831,20 +2867,46 @@ function bindEventListeners() {
     calculateAll();
   });
 
-  // Laser select change in modal
-  DOM.laserSelect.addEventListener('change', (e) => {
+  // Laser select changes (modal laserSelect and Panel 1 mainLaserSelect)
+  const onMainLaserChange = (e) => {
     sfx.playBeep(600, 'sine', 0.04);
+    triggerHaptic(12);
     const l = MINING_DATA.lasers.find(x => x.id === e.target.value);
-    if (l) {
-      state.selectedLaser = l;
-      DOM.laserDescText.textContent = getLocalized(l, 'desc');
-      renderLaserStatsStrip(DOM.laserStatsStrip, l);
-      renderLaserModuleSlots(DOM.singleLaserSlotsContainer, l.slots ?? 0, state.selectedModules, 'single');
-      updateLoadoutButtonSummary();
-      calculateAll();
-      saveLoadout();
+    if (!l) return;
+    state.selectedLaser = l;
+    if (DOM.laserSelect && DOM.laserSelect.value !== l.id) DOM.laserSelect.value = l.id;
+    if (DOM.mainLaserSelect && DOM.mainLaserSelect.value !== l.id) DOM.mainLaserSelect.value = l.id;
+
+    if (state.selectedShip.id === 'mole') {
+      state.moleTurrets.turret1.laserId = l.id;
+      if (DOM.moleLaser1 && DOM.moleLaser1.value !== l.id) DOM.moleLaser1.value = l.id;
+      updateMoleTurretHeaderSummary(1);
     }
-  });
+
+    if (DOM.laserDescText) DOM.laserDescText.textContent = getLocalized(l, 'desc');
+    renderLaserStatsStrip(DOM.laserStatsStrip, l);
+    renderLaserModuleSlots(
+      DOM.singleLaserSlotsContainer,
+      l.slots ?? 0,
+      state.selectedShip.id === 'mole' ? state.moleTurrets.turret1.moduleIds : state.selectedModules,
+      state.selectedShip.id === 'mole' ? 'mole_t1' : 'single'
+    );
+    updateLoadoutButtonSummary();
+    calculateAll();
+    saveLoadout();
+  };
+
+  if (DOM.laserSelect) DOM.laserSelect.addEventListener('change', onMainLaserChange);
+  if (DOM.mainLaserSelect) DOM.mainLaserSelect.addEventListener('change', onMainLaserChange);
+
+  if (DOM.btnQuickOpenLoadout) {
+    DOM.btnQuickOpenLoadout.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(15);
+      openModal(DOM.loadoutModal);
+      updateLaserOptions();
+    });
+  }
 
   // Language switch
   if (DOM.btnLangToggle) {

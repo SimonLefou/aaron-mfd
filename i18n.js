@@ -40,6 +40,7 @@ export const I18N = {
 
     // Ship options
     loadoutSelectShip: "SÉLECTION DU VAISSEAU ACTIF",
+    loadoutBtnShortcut: "⚙ MODIFIER",
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",
@@ -500,6 +501,7 @@ export const I18N = {
 
     // Ship options
     loadoutSelectShip: "ACTIVE SHIP SELECTION",
+    loadoutBtnShortcut: "⚙ LOADOUT",
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",

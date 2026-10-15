@@ -560,6 +560,23 @@ html[data-layout="classic"] body {
   font-weight: 700;
 }
 
+/* Active Laser Strip in Panel 1 */
+.active-laser-strip {
+  transition: all 0.2s ease;
+}
+.active-laser-strip:hover {
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+.active-laser-strip select:focus {
+  outline: none;
+}
+.active-laser-strip option {
+  background: #08121f;
+  color: #fff;
+  font-family: var(--font-hud);
+}
+
 /* Right Header Controls */
 .mg-header-right {
   display: flex;

@@ -357,6 +357,17 @@
         <div class="panel-subtag" data-i18n="quickTactile">SAISIE RAPIDE TACTILE</div>
       </div>
 
+      <!-- ACTIVE MINING LASER QUICK SELECTOR -->
+      <div class="active-laser-strip" id="activeLaserStrip" style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,240,255,0.04); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:6px 12px; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:0.78rem; color:var(--accent-cyan); font-family:var(--font-hud); font-weight:700;">⚡ LASER :</span>
+          <select id="mainLaserSelect" class="hud-select-compact" style="font-family:var(--font-mono); font-size:0.85rem; font-weight:700; color:#fff; background:transparent; border:none; outline:none; cursor:pointer;" aria-label="Sélectionner le laser actif">
+            <!-- Populated dynamically with S1 or S2 lasers -->
+          </select>
+        </div>
+        <button type="button" class="chip-btn" id="btnQuickOpenLoadout" style="padding:4px 10px; font-size:0.7rem; border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;" data-i18n="loadoutBtnShortcut">⚙ MODIFIER</button>
+      </div>
+
       <!-- MASS INPUT SECTION -->
       <div class="input-group">
         <div class="label-row">
@@ -843,7 +854,7 @@
       <!-- SINGLE LASER SECTION (Prospector & ROC) -->
       <div id="singleLaserSection">
         <div class="input-group">
-          <label class="label-row" data-i18n="miningLaser">TÊTE DE MINAGE (LASER)</label>
+          <label class="label-row" id="laserSectionLabel" data-i18n="miningLaser">TÊTE DE MINAGE (LASER)</label>
           <select id="laserSelect" class="hud-select-full">
             <!-- lasers populated -->
           </select>
