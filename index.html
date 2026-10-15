@@ -305,16 +305,24 @@
           <span data-i18n="rockArchetypeLabel">ARCHÉTYPE GÉOLOGIQUE DE LA ROCHE</span>
           <span class="label-val" id="selectedArchetypeLabel" style="color:var(--accent-cyan); font-weight:700;">Basalte (Dense)</span>
         </div>
-        <div class="archetype-scroller" id="archetypeScroller" style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px;">
+        
+        <!-- Fast Dropdown Select Option -->
+        <select class="mfd-select" id="archetypeSelect" style="margin-bottom:8px; width:100%; font-weight:600;" aria-label="Sélectionner l'archétype géologique">
+          <!-- Dynamically populated via MINING_DATA.rockArchetypes -->
+        </select>
+
+        <!-- 3x3 Ergonomic Multi-line Grid: all 9 archetypes visible without scrolling -->
+        <div class="archetype-grid" id="archetypeScroller">
           <!-- Populated dynamically via MINING_DATA.rockArchetypes -->
         </div>
-        <div class="archetype-info-box" id="archetypeInfoBox" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:8px 10px;">
+
+        <div class="archetype-info-box" id="archetypeInfoBox" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:8px 10px; margin-top:8px;">
           <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4;" id="archetypeDescText">
             Roche volcanique sombre et dense. Très répandue sur les lunes volcaniques et ceintures denses.
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.72rem; color:var(--accent-cyan); flex-wrap:wrap; gap:6px;">
             <span id="archetypeStatsText" style="font-family:var(--font-mono);">Densité: 3.0 • Résistance base: 45% • Instabilité base: 35%</span>
-            <button class="chip-btn" id="btnAutoCalcProps" style="padding:3px 8px; font-size:0.7rem; border-color:var(--accent-cyan); color:var(--accent-cyan);" data-i18n="btnAutoCalcProps">Auto-calculer</button>
+            <button class="chip-btn" id="btnAutoCalcProps" style="padding:4px 10px; font-size:0.72rem; border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;" data-i18n="btnAutoCalcProps">⚡ Calibrer Géologie</button>
           </div>
         </div>
       </div>

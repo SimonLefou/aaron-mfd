@@ -448,6 +448,7 @@ const DOM = {
 
   // Rock Archetype (4.10)
   selectedArchetypeLabel: document.getElementById('selectedArchetypeLabel'),
+  archetypeSelect: document.getElementById('archetypeSelect'),
   archetypeScroller: document.getElementById('archetypeScroller'),
   archetypeDescText: document.getElementById('archetypeDescText'),
   archetypeStatsText: document.getElementById('archetypeStatsText'),
@@ -748,30 +749,56 @@ function selectMineral(min) {
 // FEATURE: ROCK ARCHETYPES (4.10)
 // ==========================================
 function populateArchetypes() {
-  if (!DOM.archetypeScroller || !MINING_DATA.rockArchetypes) return;
-  DOM.archetypeScroller.innerHTML = '';
+  if (!MINING_DATA.rockArchetypes) return;
 
-  MINING_DATA.rockArchetypes.forEach(arch => {
-    const btn = document.createElement('button');
-    const isActive = state.selectedArchetype && state.selectedArchetype.id === arch.id;
-    btn.className = `archetype-chip ${isActive ? 'active' : ''}`;
-    btn.dataset.id = arch.id;
-    btn.innerHTML = `<span style="color:${arch.color};">●</span> ${getLocalized(arch, 'name')}`;
-
-    btn.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(10);
-      selectArchetype(arch, true);
+  // 1. Populate Dropdown Select
+  if (DOM.archetypeSelect) {
+    const prevVal = state.selectedArchetype ? state.selectedArchetype.id : MINING_DATA.rockArchetypes[0].id;
+    DOM.archetypeSelect.innerHTML = '';
+    MINING_DATA.rockArchetypes.forEach(arch => {
+      const opt = document.createElement('option');
+      opt.value = arch.id;
+      opt.textContent = `${getLocalized(arch, 'name')} • R:${arch.baseResistance}% • I:${arch.baseInstability}% (Densité: ${arch.density})`;
+      DOM.archetypeSelect.appendChild(opt);
     });
+    DOM.archetypeSelect.value = prevVal;
+  }
 
-    DOM.archetypeScroller.appendChild(btn);
-  });
+  // 2. Populate Ergonomic 3x3 Grid
+  if (DOM.archetypeScroller) {
+    DOM.archetypeScroller.innerHTML = '';
+    MINING_DATA.rockArchetypes.forEach(arch => {
+      const btn = document.createElement('button');
+      const isActive = state.selectedArchetype && state.selectedArchetype.id === arch.id;
+      btn.className = `archetype-chip ${isActive ? 'active' : ''}`;
+      btn.dataset.id = arch.id;
+      btn.setAttribute('type', 'button');
+      btn.innerHTML = `
+        <div class="archetype-chip-top">
+          <span style="color:${arch.color};">●</span>
+          <span>${getLocalized(arch, 'name')}</span>
+        </div>
+        <div class="archetype-chip-sub">R: ${arch.baseResistance}% • I: ${arch.baseInstability}%</div>
+      `;
+
+      btn.addEventListener('click', () => {
+        sfx.playBeep(650, 'sine', 0.04);
+        triggerHaptic(10);
+        selectArchetype(arch, true);
+      });
+
+      DOM.archetypeScroller.appendChild(btn);
+    });
+  }
 
   updateArchetypeDisplay();
 }
 
 function selectArchetype(arch, autoCalc = false) {
   state.selectedArchetype = arch;
+  if (DOM.archetypeSelect) {
+    DOM.archetypeSelect.value = arch.id;
+  }
   document.querySelectorAll('.archetype-chip').forEach(b => {
     b.classList.toggle('active', b.dataset.id === arch.id);
   });
@@ -2488,6 +2515,16 @@ function bindEventListeners() {
   if (DOM.btnForceRefresh) {
     DOM.btnForceRefresh.addEventListener('click', () => {
       forceRefreshCache();
+    });
+  }
+
+  // Alpha 4.10: Archetype Dropdown Change Listener
+  if (DOM.archetypeSelect) {
+    DOM.archetypeSelect.addEventListener('change', (e) => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(10);
+      const chosen = MINING_DATA.rockArchetypes.find(a => a.id === e.target.value);
+      if (chosen) selectArchetype(chosen, true);
     });
   }
 
