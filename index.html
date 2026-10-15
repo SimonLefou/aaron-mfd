@@ -313,54 +313,6 @@
         <div class="panel-subtag" data-i18n="quickTactile">SAISIE RAPIDE TACTILE</div>
       </div>
 
-      <!-- MOBIGLAS HOLOGRAPHIC SCANNER RETICLE -->
-      <div class="mobiglas-scan-reticle" id="mobiglasScanReticle">
-        <div class="reticle-hud-brackets">
-          <span class="corner-tl"></span>
-          <span class="corner-tr"></span>
-          <span class="corner-bl"></span>
-          <span class="corner-br"></span>
-        </div>
-        <div class="reticle-top-status">
-          <span class="reticle-scan-lock" id="reticleScanLock">[ CIBLE VERROUILLÉE // 42.8m ]</span>
-          <span class="reticle-archetype-tag" id="reticleArchetypeDisplay">ARCHÉTYPE : BASALTE</span>
-        </div>
-        
-        <div class="reticle-center-viewport">
-          <svg class="reticle-svg" viewBox="0 0 260 170" width="100%" height="160">
-            <defs>
-              <radialGradient id="rockCoreGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.35"/>
-                <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
-              </radialGradient>
-            </defs>
-            <!-- Outer Target Range Ring (rotating / dashed) -->
-            <circle class="reticle-ring-dashed" cx="130" cy="85" r="70" fill="none" stroke="rgba(0, 240, 255, 0.35)" stroke-width="1.5" stroke-dasharray="6, 6" />
-            <circle class="reticle-ring-inner" cx="130" cy="85" r="56" fill="none" stroke="rgba(0, 240, 255, 0.2)" stroke-width="1" />
-            <circle cx="130" cy="85" r="45" fill="url(#rockCoreGlow)" />
-            
-            <!-- Crosshairs & Range Notches -->
-            <line x1="45" y1="85" x2="62" y2="85" stroke="var(--accent-cyan)" stroke-width="1.5" />
-            <line x1="198" y1="85" x2="215" y2="85" stroke="var(--accent-cyan)" stroke-width="1.5" />
-            <line x1="130" y1="15" x2="130" y2="30" stroke="var(--accent-cyan)" stroke-width="1.5" />
-            <line x1="130" y1="140" x2="130" y2="155" stroke="var(--accent-cyan)" stroke-width="1.5" />
-
-            <!-- Dynamic 3D Faceted Asteroid Wireframe -->
-            <polygon class="reticle-rock-facet" points="130,48 165,64 156,108 130,124 104,108 95,64" fill="rgba(0, 240, 255, 0.08)" stroke="#00f0ff" stroke-width="1.8" />
-            <polyline class="reticle-rock-wire" points="130,48 130,85 104,108" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
-            <polyline class="reticle-rock-wire" points="130,85 156,108" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
-            <polyline class="reticle-rock-wire" points="130,85 165,64" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
-            <polyline class="reticle-rock-wire" points="130,85 95,64" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
-            <polyline class="reticle-rock-wire" points="130,85 130,124" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
-            
-            <!-- Pitch/Yaw Compass Telemetry -->
-            <text x="68" y="81" class="reticle-svg-telemetry" fill="rgba(0,240,255,0.7)" font-size="8" font-family="var(--font-mono)">AZ 184°</text>
-            <text x="165" y="81" class="reticle-svg-telemetry" fill="rgba(0,240,255,0.7)" font-size="8" font-family="var(--font-mono)">EL +12°</text>
-            <text x="130" y="165" class="reticle-svg-telemetry" text-anchor="middle" fill="rgba(0,240,255,0.85)" font-size="9" font-family="var(--font-mono)" id="reticleDensityDisplay">DENSITÉ : 3.8 g/cm³ // COMPACT</text>
-          </svg>
-        </div>
-      </div>
-
       <!-- MASS INPUT SECTION -->
       <div class="input-group">
         <div class="label-row">

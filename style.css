@@ -281,10 +281,6 @@ html[data-layout="mobiglas"] body {
   display: flex !important;
 }
 
-[data-layout="mobiglas"] .mobiglas-scan-reticle {
-  display: block !important;
-}
-
 [data-layout="mobiglas"] .arc-fracture-gauge-wrapper {
   display: block !important;
 }
@@ -308,7 +304,6 @@ html[data-layout="mobiglas"] body {
 }
 
 [data-layout="mobiglas"] .mg-clock-digital,
-[data-layout="mobiglas"] .reticle-svg-telemetry,
 [data-layout="mobiglas"] .arc-text-laser-name,
 [data-layout="mobiglas"] .mg-sub-item,
 [data-layout="mobiglas"] .label-val,
@@ -327,10 +322,6 @@ html[data-layout="classic"] body {
 }
 
 [data-layout="classic"] .mobiglas-system-header {
-  display: none !important;
-}
-
-[data-layout="classic"] .mobiglas-scan-reticle {
   display: none !important;
 }
 
@@ -574,100 +565,7 @@ html[data-layout="classic"] body {
 }
 
 /* ==========================================================================
-   2. HOLOGRAPHIC 3D ROCK SCANNER RETICLE
-   ========================================================================== */
-.mobiglas-scan-reticle {
-  display: none; /* Controlled by data-layout */
-  background: radial-gradient(circle at center, rgba(8, 24, 48, 0.75) 0%, rgba(4, 12, 24, 0.9) 100%);
-  border: 1px solid rgba(0, 240, 255, 0.35);
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 14px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 25px rgba(0, 240, 255, 0.08);
-}
-
-.reticle-hud-brackets .corner-tl,
-.reticle-hud-brackets .corner-tr,
-.reticle-hud-brackets .corner-bl,
-.reticle-hud-brackets .corner-br {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  pointer-events: none;
-}
-.reticle-hud-brackets .corner-tl { top: 4px; left: 4px; border-top: 2px solid var(--accent-cyan); border-left: 2px solid var(--accent-cyan); }
-.reticle-hud-brackets .corner-tr { top: 4px; right: 4px; border-top: 2px solid var(--accent-cyan); border-right: 2px solid var(--accent-cyan); }
-.reticle-hud-brackets .corner-bl { bottom: 4px; left: 4px; border-bottom: 2px solid var(--accent-cyan); border-left: 2px solid var(--accent-cyan); }
-.reticle-hud-brackets .corner-br { bottom: 4px; right: 4px; border-bottom: 2px solid var(--accent-cyan); border-right: 2px solid var(--accent-cyan); }
-
-.reticle-top-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-sc-telemetry);
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  margin-bottom: 4px;
-  padding: 0 4px;
-}
-
-.reticle-scan-lock {
-  color: var(--accent-emerald);
-  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-  animation: scanLockPulse 2.4s infinite ease-in-out;
-}
-
-@keyframes scanLockPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.65; }
-}
-
-.reticle-archetype-tag {
-  background: rgba(0, 240, 255, 0.1);
-  border: 1px solid rgba(0, 240, 255, 0.35);
-  color: var(--accent-cyan);
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 0.68rem;
-}
-
-.reticle-center-viewport {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.reticle-svg {
-  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.25));
-}
-
-.reticle-ring-dashed {
-  animation: spinReticle 30s linear infinite;
-  transform-origin: 130px 85px;
-}
-
-@keyframes spinReticle {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.reticle-rock-facet,
-.reticle-rock-wire {
-  animation: holoRockFloat 4s ease-in-out infinite;
-  transform-origin: 130px 85px;
-}
-
-@keyframes holoRockFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-
-/* ==========================================================================
-   3. CURVED ARC FRACTURE GAUGE (STAR CITIZEN TELEMETRY)
+   2. CURVED ARC FRACTURE GAUGE (STAR CITIZEN TELEMETRY)
    ========================================================================== */
 .arc-fracture-gauge-wrapper {
   display: none; /* Controlled by data-layout */

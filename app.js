@@ -453,11 +453,7 @@ const DOM = {
   btnMgAudio: document.getElementById('btnMgAudio'),
   btnMgVoiceTTS: document.getElementById('btnMgVoiceTTS'),
 
-  // mobiGlas Holographic Reticle & Arc Gauge
-  mobiglasScanReticle: document.getElementById('mobiglasScanReticle'),
-  reticleScanLock: document.getElementById('reticleScanLock'),
-  reticleArchetypeDisplay: document.getElementById('reticleArchetypeDisplay'),
-  reticleDensityDisplay: document.getElementById('reticleDensityDisplay'),
+  // mobiGlas Curved Arc Fracture Gauge
   arcFractureGaugeWrapper: document.getElementById('arcFractureGaugeWrapper'),
   arcSafeZone: document.getElementById('arcSafeZone'),
   arcDangerZone: document.getElementById('arcDangerZone'),
@@ -1396,19 +1392,6 @@ function updateMobiglasHeader(ship, pureSCU, refinedPrice) {
   }
 }
 
-function updateMobiglasReticle() {
-  if (!DOM.mobiglasScanReticle) return;
-  if (DOM.reticleArchetypeDisplay) {
-    const archName = state.selectedArchetype ? getLocalized(state.selectedArchetype, 'name') : 'BASALTE';
-    DOM.reticleArchetypeDisplay.textContent = `ARCHÉTYPE : ${archName.toUpperCase()}`;
-  }
-  if (DOM.reticleDensityDisplay) {
-    const density = state.selectedArchetype?.density || (state.selectedMineral?.density || 3.8);
-    const compactness = state.resistance > 50 ? 'HAUTE RÉSISTANCE' : 'COMPACT';
-    DOM.reticleDensityDisplay.textContent = `DENSITÉ : ${density} g/cm³ // ${compactness}`;
-  }
-}
-
 // Populate Refinery dropdown
 function populateRefinerySelect() {
   const currentVal = DOM.refinerySelect.value || state.selectedRefinery.id;
@@ -1911,10 +1894,9 @@ function calculateAll() {
   // 8. ROC Gem Cluster Calculator
   updateRocCluster();
 
-  // 9. mobiGlas 4.0 Telemetry, Arc Gauge & Reticle
+  // 9. mobiGlas 4.0 Telemetry & Arc Gauge
   updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, activeLaserDescList.join(' + '));
   updateMobiglasHeader(ship, pureSCU, refinedPrice);
-  updateMobiglasReticle();
 }
 
 function determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
