@@ -345,6 +345,9 @@ export const I18N = {
     moduleSlotLabel: "ACCESSOIRE / MODULE #{slot} :",
     noModuleSlotsAvailable: "Aucun emplacement d'accessoire (0 slot) disponible pour cette tête.",
     laserModuleSlotsSummary: "Emplacements d'accessoires ({count}) :",
+    moduleTypeActive: "ACTIF",
+    moduleTypePassive: "PASSIF",
+    moduleTypeEmpty: "VIDE",
 
     // Changelog
     changelogLink: "📜 Notes de version (v1.3)",
@@ -773,6 +776,9 @@ export const I18N = {
     moduleSlotLabel: "MODULE / ATTACHMENT #{slot}:",
     noModuleSlotsAvailable: "No module slots available (0 slots) on this mining head.",
     laserModuleSlotsSummary: "Module slots ({count}):",
+    moduleTypeActive: "ACTIVE",
+    moduleTypePassive: "PASSIVE",
+    moduleTypeEmpty: "EMPTY",
 
     // Changelog
     changelogLink: "📜 Release Notes (v1.3)",

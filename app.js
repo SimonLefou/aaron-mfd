@@ -685,6 +685,7 @@ function init() {
   setTheme(state.currentTheme);
   bindEventListeners();
   loadSavedSession();
+  loadSavedLoadout();
   loadRefineryJobs();
   loadLedger();
   startRefineryTimerLoop();
@@ -1234,39 +1235,77 @@ function populateRefinerySelect() {
   };
 }
 
+// Helper: Format badge for module type
+function getModuleTypeBadgeInfo(modType, lang) {
+  const t = I18N[lang] || I18N.fr;
+  if (modType === 'active') {
+    return {
+      text: t.moduleTypeActive || (lang === 'fr' ? 'ACTIF' : 'ACTIVE'),
+      style: 'background:rgba(0, 240, 255, 0.18); color:var(--accent-cyan); border:1px solid rgba(0, 240, 255, 0.4);'
+    };
+  }
+  if (modType === 'passive') {
+    return {
+      text: t.moduleTypePassive || (lang === 'fr' ? 'PASSIF' : 'PASSIVE'),
+      style: 'background:rgba(16, 185, 129, 0.18); color:var(--accent-emerald); border:1px solid rgba(16, 185, 129, 0.4);'
+    };
+  }
+  return {
+    text: t.moduleTypeEmpty || (lang === 'fr' ? 'VIDE' : 'EMPTY'),
+    style: 'background:rgba(255, 255, 255, 0.06); color:var(--text-muted); border:1px solid rgba(255, 255, 255, 0.12);'
+  };
+}
+
 // Helper: Dynamically render module slots according to laser slot capacity
 function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix = 'slot') {
   if (!container) return;
   container.innerHTML = '';
   const t = I18N[state.currentLang] || I18N.fr;
 
+  // Ensure selectedModuleIds array has at least slotCount elements
+  while (selectedModuleIds.length < slotCount) {
+    selectedModuleIds.push('none');
+  }
+
   if (slotCount === 0) {
     const emptyNotice = document.createElement('div');
-    emptyNotice.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:6px 2px;';
+    emptyNotice.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:10px 8px; background:rgba(255, 255, 255, 0.02); border-radius:6px; border:1px dashed rgba(255, 255, 255, 0.12); text-align:center;';
     emptyNotice.textContent = t.noModuleSlotsAvailable || "Aucun emplacement d'accessoire (0 slot) disponible pour cette tête.";
     container.appendChild(emptyNotice);
     return;
   }
 
   const titleRow = document.createElement('div');
-  titleRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-top:4px; margin-bottom:4px; font-size:0.75rem; color:var(--accent-cyan); font-family:var(--font-hud);';
+  titleRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-top:4px; margin-bottom:6px; font-size:0.75rem; color:var(--accent-cyan); font-family:var(--font-hud);';
   titleRow.innerHTML = `<span>${(t.laserModuleSlotsSummary || 'Emplacements d\'accessoires ({count}) :').replace('{count}', slotCount)}</span>`;
   container.appendChild(titleRow);
 
   for (let i = 0; i < slotCount; i++) {
-    const wrapper = document.createElement('div');
-    wrapper.style.marginBottom = '6px';
+    const card = document.createElement('div');
+    card.className = 'module-slot-card';
 
-    const label = document.createElement('label');
-    label.style.cssText = 'font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:2px; font-family:var(--font-mono);';
+    const header = document.createElement('div');
+    header.className = 'module-slot-header';
+
+    const label = document.createElement('span');
     label.textContent = (t.moduleSlotLabel || 'ACCESSOIRE #{slot} :').replace('{slot}', i + 1);
+
+    const currentModId = selectedModuleIds[i] || 'none';
+    const currentMod = MINING_DATA.modules.find(m => m.id === currentModId) || MINING_DATA.modules[0];
+    const badgeInfo = getModuleTypeBadgeInfo(currentMod.type, state.currentLang);
+
+    const typeBadge = document.createElement('span');
+    typeBadge.className = 'slot-type-badge';
+    typeBadge.textContent = badgeInfo.text;
+    typeBadge.style.cssText = badgeInfo.style;
+
+    header.appendChild(label);
+    header.appendChild(typeBadge);
 
     const select = document.createElement('select');
     select.className = 'hud-select-full';
     select.dataset.slotIndex = i;
     select.dataset.slotPrefix = prefix;
-
-    const currentModId = selectedModuleIds[i] || 'none';
 
     MINING_DATA.modules.forEach(mod => {
       const opt = document.createElement('option');
@@ -1279,13 +1318,20 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
 
     select.value = currentModId;
     select.onchange = (e) => {
+      sfx.playBeep(650, 'sine', 0.03);
       selectedModuleIds[i] = e.target.value;
+      const selected = MINING_DATA.modules.find(m => m.id === e.target.value) || MINING_DATA.modules[0];
+      const newBadge = getModuleTypeBadgeInfo(selected.type, state.currentLang);
+      typeBadge.textContent = newBadge.text;
+      typeBadge.style.cssText = newBadge.style;
+      updateLoadoutButtonSummary();
       calculateAll();
+      saveLoadout();
     };
 
-    wrapper.appendChild(label);
-    wrapper.appendChild(select);
-    container.appendChild(wrapper);
+    card.appendChild(header);
+    card.appendChild(select);
+    container.appendChild(card);
   }
 }
 
@@ -1330,10 +1376,12 @@ function populateMoleSelects() {
     renderLaserModuleSlots(item.container, currentLaser.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
 
     item.sel.onchange = (e) => {
+      sfx.playBeep(600, 'sine', 0.04);
       item.cfg.laserId = e.target.value;
       const newL = MINING_DATA.lasers.find(l => l.id === e.target.value) || size2Lasers[0];
       renderLaserModuleSlots(item.container, newL.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
       calculateAll();
+      saveLoadout();
     };
   });
 }
@@ -1373,16 +1421,6 @@ function updateLaserOptions() {
       DOM.laserDescText.textContent = getLocalized(state.selectedLaser, 'desc');
       renderLaserModuleSlots(DOM.singleLaserSlotsContainer, state.selectedLaser.slots ?? 0, state.selectedModules, 'single');
     }
-
-    DOM.laserSelect.onchange = (e) => {
-      const l = MINING_DATA.lasers.find(x => x.id === e.target.value);
-      if (l) {
-        state.selectedLaser = l;
-        DOM.laserDescText.textContent = getLocalized(l, 'desc');
-        renderLaserModuleSlots(DOM.singleLaserSlotsContainer, l.slots ?? 0, state.selectedModules, 'single');
-        calculateAll();
-      }
-    };
   }
 
   updateLoadoutButtonSummary();
@@ -2211,7 +2249,11 @@ function bindEventListeners() {
   });
 
   // Modals management
-  DOM.btnOpenLoadout.addEventListener('click', () => openModal(DOM.loadoutModal));
+  DOM.btnOpenLoadout.addEventListener('click', () => {
+    sfx.playBeep(600, 'sine', 0.04);
+    populateLoadoutSelects();
+    openModal(DOM.loadoutModal);
+  });
   DOM.btnCloseLoadout.addEventListener('click', () => closeModal(DOM.loadoutModal));
 
   DOM.btnOpenDonate.addEventListener('click', () => {
@@ -2350,6 +2392,7 @@ function bindEventListeners() {
     }
 
     state.selectedGadget = MINING_DATA.gadgets.find(g => g.id === DOM.gadgetSelect.value) || state.selectedGadget;
+    saveLoadout();
     updateLoadoutButtonSummary();
     closeModal(DOM.loadoutModal);
     calculateAll();
@@ -2357,12 +2400,15 @@ function bindEventListeners() {
 
   // Laser select change in modal
   DOM.laserSelect.addEventListener('change', (e) => {
+    sfx.playBeep(600, 'sine', 0.04);
     const l = MINING_DATA.lasers.find(x => x.id === e.target.value);
     if (l) {
       state.selectedLaser = l;
       DOM.laserDescText.textContent = getLocalized(l, 'desc');
       renderLaserModuleSlots(DOM.singleLaserSlotsContainer, l.slots ?? 0, state.selectedModules, 'single');
+      updateLoadoutButtonSummary();
       calculateAll();
+      saveLoadout();
     }
   });
 
@@ -3002,6 +3048,54 @@ function loadSavedSession() {
     }
   } catch (e) {
     console.warn('Load storage error:', e);
+  }
+}
+
+function saveLoadout() {
+  try {
+    const data = {
+      shipId: state.selectedShip.id,
+      laserId: state.selectedLaser.id,
+      selectedModules: state.selectedModules,
+      gadgetId: state.selectedGadget.id,
+      moleTurrets: {
+        turret1: { laserId: state.moleTurrets.turret1.laserId, moduleIds: state.moleTurrets.turret1.moduleIds },
+        turret2: { laserId: state.moleTurrets.turret2.laserId, moduleIds: state.moleTurrets.turret2.moduleIds },
+        turret3: { laserId: state.moleTurrets.turret3.laserId, moduleIds: state.moleTurrets.turret3.moduleIds }
+      }
+    };
+    localStorage.setItem('aaron_mfd_loadout', JSON.stringify(data));
+  } catch (e) {
+    console.warn('Loadout storage error:', e);
+  }
+}
+
+function loadSavedLoadout() {
+  try {
+    const raw = localStorage.getItem('aaron_mfd_loadout');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.laserId) {
+      const l = MINING_DATA.lasers.find(x => x.id === data.laserId);
+      if (l) state.selectedLaser = l;
+    }
+    if (Array.isArray(data.selectedModules)) {
+      state.selectedModules = data.selectedModules;
+    }
+    if (data.gadgetId) {
+      const g = MINING_DATA.gadgets.find(x => x.id === data.gadgetId);
+      if (g) state.selectedGadget = g;
+    }
+    if (data.moleTurrets) {
+      ['turret1', 'turret2', 'turret3'].forEach(k => {
+        if (data.moleTurrets[k]) {
+          if (data.moleTurrets[k].laserId) state.moleTurrets[k].laserId = data.moleTurrets[k].laserId;
+          if (Array.isArray(data.moleTurrets[k].moduleIds)) state.moleTurrets[k].moduleIds = data.moleTurrets[k].moduleIds;
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Loadout load error:', e);
   }
 }
 

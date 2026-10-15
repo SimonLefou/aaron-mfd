@@ -2051,6 +2051,39 @@ body::after {
   color: var(--accent-cyan);
 }
 
+.module-slot-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+.module-slot-card:hover {
+  background: rgba(0, 240, 255, 0.04);
+  border-color: var(--accent-cyan);
+}
+
+.module-slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+  margin-bottom: 4px;
+}
+
+.slot-type-badge {
+  font-size: 0.65rem;
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--accent-cyan);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
 .saddlebag-slot-pill {
   padding: 4px 8px;
   border-radius: 4px;
