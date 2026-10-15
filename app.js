@@ -2515,42 +2515,6 @@ function populateHaloAndStations() {
 }
 
 // ==========================================
-// QUICK PRESETS FOR MINING RUNS
-// ==========================================
-function applyPreset(preset) {
-  if (preset === 'quant') {
-    const qt = MINING_DATA.minerals.find(m => m.id === 'quantainium');
-    if (qt) selectMineral(qt);
-    setMass(5200);
-    setPct(35);
-    setResistance(45);
-    setInstability(60);
-  } else if (preset === 'bexalite') {
-    const bx = MINING_DATA.minerals.find(m => m.id === 'bexalite');
-    if (bx) selectMineral(bx);
-    setMass(6000);
-    setPct(30);
-    setResistance(35);
-    setInstability(30);
-  } else if (preset === 'taranite') {
-    const tr = MINING_DATA.minerals.find(m => m.id === 'taranite');
-    if (tr) selectMineral(tr);
-    setMass(5500);
-    setPct(25);
-    setResistance(30);
-    setInstability(25);
-  } else if (preset === 'gem') {
-    setShip('roc');
-    const hd = MINING_DATA.minerals.find(m => m.id === 'hadanite');
-    if (hd) selectMineral(hd);
-    setMass(800);
-    setPct(100);
-    setResistance(10);
-    setInstability(15);
-  }
-}
-
-// ==========================================
 // TACTILE NUMPAD & QUICK CONTROLS
 // ==========================================
 function bindEventListeners() {
@@ -2565,16 +2529,6 @@ function bindEventListeners() {
   if (DOM.mgShipSelect) DOM.mgShipSelect.addEventListener('change', onShipChange);
   if (DOM.loadoutShipSelect) DOM.loadoutShipSelect.addEventListener('change', onShipChange);
 
-  // Quick Presets bar
-  document.querySelectorAll('[data-preset]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playSuccess();
-      triggerHaptic(20);
-      applyPreset(btn.dataset.preset);
-    });
-  });
-
-  // Quick mass chips (-1000, +500, +1000, +2000)
   document.querySelectorAll('[data-add-mass]').forEach(btn => {
     btn.addEventListener('click', () => {
       sfx.playBeep(650, 'sine', 0.04);

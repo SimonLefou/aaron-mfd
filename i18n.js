@@ -400,7 +400,7 @@ export const I18N = {
     guideStep1Title: "1. Vaisseau & Équipement",
     guideStep1Desc: "Sélectionnez votre vaisseau en haut à gauche : MISC Prospector (32 SCU), Argo MOLE (96 SCU avec configuration de 1 à 3 tourelles actives) ou Greycat ROC (0.8 SCU). Cliquez sur le bouton laser pour équiper têtes de minage et modules.",
     guideStep2Title: "2. Saisie du Scan Roche",
-    guideStep2Desc: "Dans le panneau de gauche, réglez la masse (pavé tactile ou pas à pas), la teneur en minerai (%), la résistance et l'instabilité. Vous pouvez aussi utiliser les préréglages rapides ou la commande vocale.",
+    guideStep2Desc: "Dans le panneau de gauche, réglez la masse (pavé tactile ou pas à pas), la teneur en minerai (%), la résistance et l'instabilité, ou utilisez la commande vocale.",
     guideStep3Title: "3. Verdict Tactique & Action",
     guideStep3Desc: "Observez le verdict instantané dans le panneau de droite : faisabilité de charge laser, rentabilité brute vs raffinée, recommandation de gadget et station idéale. Chargez la soute, simulez les sous-roches ou envoyez en raffinage !",
 
@@ -861,7 +861,7 @@ export const I18N = {
     guideStep1Title: "1. Ship & Loadout Selection",
     guideStep1Desc: "Select your mining ship at the top left: MISC Prospector (32 SCU), Argo MOLE (96 SCU with 1 to 3 active turrets), or Greycat ROC (0.8 SCU). Click the laser button to equip mining heads and sub-modules.",
     guideStep2Title: "2. Enter Rock Scan Data",
-    guideStep2Desc: "In the left panel, adjust the rock mass (tactile keypad or step buttons), mineral purity (%), resistance, and instability. You can also use quick presets or voice dictation.",
+    guideStep2Desc: "In the left panel, adjust the rock mass (tactile keypad or step buttons), mineral purity (%), resistance, and instability, or use voice dictation.",
     guideStep3Title: "3. Tactical Verdict & Execution",
     guideStep3Desc: "Check the instant verdict in the right panel: laser saturation feasibility, raw vs. refined yield, smart gadget advice, and optimal refinery. Load to hold, simulate sub-chunks, or queue refinery orders!",
 

@@ -1149,55 +1149,6 @@ html[data-layout="classic"] body {
   color: #000;
 }
 
-/* ==========================================================================
-   QUICK PRESETS BAR (Ergonomic 1-tap shortcuts)
-   ========================================================================== */
-
-.presets-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding: 8px 14px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px dashed rgba(0, 240, 255, 0.2);
-  border-radius: 6px;
-  overflow-x: auto;
-}
-
-.presets-title {
-  font-family: var(--font-hud);
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  letter-spacing: 1px;
-  white-space: nowrap;
-}
-
-.presets-scroller {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-}
-
-.preset-pill {
-  white-space: nowrap;
-  padding: 6px 12px;
-  font-size: 0.82rem;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(0, 240, 255, 0.25);
-  color: #fff;
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-}
-.preset-pill:hover {
-  background: rgba(0, 240, 255, 0.18);
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 10px var(--cyan-glow);
-}
 
 /* ==========================================================================
    MAIN DUAL-PANEL GRID & MOBILE TAB VIEW SWITCHER (Cockpit Display)
