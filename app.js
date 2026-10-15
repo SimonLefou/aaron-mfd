@@ -141,12 +141,27 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.6.1',
+    version: 'v1.6.2',
     isCurrent: true,
-    title_fr: 'Épuration du Volet Données du Scan',
-    title_en: 'Rock Scan Data Clean-up',
+    title_fr: 'Recalcul Réactif Automatique Géologie & Minerais',
+    title_en: 'Automatic Reactive Recalculation for Geology & Minerals',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'improved',
+        text_fr: '<strong>Calcul Immédiat sans Validation Manuelle</strong> : La sélection d\'un archétype rocheux, d\'un minerai primaire ou secondaire recalcule immédiatement la résistance, l\'instabilité et la fracturation sans avoir à cliquer sur « Auto-calculer ».',
+        text_en: '<strong>Instant Calculation on Selection</strong>: Selecting a rock archetype, primary ore, or secondary mineral now immediately computes dynamic resistance, instability, and laser fracture without requiring a click on "Auto-Calculate".'
+      }
+    ]
+  },
+  {
+    version: 'v1.6.1',
+    isCurrent: false,
+    title_fr: 'Épuration du Volet Données du Scan',
+    title_en: 'Rock Scan Data Clean-up',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'improved',
@@ -978,7 +993,8 @@ function selectMineral(min) {
     cockpitVoice.speakTarget(minName, state.orePercentage, Math.max(0.1, Math.round(state.rockMass * (state.orePercentage / 100) / ((min.density || 15) * 85) * 10) / 10));
   }
 
-  calculateAll();
+  // Auto-calculer dès la sélection du minerai
+  applyDynamicRockProperties();
 }
 
 // ==========================================
@@ -1020,7 +1036,7 @@ function populateArchetypes() {
       btn.addEventListener('click', () => {
         sfx.playBeep(650, 'sine', 0.04);
         triggerHaptic(10);
-        selectArchetype(arch, true);
+        selectArchetype(arch);
       });
 
       DOM.archetypeScroller.appendChild(btn);
@@ -1028,9 +1044,10 @@ function populateArchetypes() {
   }
 
   updateArchetypeDisplay();
+  applyDynamicRockProperties();
 }
 
-function selectArchetype(arch, autoCalc = false) {
+function selectArchetype(arch) {
   state.selectedArchetype = arch;
   if (DOM.archetypeSelect) {
     DOM.archetypeSelect.value = arch.id;
@@ -1039,11 +1056,8 @@ function selectArchetype(arch, autoCalc = false) {
     b.classList.toggle('active', b.dataset.id === arch.id);
   });
   updateArchetypeDisplay();
-  if (autoCalc) {
-    applyDynamicRockProperties();
-  } else {
-    calculateAll();
-  }
+  // Auto-calculer dès la sélection d'un archétype
+  applyDynamicRockProperties();
 }
 
 function updateArchetypeDisplay() {
@@ -1092,6 +1106,48 @@ function applyDynamicRockProperties() {
     } else if (pMin.id === 'taranite') {
       instDelta += (pPct / 100) * 15;
       resDelta += (pPct / 100) * 15;
+    } else if (pMin.id === 'borase') {
+      instDelta += (pPct / 100) * 10;
+      resDelta += (pPct / 100) * 10;
+    } else if (pMin.id === 'laranite') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 10;
+    } else if (pMin.id === 'hephaestanite') {
+      instDelta += (pPct / 100) * 10;
+      resDelta += (pPct / 100) * 10;
+    } else if (pMin.id === 'gold') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 10;
+    } else if (pMin.id === 'agricium') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 5;
+    } else if (pMin.id === 'hadanite') {
+      instDelta += (pPct / 100) * 35;
+      resDelta += (pPct / 100) * 10;
+    } else if (pMin.id === 'dolivine') {
+      instDelta += (pPct / 100) * 20;
+      resDelta += (pPct / 100) * 5;
+    } else if (pMin.id === 'aphorite') {
+      instDelta += (pPct / 100) * 15;
+      resDelta += (pPct / 100) * 5;
+    } else if (pMin.id === 'diamond') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 15;
+    } else if (pMin.id === 'beryl') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 5;
+    } else if (pMin.id === 'tungsten') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 20;
+    } else if (pMin.id === 'titanium') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 15;
+    } else if (pMin.id === 'copper') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 10;
+    } else if (pMin.id === 'iron') {
+      instDelta += (pPct / 100) * 5;
+      resDelta += (pPct / 100) * 10;
     }
   }
 
@@ -1111,18 +1167,23 @@ function applyDynamicRockProperties() {
     } else if (sMin.id === 'bexalite') {
       instDelta += (sPct / 100) * 25;
       resDelta += (sPct / 100) * 20;
+    } else if (sMin.id === 'taranite') {
+      instDelta += (sPct / 100) * 15;
+      resDelta += (sPct / 100) * 15;
+    } else if (sMin.id === 'borase') {
+      instDelta += (sPct / 100) * 10;
+      resDelta += (sPct / 100) * 10;
+    } else if (sMin.id === 'laranite') {
+      instDelta += (sPct / 100) * 5;
+      resDelta += (sPct / 100) * 10;
     }
   }
 
-  state.resistance = Math.min(95, Math.max(5, Math.round(baseRes + resDelta)));
-  state.instability = Math.min(100, Math.max(0, Math.round(baseInst + instDelta)));
+  const finalRes = Math.min(95, Math.max(5, Math.round(baseRes + resDelta)));
+  const finalInst = Math.min(100, Math.max(0, Math.round(baseInst + instDelta)));
 
-  DOM.resistanceSlider.value = state.resistance;
-  DOM.resistanceLabel.textContent = `${state.resistance} %`;
-  DOM.instabilitySlider.value = state.instability;
-  DOM.instabilityLabel.textContent = `${state.instability} %`;
-
-  calculateAll();
+  setResistance(finalRes);
+  setInstability(finalInst);
 }
 
 // ==========================================
@@ -1412,9 +1473,9 @@ function renderRadarDecoderResults(results) {
         triggerHaptic(20);
         if (isMineral) {
           selectMineral(res.item);
-          if (res.archetypeGuess) selectArchetype(res.archetypeGuess, true);
+          if (res.archetypeGuess) selectArchetype(res.archetypeGuess);
         } else {
-          selectArchetype(res.item, true);
+          selectArchetype(res.item);
         }
         const targetMass = res.targetMass || (res.multiplier === 1 ? 4800 : res.multiplier === 2 ? 9500 : res.multiplier === 4 ? 19500 : 32000);
         setMass(targetMass);
@@ -3938,7 +3999,7 @@ function bindEventListeners() {
       sfx.playBeep(650, 'sine', 0.04);
       triggerHaptic(10);
       const chosen = MINING_DATA.rockArchetypes.find(a => a.id === e.target.value);
-      if (chosen) selectArchetype(chosen, true);
+      if (chosen) selectArchetype(chosen);
     });
   }
 
@@ -3961,7 +4022,7 @@ function bindEventListeners() {
       const val = e.target.value;
       state.secondaryMineral = val === 'none' ? null : MINING_DATA.minerals.find(m => m.id === val);
       updateSecondaryOreUI();
-      calculateAll();
+      applyDynamicRockProperties();
     });
   }
 
@@ -3972,7 +4033,7 @@ function bindEventListeners() {
       state.secondaryMineral = null;
       if (DOM.secondaryOreSelect) DOM.secondaryOreSelect.value = 'none';
       updateSecondaryOreUI();
-      calculateAll();
+      applyDynamicRockProperties();
     });
   }
 
@@ -3981,7 +4042,7 @@ function bindEventListeners() {
       state.secondaryPercentage = parseFloat(e.target.value);
       if (DOM.secondaryPctLabel) DOM.secondaryPctLabel.textContent = `${state.secondaryPercentage.toFixed(1)} %`;
       if (DOM.secondaryPctDisplay) DOM.secondaryPctDisplay.textContent = `${state.secondaryPercentage.toFixed(0)}%`;
-      calculateAll();
+      applyDynamicRockProperties();
     });
   }
 

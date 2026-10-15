@@ -1,6 +1,6 @@
 {
   "name": "aaron-mfd",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Star Citizen Tactical Mining Companion - mobiGlas 4.0 & Multi-Crew Fleet Coordination",
   "main": "app.js",
   "type": "module",

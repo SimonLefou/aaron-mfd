@@ -8,6 +8,12 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [1.6.2] - 2026-10-15 - *Recalcul Réactif Automatique Géologie & Minerais*
+
+#### ⚡ Optimisé (Improved)
+- **Recalcul Automatique dès la Sélection** : La sélection d'un archétype rocheux (par puces 3×3 ou liste déroulante), d'un minerai principal ou secondaire recalcule immédiatement la résistance, l'instabilité et la fracturation laser dynamique sans imposer de clic sur le bouton « Auto-calculer ».
+- **Prise en Compte Élargie de l'Écosystème Minier 4.10** : Intégration fine des modificateurs physiques pour l'ensemble des minerais et gemmes (Hadanite, Dolivine, Aphorite, Borase, Hephaestanite, etc.).
+
 ### [1.6.1] - 2026-10-15 - *Épuration du Volet Données du Scan*
 
 #### 🗑️ Supprimé (Removed)
@@ -186,6 +192,12 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [1.6.2] - 2026-10-15 - *Automatic Reactive Recalculation for Geology & Minerals*
+
+#### ⚡ Improved
+- **Instant Reactive Recalculation on Selection**: Selecting a rock archetype (via 3×3 chips or dropdown), primary ore, or secondary mineral immediately recomputes dynamic resistance, instability, and laser fracture without requiring a manual click on "Auto-Calculate".
+- **Expanded Physical Ore Modifiers (4.10)**: Fine-tuned physical modifiers for all SC minerals and ROC gemstones (Hadanite, Dolivine, Aphorite, Borase, Hephaestanite, etc.).
 
 ### [1.6.1] - 2026-10-15 - *Rock Scan Panel Clean-up*
 
