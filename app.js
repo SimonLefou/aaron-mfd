@@ -1128,7 +1128,10 @@ function dropAllSaddlebags() {
 // FEATURE: RADAR PING RS 2.0 DECODER (4.10)
 // ==========================================
 function decodeRadarRS(targetRS) {
-  if (!targetRS || isNaN(targetRS) || targetRS <= 0) return [];
+  if (!targetRS || isNaN(targetRS) || targetRS <= 0) {
+    renderRadarDecoderResults([]);
+    return [];
+  }
   const results = [];
   const multipliers = [1, 2, 4, 8, 16];
 
@@ -1137,7 +1140,7 @@ function decodeRadarRS(targetRS) {
     multipliers.forEach(mult => {
       const expectedRS = min.rsBase * mult;
       const diff = Math.abs(targetRS - expectedRS);
-      const tolerance = expectedRS * 0.08;
+      const tolerance = Math.max(expectedRS * 0.08, 150);
       if (diff <= tolerance) {
         const accuracy = Math.max(60, Math.round(100 - (diff / expectedRS) * 100));
         results.push({
@@ -1147,6 +1150,7 @@ function decodeRadarRS(targetRS) {
           expectedRS: expectedRS,
           accuracy: accuracy,
           estimatedMass: mult === 1 ? '2 500 - 6 000' : mult === 2 ? '6 000 - 14 000' : mult === 4 ? '14 000 - 30 000' : '30 000+',
+          targetMass: mult === 1 ? 4800 : mult === 2 ? 9500 : mult === 4 ? 19500 : 32000,
           archetypeGuess: getArchetypeForMineral(min)
         });
       }
@@ -1159,7 +1163,7 @@ function decodeRadarRS(targetRS) {
       multipliers.forEach(mult => {
         const expectedRS = arch.rsBase * mult;
         const diff = Math.abs(targetRS - expectedRS);
-        const tolerance = expectedRS * 0.07;
+        const tolerance = Math.max(expectedRS * 0.08, 150);
         if (diff <= tolerance) {
           const accuracy = Math.max(60, Math.round(100 - (diff / expectedRS) * 100));
           results.push({
@@ -1169,6 +1173,7 @@ function decodeRadarRS(targetRS) {
             expectedRS: expectedRS,
             accuracy: accuracy,
             estimatedMass: mult === 1 ? '2 500 - 6 000' : mult === 2 ? '6 000 - 14 000' : mult === 4 ? '14 000 - 30 000' : '30 000+',
+            targetMass: mult === 1 ? 4800 : mult === 2 ? 9500 : mult === 4 ? 19500 : 32000,
             archetypeGuess: arch
           });
         }
@@ -1177,6 +1182,7 @@ function decodeRadarRS(targetRS) {
   }
 
   results.sort((a, b) => b.accuracy - a.accuracy);
+  renderRadarDecoderResults(results);
   return results;
 }
 
@@ -1252,15 +1258,10 @@ function renderRadarDecoderResults(results) {
         } else {
           selectArchetype(res.item, true);
         }
-        if (res.multiplier === 1) state.rockMass = 4800;
-        else if (res.multiplier === 2) state.rockMass = 9500;
-        else if (res.multiplier === 4) state.rockMass = 19500;
-        else state.rockMass = 32000;
-        DOM.massDigitalDisplay.textContent = state.rockMass;
-        DOM.massLabel.textContent = `${state.rockMass.toLocaleString(getLocale())} kg`;
+        const targetMass = res.targetMass || (res.multiplier === 1 ? 4800 : res.multiplier === 2 ? 9500 : res.multiplier === 4 ? 19500 : 32000);
+        setMass(targetMass);
 
         closeModal(DOM.radarDecoderModal);
-        calculateAll();
         showToast(state.currentLang === 'en' ? `Target ${titleName} (x${res.multiplier}) loaded into scanner!` : `Cible ${titleName} (x${res.multiplier}) chargée dans le scanner !`);
       });
     }
@@ -3165,16 +3166,20 @@ function bindEventListeners() {
     DOM.btnExecRadarDecode.addEventListener('click', () => {
       sfx.playBeep(650, 'sine', 0.04);
       triggerHaptic(12);
-      const val = parseFloat(DOM.radarRsInput.value);
-      if (val) decodeRadarRS(val);
+      const val = parseFloat(DOM.radarRsInput ? DOM.radarRsInput.value : 0);
+      decodeRadarRS(val);
     });
   }
 
   if (DOM.radarRsInput) {
+    DOM.radarRsInput.addEventListener('input', () => {
+      const val = parseFloat(DOM.radarRsInput.value);
+      decodeRadarRS(val);
+    });
     DOM.radarRsInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         const val = parseFloat(DOM.radarRsInput.value);
-        if (val) decodeRadarRS(val);
+        decodeRadarRS(val);
       }
     });
   }

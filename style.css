@@ -3174,6 +3174,7 @@ html[data-layout="classic"] body {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
   transition: all 0.2s;
 }
 .radar-match-card:hover {
