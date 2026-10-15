@@ -2257,6 +2257,14 @@ html[data-layout="classic"] body {
   transform: translateY(0);
 }
 
+.loadout-profiles-box {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.loadout-profiles-box:hover {
+  border-color: rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

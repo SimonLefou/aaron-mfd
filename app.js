@@ -9,6 +9,7 @@ const state = {
   currentTheme: localStorage.getItem('aaron_mfd_theme') || 'mobiglas',
   layoutMode: localStorage.getItem('aaron_mfd_layout_mode') || 'mobiglas',
   callsign: localStorage.getItem('aaron_mfd_callsign') || 'CITIZEN-1',
+  activeProfileId: localStorage.getItem('aaron_mfd_active_profile') || 'custom',
   mobileView: 'scanner',
   wakeLock: null,
 
@@ -140,12 +141,32 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.5.1',
+    version: 'v1.6.0',
     isCurrent: true,
-    title_fr: 'Personnalisation Indicatif Pilote & Épuration Radar RS',
-    title_en: 'Pilot Callsign Customization & RS Radar Clean-up',
+    title_fr: 'Gestionnaire de Profils & Sauvegardes d\'Équipement Personnalisées',
+    title_en: 'Loadout Profiles Manager & Custom Saved Configurations',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Gestionnaire Multi-Profils Nommés</strong> : Enregistrez, nommez, chargez, mettez à jour et supprimez vos configurations d\'équipement personnalisées avec persistance locale.',
+        text_en: '<strong>Multi-Profile Loadout Manager</strong>: Save, name, load, update, and delete custom named loadouts with offline persistence.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>5 Préréglages Recommandés (Défaut)</strong> : Préréglages d\'usine prêts à l\'emploi pour Prospector (Équilibré & Puissance), MOLE (Trio), Arrastra (Lourd S3) et ROC.',
+        text_en: '<strong>5 Recommended Factory Presets</strong>: Ready-to-use factory setups for Prospector (Balanced & Heavy), MOLE (Trio), Arrastra (Heavy S3), and ROC.'
+      }
+    ]
+  },
+  {
+    version: 'v1.5.1',
+    isCurrent: false,
+    title_fr: 'Personnalisation Indicatif Pilote & Épuration Radar RS',
+    title_en: 'Pilot Callsign Customization & RS Radar Clean-up',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'new',
@@ -746,6 +767,18 @@ const DOM = {
   turretsSectionTitle: document.getElementById('turretsSectionTitle'),
   btnToggleAllTurrets: document.getElementById('btnToggleAllTurrets'),
   turretCardsContainer: document.getElementById('turretCardsContainer'),
+
+  // Saved Loadout Profiles Manager
+  savedLoadoutsSelect: document.getElementById('savedLoadoutsSelect'),
+  activeProfileTag: document.getElementById('activeProfileTag'),
+  btnOpenSaveProfileModal: document.getElementById('btnOpenSaveProfileModal'),
+  btnUpdateCurrentProfile: document.getElementById('btnUpdateCurrentProfile'),
+  btnDeleteSelectedProfile: document.getElementById('btnDeleteSelectedProfile'),
+  saveLoadoutNameModal: document.getElementById('saveLoadoutNameModal'),
+  saveLoadoutNameInput: document.getElementById('saveLoadoutNameInput'),
+  btnConfirmSaveLoadoutName: document.getElementById('btnConfirmSaveLoadoutName'),
+  btnCancelSaveLoadoutName: document.getElementById('btnCancelSaveLoadoutName'),
+  btnCloseSaveLoadoutName: document.getElementById('btnCloseSaveLoadoutName'),
 
   // Modals
   loadoutModal: document.getElementById('loadoutModal'),
@@ -2038,6 +2071,7 @@ function renderShipTurretsConfig() {
 // Populate Loadout modal selects
 function populateLoadoutSelects() {
   updateLaserOptions();
+  populateProfilesDropdown();
 
   // Gadgets
   const gadVal = DOM.gadgetSelect ? (DOM.gadgetSelect.value || state.selectedGadget.id) : state.selectedGadget.id;
@@ -3353,6 +3387,78 @@ function bindEventListeners() {
     });
   }
 
+  // Loadout Profiles management listeners
+  if (DOM.savedLoadoutsSelect) {
+    DOM.savedLoadoutsSelect.addEventListener('change', (e) => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(10);
+      applyProfile(e.target.value);
+    });
+  }
+
+  if (DOM.btnOpenSaveProfileModal) {
+    DOM.btnOpenSaveProfileModal.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(15);
+      if (DOM.saveLoadoutNameInput) {
+        const ship = state.selectedShip;
+        const turrets = getShipTurretConfigs(ship.id);
+        const lObj = MINING_DATA.lasers.find(l => l.id === turrets[0]?.laserId) || state.selectedLaser;
+        DOM.saveLoadoutNameInput.value = `${ship.name} - ${lObj.name}`;
+      }
+      openModal(DOM.saveLoadoutNameModal);
+      setTimeout(() => {
+        if (DOM.saveLoadoutNameInput) {
+          DOM.saveLoadoutNameInput.focus();
+          DOM.saveLoadoutNameInput.select();
+        }
+      }, 50);
+    });
+  }
+
+  if (DOM.btnConfirmSaveLoadoutName) {
+    DOM.btnConfirmSaveLoadoutName.addEventListener('click', () => {
+      const name = DOM.saveLoadoutNameInput ? DOM.saveLoadoutNameInput.value : '';
+      if (name.trim()) {
+        saveCurrentAsProfile(name);
+        closeModal(DOM.saveLoadoutNameModal);
+      }
+    });
+  }
+
+  if (DOM.saveLoadoutNameInput) {
+    DOM.saveLoadoutNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const name = DOM.saveLoadoutNameInput.value;
+        if (name.trim()) {
+          saveCurrentAsProfile(name);
+          closeModal(DOM.saveLoadoutNameModal);
+        }
+      } else if (e.key === 'Escape') {
+        closeModal(DOM.saveLoadoutNameModal);
+      }
+    });
+  }
+
+  if (DOM.btnCancelSaveLoadoutName) {
+    DOM.btnCancelSaveLoadoutName.addEventListener('click', () => closeModal(DOM.saveLoadoutNameModal));
+  }
+  if (DOM.btnCloseSaveLoadoutName) {
+    DOM.btnCloseSaveLoadoutName.addEventListener('click', () => closeModal(DOM.saveLoadoutNameModal));
+  }
+
+  if (DOM.btnUpdateCurrentProfile) {
+    DOM.btnUpdateCurrentProfile.addEventListener('click', () => {
+      updateCurrentProfile();
+    });
+  }
+
+  if (DOM.btnDeleteSelectedProfile) {
+    DOM.btnDeleteSelectedProfile.addEventListener('click', () => {
+      deleteSelectedProfile();
+    });
+  }
+
   // Pilot Callsign Editor listeners
   if (DOM.btnEditMgCallsign) {
     DOM.btnEditMgCallsign.addEventListener('click', () => {
@@ -4378,6 +4484,325 @@ function loadSavedSession() {
   }
 }
 
+// ==========================================
+// LOADOUT PROFILES & FACTORY PRESETS
+// ==========================================
+const FACTORY_LOADOUT_PRESETS = [
+  {
+    id: 'preset_prospector_balanced',
+    name: 'Prospector : Polyvalent Équilibré',
+    name_en: 'Prospector: Balanced All-Rounder',
+    shipId: 'prospector',
+    turrets: [
+      { laserId: 'lancet_s1', moduleIds: ['surge', 'focus_3'] }
+    ],
+    gadgetId: 'boremax',
+    isPreset: true
+  },
+  {
+    id: 'preset_prospector_power',
+    name: 'Prospector : Puissance Brute (Grosses Roches)',
+    name_en: 'Prospector: Raw Power (Heavy Rocks)',
+    shipId: 'prospector',
+    turrets: [
+      { laserId: 'helix_s1', moduleIds: ['rieger_c3', 'torrent'] }
+    ],
+    gadgetId: 'sabir',
+    isPreset: true
+  },
+  {
+    id: 'preset_mole_trio',
+    name: 'Argo MOLE : Trio Équilibré (1 Lancet + 2 Helix)',
+    name_en: 'Argo MOLE: Balanced Trio (1 Lancet + 2 Helix)',
+    shipId: 'mole',
+    turrets: [
+      { laserId: 'lancet_s2', moduleIds: ['surge', 'surge', 'none'] },
+      { laserId: 'helix_s2', moduleIds: ['focus_3', 'focus_3', 'none'] },
+      { laserId: 'helix_s2', moduleIds: ['focus_3', 'focus_3', 'none'] }
+    ],
+    gadgetId: 'boremax',
+    isPreset: true
+  },
+  {
+    id: 'preset_arrastra_heavy',
+    name: 'RSI Arrastra : Escadre Lourde S3',
+    name_en: 'RSI Arrastra: Heavy Mining S3',
+    shipId: 'arrastra',
+    turrets: [
+      { laserId: 'lancet_s3', moduleIds: ['surge', 'focus_3', 'none'] },
+      { laserId: 'helix_s3', moduleIds: ['focus_3', 'focus_3', 'none'] },
+      { laserId: 'helix_s3', moduleIds: ['focus_3', 'focus_3', 'none'] }
+    ],
+    gadgetId: 'optimax',
+    isPreset: true
+  },
+  {
+    id: 'preset_roc_gems',
+    name: 'Greycat ROC : Collecte Gemmes Sol',
+    name_en: 'Greycat ROC: Surface Gem Harvester',
+    shipId: 'roc',
+    turrets: [
+      { laserId: 'arbor_mh0', moduleIds: [] }
+    ],
+    gadgetId: 'none',
+    isPreset: true
+  }
+];
+
+function getUserProfiles() {
+  try {
+    const raw = localStorage.getItem('aaron_mfd_saved_profiles');
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    console.warn('User profiles load error:', e);
+    return [];
+  }
+}
+
+function saveUserProfiles(list) {
+  try {
+    localStorage.setItem('aaron_mfd_saved_profiles', JSON.stringify(list));
+  } catch (e) {
+    console.warn('User profiles save error:', e);
+  }
+}
+
+function populateProfilesDropdown() {
+  if (!DOM.savedLoadoutsSelect) return;
+  const isEn = state.currentLang === 'en';
+  const t = I18N[state.currentLang] || I18N.fr;
+  const userProfiles = getUserProfiles();
+
+  DOM.savedLoadoutsSelect.innerHTML = '';
+
+  // 1. Current unsaved option
+  const optCustom = document.createElement('option');
+  optCustom.value = 'custom';
+  optCustom.textContent = t.loadoutProfileCustom;
+  DOM.savedLoadoutsSelect.appendChild(optCustom);
+
+  // 2. User Profiles Optgroup
+  if (userProfiles.length > 0) {
+    const userGroup = document.createElement('optgroup');
+    userGroup.label = t.groupUserProfiles;
+    userProfiles.forEach(p => {
+      const shipObj = MINING_DATA.ships.find(s => s.id === p.shipId);
+      const shipLabel = shipObj ? shipObj.name : p.shipId;
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${shipLabel})`;
+      userGroup.appendChild(opt);
+    });
+    DOM.savedLoadoutsSelect.appendChild(userGroup);
+  }
+
+  // 3. Factory Presets Optgroup
+  const presetGroup = document.createElement('optgroup');
+  presetGroup.label = t.groupFactoryPresets;
+  FACTORY_LOADOUT_PRESETS.forEach(p => {
+    const name = (isEn && p.name_en) ? p.name_en : p.name;
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = name;
+    presetGroup.appendChild(opt);
+  });
+  DOM.savedLoadoutsSelect.appendChild(presetGroup);
+
+  // Set current selected value
+  const curId = state.activeProfileId || 'custom';
+  const exists = Array.from(DOM.savedLoadoutsSelect.options).some(o => o.value === curId);
+  DOM.savedLoadoutsSelect.value = exists ? curId : 'custom';
+
+  // Update tag and action buttons
+  const isUserCustom = userProfiles.some(p => p.id === curId);
+  const activeProfile = [...userProfiles, ...FACTORY_LOADOUT_PRESETS].find(p => p.id === curId);
+
+  if (DOM.activeProfileTag) {
+    if (activeProfile) {
+      const name = (isEn && activeProfile.name_en) ? activeProfile.name_en : activeProfile.name;
+      DOM.activeProfileTag.textContent = `● Profil : ${name}`;
+      DOM.activeProfileTag.style.color = isUserCustom ? 'var(--accent-cyan)' : 'var(--accent-amber)';
+    } else {
+      DOM.activeProfileTag.textContent = isEn ? '● Custom' : '● Personnalisé';
+      DOM.activeProfileTag.style.color = 'var(--accent-emerald)';
+    }
+  }
+
+  if (DOM.btnUpdateCurrentProfile) {
+    DOM.btnUpdateCurrentProfile.style.display = isUserCustom ? 'inline-block' : 'none';
+  }
+  if (DOM.btnDeleteSelectedProfile) {
+    DOM.btnDeleteSelectedProfile.style.display = isUserCustom ? 'inline-block' : 'none';
+  }
+}
+
+function applyProfile(profileId) {
+  const isEn = state.currentLang === 'en';
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (profileId === 'custom') {
+    state.activeProfileId = 'custom';
+    localStorage.setItem('aaron_mfd_active_profile', 'custom');
+    populateProfilesDropdown();
+    return;
+  }
+
+  const userProfiles = getUserProfiles();
+  const allProfiles = [...FACTORY_LOADOUT_PRESETS, ...userProfiles];
+  const profile = allProfiles.find(p => p.id === profileId);
+  if (!profile) return;
+
+  state.activeProfileId = profileId;
+  localStorage.setItem('aaron_mfd_active_profile', profileId);
+
+  // 1. Set Ship
+  if (profile.shipId) {
+    setShip(profile.shipId);
+  }
+
+  // 2. Set Turrets configuration
+  if (Array.isArray(profile.turrets)) {
+    state.turretsByShip[profile.shipId] = JSON.parse(JSON.stringify(profile.turrets));
+
+    // Synchronize primary laser and modules
+    const primaryTurret = profile.turrets[0];
+    if (primaryTurret && primaryTurret.laserId) {
+      const l = MINING_DATA.lasers.find(x => x.id === primaryTurret.laserId);
+      if (l) state.selectedLaser = l;
+      state.selectedModules = [...(primaryTurret.moduleIds || ['none', 'none', 'none'])];
+    }
+  }
+
+  // 3. Set Gadget
+  if (profile.gadgetId) {
+    const g = MINING_DATA.gadgets.find(x => x.id === profile.gadgetId);
+    if (g) state.selectedGadget = g;
+  }
+
+  // 4. Update UI
+  populateLoadoutSelects();
+  updateLoadoutButtonSummary();
+  saveLoadout();
+  calculateAll();
+  populateProfilesDropdown();
+
+  const name = (isEn && profile.name_en) ? profile.name_en : profile.name;
+  showToast(t.toastProfileLoaded.replace('{name}', name));
+}
+
+function saveCurrentAsProfile(name) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const cleanName = (name || '').trim();
+  if (!cleanName) {
+    showToast(state.currentLang === 'en' ? 'Please provide a valid configuration name!' : 'Veuillez saisir un nom pour cette configuration !');
+    return;
+  }
+
+  const ship = state.selectedShip;
+  const turrets = getShipTurretConfigs(ship.id);
+
+  // Read current inputs in the modal if open
+  turrets.forEach((cfg, idx) => {
+    const selLaser = document.getElementById(`turretLaser_${idx}`);
+    if (selLaser) cfg.laserId = selLaser.value;
+    const slotsContainer = document.getElementById(`turretSlots_${idx}`);
+    if (slotsContainer) {
+      slotsContainer.querySelectorAll('select').forEach((sel, i) => {
+        cfg.moduleIds[i] = sel.value;
+      });
+    }
+  });
+
+  const gadgetId = DOM.gadgetSelect ? DOM.gadgetSelect.value : state.selectedGadget.id;
+
+  const newProfile = {
+    id: `cfg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    name: cleanName,
+    shipId: ship.id,
+    turrets: JSON.parse(JSON.stringify(turrets)),
+    gadgetId: gadgetId,
+    isPreset: false,
+    timestamp: Date.now()
+  };
+
+  const userProfiles = getUserProfiles();
+  userProfiles.unshift(newProfile);
+  saveUserProfiles(userProfiles);
+
+  state.activeProfileId = newProfile.id;
+  localStorage.setItem('aaron_mfd_active_profile', newProfile.id);
+
+  saveLoadout();
+  populateProfilesDropdown();
+  showToast(t.toastProfileSaved.replace('{name}', cleanName));
+  sfx.playSuccess();
+}
+
+function updateCurrentProfile() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (!state.activeProfileId || state.activeProfileId === 'custom' || state.activeProfileId.startsWith('preset_')) {
+    return;
+  }
+
+  const userProfiles = getUserProfiles();
+  const idx = userProfiles.findIndex(p => p.id === state.activeProfileId);
+  if (idx === -1) return;
+
+  const ship = state.selectedShip;
+  const turrets = getShipTurretConfigs(ship.id);
+
+  // Read current modal inputs
+  turrets.forEach((cfg, idx) => {
+    const selLaser = document.getElementById(`turretLaser_${idx}`);
+    if (selLaser) cfg.laserId = selLaser.value;
+    const slotsContainer = document.getElementById(`turretSlots_${idx}`);
+    if (slotsContainer) {
+      slotsContainer.querySelectorAll('select').forEach((sel, i) => {
+        cfg.moduleIds[i] = sel.value;
+      });
+    }
+  });
+
+  const gadgetId = DOM.gadgetSelect ? DOM.gadgetSelect.value : state.selectedGadget.id;
+
+  userProfiles[idx].shipId = ship.id;
+  userProfiles[idx].turrets = JSON.parse(JSON.stringify(turrets));
+  userProfiles[idx].gadgetId = gadgetId;
+  userProfiles[idx].timestamp = Date.now();
+
+  saveUserProfiles(userProfiles);
+  saveLoadout();
+  populateProfilesDropdown();
+  showToast(t.toastProfileUpdated.replace('{name}', userProfiles[idx].name));
+  sfx.playSuccess();
+}
+
+function deleteSelectedProfile() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (!state.activeProfileId || state.activeProfileId === 'custom' || state.activeProfileId.startsWith('preset_')) {
+    return;
+  }
+
+  const userProfiles = getUserProfiles();
+  const profile = userProfiles.find(p => p.id === state.activeProfileId);
+  if (!profile) return;
+
+  const confirmMsg = t.confirmDeleteProfile.replace('{name}', profile.name);
+  if (!confirm(confirmMsg)) return;
+
+  const filtered = userProfiles.filter(p => p.id !== state.activeProfileId);
+  saveUserProfiles(filtered);
+
+  state.activeProfileId = 'custom';
+  localStorage.setItem('aaron_mfd_active_profile', 'custom');
+
+  populateProfilesDropdown();
+  showToast(t.toastProfileDeleted);
+  sfx.playBeep(400, 'sine', 0.05);
+}
+
 function saveLoadout() {
   try {
     const data = {
@@ -4400,6 +4825,7 @@ function saveLoadout() {
 
 function loadSavedLoadout() {
   try {
+    state.activeProfileId = localStorage.getItem('aaron_mfd_active_profile') || 'custom';
     const raw = localStorage.getItem('aaron_mfd_loadout');
     if (!raw) return;
     const data = JSON.parse(raw);

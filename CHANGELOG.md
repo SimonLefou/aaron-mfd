@@ -8,6 +8,12 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [1.6.0] - 2026-10-15 - *Gestionnaire de Profils & Sauvegardes d'Équipement Personnalisées*
+
+#### ✨ Ajouté (Added)
+- **Gestionnaire Multi-Profils Nommés** : Enregistrez, nommez, chargez, mettez à jour et supprimez vos configurations d'équipement (vaisseau, tourelles, têtes laser, modules et gadgets) avec persistance locale `localStorage`.
+- **5 Préréglages Recommandés (Défaut)** : Configurations d'usine prêtes à l'emploi pour le Prospector (Polyvalent & Puissance Brute), l'Argo MOLE (Trio), le RSI Arrastra (Lourd S3) et le Greycat ROC (Gemmes).
+
 ### [1.5.1] - 2026-10-15 - *Personnalisation de l'Indicatif Pilote & Épuration du Radar RS*
 
 #### ✨ Ajouté (Added)
@@ -172,6 +178,12 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [1.6.0] - 2026-10-15 - *Loadout Profiles Manager & Custom Saved Configurations*
+
+#### ✨ Added
+- **Multi-Profile Named Loadouts Manager**: Save, name, load, update, and delete custom named loadouts (ship, turrets, lasers, modules, and gadgets) with `localStorage` persistence.
+- **5 Factory Default Presets**: Instant starter setups for Prospector (Balanced & Heavy), Argo MOLE (Trio), RSI Arrastra (Heavy S3), and Greycat ROC (Gems).
 
 ### [1.5.1] - 2026-10-15 - *Pilot Callsign Customization & RS Radar Clean-up*
 

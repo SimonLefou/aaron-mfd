@@ -114,7 +114,7 @@
         </svg>
       </div>
       <div>
-        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.5.1</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.6.0</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
         <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
       </div>
     </div>
@@ -868,6 +868,33 @@
         <button class="btn-close-modal" id="btnCloseLoadout">&times;</button>
       </div>
 
+      <!-- PROFILES & PRESETS MANAGER -->
+      <div class="loadout-profiles-box" style="margin-bottom:14px; padding:10px 12px; background:rgba(0,240,255,0.05); border:1px solid rgba(0,240,255,0.25); border-radius:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <label style="font-family:var(--font-hud); font-size:0.78rem; color:var(--accent-cyan); letter-spacing:0.8px; font-weight:700;" data-i18n="loadoutProfilesTitle">
+            📁 PROFILS DE CONFIGURATION SAUVEGARDÉS
+          </label>
+          <span id="activeProfileTag" style="font-size:0.7rem; font-family:var(--font-mono); color:var(--accent-emerald); font-weight:700;">● Personnalisé</span>
+        </div>
+        
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <select id="savedLoadoutsSelect" class="hud-select-full" style="font-size:0.85rem; font-weight:600; padding:6px 10px; flex:1; min-width:200px;">
+            <option value="custom" data-i18n="loadoutProfileCustom">-- Configuration actuelle (Non enregistrée) --</option>
+          </select>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <button type="button" class="chip-btn" id="btnOpenSaveProfileModal" data-i18n-title="titleSaveProfile" title="Enregistrer la configuration actuelle sous un nouveau nom" style="padding:6px 10px; font-size:0.78rem; font-weight:700; border-color:var(--accent-cyan); color:var(--accent-cyan); white-space:nowrap;" data-i18n="btnSaveProfile">
+              💾 ENREGISTRER
+            </button>
+            <button type="button" class="chip-btn" id="btnUpdateCurrentProfile" data-i18n-title="titleUpdateProfile" title="Mettre à jour le profil sélectionné" style="padding:6px 10px; font-size:0.78rem; font-weight:700; border-color:var(--accent-amber); color:var(--accent-amber); white-space:nowrap; display:none;" data-i18n="btnUpdateProfile">
+              🔄 MAJ
+            </button>
+            <button type="button" class="chip-btn" id="btnDeleteSelectedProfile" data-i18n-title="titleDeleteProfile" title="Supprimer ce profil enregistré" style="padding:6px 10px; font-size:0.78rem; font-weight:700; border-color:#ef4444; color:#ef4444; display:none;">
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- SHIP SELECTION (Inside Loadout Modal) -->
       <div class="input-group" style="margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid rgba(0,240,255,0.2);">
         <label class="label-row" style="color:var(--accent-cyan); font-family:var(--font-hud); font-size:0.85rem;">
@@ -1277,6 +1304,32 @@
     </div>
   </div>
 
+  <!-- MODAL: SAVE LOADOUT NAME -->
+  <div class="modal-overlay" id="saveLoadoutNameModal">
+    <div class="modal-content" style="max-width:440px; text-align:center;">
+      <div class="modal-header">
+        <h2 style="font-family:var(--font-hud); font-size:1.05rem; color:var(--accent-cyan);" data-i18n="saveLoadoutTitle">ENREGISTRER LA CONFIGURATION</h2>
+        <button class="btn-close-modal" id="btnCloseSaveLoadoutName">&times;</button>
+      </div>
+
+      <div style="margin:16px 0; text-align:left;">
+        <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;" data-i18n="saveLoadoutNameLabel">
+          Nom de votre configuration d'équipement :
+        </label>
+        <input type="text" id="saveLoadoutNameInput" maxlength="32" class="hud-input" style="font-family:var(--font-hud); font-size:1.05rem; font-weight:700; color:#fff; background:rgba(0,0,0,0.6); border:1px solid var(--accent-cyan); padding:8px 12px; border-radius:6px; width:100%; box-sizing:border-box;" placeholder="Ex: Prospector Solo Quant, MOLE Trio Pyro..." value="">
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+        <button type="button" class="btn-primary-action" id="btnConfirmSaveLoadoutName" style="width:auto; padding:8px 22px;" data-i18n="btnSaveProfile">
+          ENREGISTRER
+        </button>
+        <button type="button" class="chip-btn" id="btnCancelSaveLoadoutName" style="width:auto; padding:8px 16px;" data-i18n="btnCancelCallsign">
+          ANNULER
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: VOICE STATUS -->
   <div class="modal-overlay" id="voiceModal">
     <div class="modal-content" style="text-align:center;">
@@ -1633,14 +1686,36 @@
 
       <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
 
-        <!-- VERSION 1.5.1 -->
+        <!-- VERSION 1.6.0 -->
         <div class="changelog-card current-version">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill current">v1.5.1</span>
-              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Personnalisation Indicatif Pilote & Épuration Radar RS</strong>
+              <span class="version-tag-pill current">v1.6.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Gestionnaire de Profils & Sauvegardes d'Équipement Personnalisées</strong>
             </div>
             <span class="changelog-date">Dernière version (Alpha 4.10)</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Gestionnaire Multi-Profils Nommés</strong> : Enregistrez, nommez, chargez, mettez à jour et supprimez autant de configurations d'équipement que vous le souhaitez (vaisseau, tourelles, têtes laser, modules et gadgets).</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>5 Préréglages Recommandés (Défaut)</strong> : Accédez en 1 clic aux configurations d'usine éprouvées pour Prospector, MOLE, Arrastra et ROC.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- VERSION 1.5.1 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill">v1.5.1</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Personnalisation Indicatif Pilote & Épuration Radar RS</strong>
+            </div>
+            <span class="changelog-date">Version précédente (Alpha 4.10)</span>
           </div>
 
           <ul class="changelog-list">
@@ -1955,17 +2030,17 @@
       <span>•</span>
       <span class="footer-link" id="btnOpenDonateFooter" style="color:#fbbf24; font-weight:700;" data-i18n="support">💛 Soutenir</span>
       <span>•</span>
-      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.5.1)</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.6.0)</span>
       <span>•</span>
       <span class="footer-link" id="btnInstallPWA" data-i18n="installPWA">📱 Installer sur écran d'accueil</span>
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.5.1)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.6.0)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.5.1 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.6.0 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
-  <script type="module" src="app.js?v=1.5.1"></script>
+  <script type="module" src="app.js?v=1.6.0"></script>
 </body>
 </html>
