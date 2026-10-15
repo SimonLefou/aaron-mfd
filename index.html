@@ -47,6 +47,8 @@
         <select id="mgShipSelect" class="mg-ship-select" aria-label="Sélectionner le vaisseau">
           <option value="prospector" data-i18n="shipProspector">MISC Prospector (32 SCU)</option>
           <option value="mole" data-i18n="shipMole">Argo MOLE (96 SCU)</option>
+          <option value="arrastra" data-i18n="shipArrastra">RSI Arrastra (576 SCU)</option>
+          <option value="orion" data-i18n="shipOrion">RSI Orion (2 880 SCU)</option>
           <option value="roc" data-i18n="shipRoc">Greycat ROC (0.8 SCU)</option>
           <option value="roc_ds" data-i18n="shipRocDs">Greycat ROC-DS (1.2 SCU)</option>
         </select>
@@ -125,6 +127,8 @@
         <select id="shipSelect">
           <option value="prospector" data-i18n="shipProspector">MISC Prospector (32 SCU)</option>
           <option value="mole" data-i18n="shipMole">Argo MOLE (96 SCU)</option>
+          <option value="arrastra" data-i18n="shipArrastra">RSI Arrastra (576 SCU)</option>
+          <option value="orion" data-i18n="shipOrion">RSI Orion (2 880 SCU)</option>
           <option value="roc" data-i18n="shipRoc">Greycat ROC (0.8 SCU)</option>
           <option value="roc_ds" data-i18n="shipRocDs">Greycat ROC-DS (1.2 SCU)</option>
         </select>
@@ -870,110 +874,25 @@
         <select id="loadoutShipSelect" class="hud-select-full" style="font-weight:700; font-size:0.95rem;">
           <option value="prospector" data-i18n="shipProspector">MISC Prospector (32 SCU)</option>
           <option value="mole" data-i18n="shipMole">Argo MOLE (96 SCU)</option>
+          <option value="arrastra" data-i18n="shipArrastra">RSI Arrastra (576 SCU)</option>
+          <option value="orion" data-i18n="shipOrion">RSI Orion (2 880 SCU)</option>
           <option value="roc" data-i18n="shipRoc">Greycat ROC (0.8 SCU)</option>
           <option value="roc_ds" data-i18n="shipRocDs">Greycat ROC-DS (1.2 SCU)</option>
         </select>
       </div>
 
-      <!-- SINGLE LASER SECTION (Prospector & ROC) -->
-      <div id="singleLaserSection">
-        <div class="input-group">
-          <label class="label-row" id="laserSectionLabel" data-i18n="miningLaser">TÊTE DE MINAGE (LASER)</label>
-          <select id="laserSelect" class="hud-select-full">
-            <!-- lasers populated -->
-          </select>
-          <div id="laserStatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
-          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; line-height:1.4;" id="laserDescText"></p>
-        </div>
-
-        <!-- DYNAMIC MODULE SLOTS ACCORDING TO LASER SLOTS -->
-        <div id="singleLaserSlotsContainer" style="display:flex; flex-direction:column; gap:8px;">
-          <!-- Dynamically populated via app.js -->
-        </div>
-      </div>
-
-      <!-- ARGO MOLE 3-TURRETS SECTION -->
-      <div id="moleTurretsSection" style="display:none;">
-        <div style="font-size:0.8rem; color:var(--accent-amber); margin-bottom:12px; font-family:var(--font-hud); display:flex; justify-content:space-between; align-items:center;" data-i18n-title="moleTurretsConfig">
+      <!-- UNIFIED SHIP TURRETS & MINING HEADS CONFIGURATION -->
+      <div id="shipTurretsSection">
+        <div style="font-size:0.8rem; color:var(--accent-amber); margin-bottom:12px; font-family:var(--font-hud); display:flex; justify-content:space-between; align-items:center;">
           <div style="display:flex; align-items:center; gap:6px;">
-            <span>⚙</span> <span data-i18n="moleTurretsConfig">CONFIGURATION DES 3 TOURELLES SIZE 2</span>
+            <span>⚙</span> <span id="turretsSectionTitle">CONFIGURATION DES TOURELLES</span>
           </div>
           <button type="button" class="btn-turret-toggle-all" id="btnToggleAllTurrets" data-i18n="collapseAllTurrets">Tout replier</button>
         </div>
 
-        <!-- Turret 1 -->
-        <div class="turret-config-card turret-1-card" id="moleTurret1Card">
-          <div class="turret-config-header" data-toggle-turret="1" data-i18n-title="titleToggleTurret" title="Cliquer pour replier/déplier la tourelle">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="turret-badge-tag t1-badge">⌖ T1</span>
-              <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); font-weight:700;" data-i18n="moleTurret1">
-                TOURELLE 1 (CENTRALE)
-              </span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="turret-header-summary" id="moleTurret1Summary">Lancet MH2</span>
-              <span class="turret-collapse-chevron">▼</span>
-            </div>
-          </div>
-          <div class="turret-config-body" id="moleTurret1Body">
-            <select id="moleLaser1" class="hud-select-full" style="margin-bottom:6px;">
-              <!-- Size 2 lasers -->
-            </select>
-            <div id="moleLaser1StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
-            <div id="moleTurret1SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
-              <!-- Dynamically populated based on laser slots -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Turret 2 -->
-        <div class="turret-config-card turret-2-card" id="moleTurret2Card">
-          <div class="turret-config-header" data-toggle-turret="2" data-i18n-title="titleToggleTurret" title="Cliquer pour replier/déplier la tourelle">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="turret-badge-tag t2-badge">◄ T2</span>
-              <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-amber); font-weight:700;" data-i18n="moleTurret2">
-                TOURELLE 2 (GAUCHE)
-              </span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="turret-header-summary" id="moleTurret2Summary">Helix II</span>
-              <span class="turret-collapse-chevron">▼</span>
-            </div>
-          </div>
-          <div class="turret-config-body" id="moleTurret2Body">
-            <select id="moleLaser2" class="hud-select-full" style="margin-bottom:6px;">
-              <!-- Size 2 lasers -->
-            </select>
-            <div id="moleLaser2StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
-            <div id="moleTurret2SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
-              <!-- Dynamically populated based on laser slots -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Turret 3 -->
-        <div class="turret-config-card turret-3-card" id="moleTurret3Card">
-          <div class="turret-config-header" data-toggle-turret="3" data-i18n-title="titleToggleTurret" title="Cliquer pour replier/déplier la tourelle">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="turret-badge-tag t3-badge">► T3</span>
-              <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-purple); font-weight:700;" data-i18n="moleTurret3">
-                TOURELLE 3 (DROITE)
-              </span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="turret-header-summary" id="moleTurret3Summary">Helix II</span>
-              <span class="turret-collapse-chevron">▼</span>
-            </div>
-          </div>
-          <div class="turret-config-body" id="moleTurret3Body">
-            <select id="moleLaser3" class="hud-select-full" style="margin-bottom:6px;">
-              <!-- Size 2 lasers -->
-            </select>
-            <div id="moleLaser3StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
-            <div id="moleTurret3SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
-              <!-- Dynamically populated based on laser slots -->
-            </div>
-          </div>
+        <!-- DYNAMIC TURRET CARDS CONTAINER -->
+        <div id="turretCardsContainer" style="display:flex; flex-direction:column; gap:10px;">
+          <!-- Dynamically populated based on active ship turrets (Prospector: 1 S1, MOLE: 3 S2, Arrastra: 3 S3, Orion: 2 S3, ROC: 1 S0) -->
         </div>
       </div>
 

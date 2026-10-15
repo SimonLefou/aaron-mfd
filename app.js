@@ -45,12 +45,41 @@ const state = {
   crewReservePct: 10,
   squadMembers: [],
 
-  // Argo MOLE 3-turrets settings (each turret supports variable module slots)
+  // Argo MOLE & Multi-turrets settings (all ships with 1, 2, or 3 turrets)
   moleActiveTurrets: 2, // 1 (solo), 2 (duo), 3 (trio)
-  moleTurrets: {
-    turret1: { laserId: 'lancet_s2', moduleIds: ['none', 'none', 'none'], get modId() { return this.moduleIds[0] || 'none'; }, set modId(val) { this.moduleIds[0] = val; } },
-    turret2: { laserId: 'helix_s2', moduleIds: ['none', 'none', 'none'], get modId() { return this.moduleIds[0] || 'none'; }, set modId(val) { this.moduleIds[0] = val; } },
-    turret3: { laserId: 'helix_s2', moduleIds: ['none', 'none', 'none'], get modId() { return this.moduleIds[0] || 'none'; }, set modId(val) { this.moduleIds[0] = val; } }
+  turretsByShip: {
+    prospector: [
+      { laserId: 'arbor_mh1', moduleIds: ['none', 'none'] }
+    ],
+    mole: [
+      { laserId: 'lancet_s2', moduleIds: ['none', 'none', 'none'] },
+      { laserId: 'helix_s2', moduleIds: ['none', 'none', 'none'] },
+      { laserId: 'helix_s2', moduleIds: ['none', 'none', 'none'] }
+    ],
+    arrastra: [
+      { laserId: 'lancet_s3', moduleIds: ['none', 'none', 'none'] },
+      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] },
+      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] }
+    ],
+    orion: [
+      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] },
+      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] }
+    ],
+    roc: [
+      { laserId: 'mining_arm', moduleIds: [] }
+    ],
+    roc_ds: [
+      { laserId: 'mining_arm', moduleIds: [] }
+    ]
+  },
+  // Backward compatibility getter for moleTurrets
+  get moleTurrets() {
+    const list = this.turretsByShip.mole;
+    return {
+      turret1: list[0],
+      turret2: list[1],
+      turret3: list[2]
+    };
   },
 
   // Quantainium timer
@@ -685,28 +714,13 @@ const DOM = {
   rangefinderProgressFill: document.getElementById('rangefinderProgressFill'),
   rangefinderAlertText: document.getElementById('rangefinderAlertText'),
 
-  // MOLE Active Turrets Control
+  // Multi-turrets Active Firing Controls & Unified Loadout Section
   moleTurretBar: document.getElementById('moleTurretBar'),
-  singleLaserSection: document.getElementById('singleLaserSection'),
-  moleTurretsSection: document.getElementById('moleTurretsSection'),
-  moleLaser1: document.getElementById('moleLaser1'),
-  moleLaser2: document.getElementById('moleLaser2'),
-  moleLaser3: document.getElementById('moleLaser3'),
-  laserStatsStrip: document.getElementById('laserStatsStrip'),
-  moleLaser1StatsStrip: document.getElementById('moleLaser1StatsStrip'),
-  moleLaser2StatsStrip: document.getElementById('moleLaser2StatsStrip'),
-  moleLaser3StatsStrip: document.getElementById('moleLaser3StatsStrip'),
-  moleTurret1Card: document.getElementById('moleTurret1Card'),
-  moleTurret2Card: document.getElementById('moleTurret2Card'),
-  moleTurret3Card: document.getElementById('moleTurret3Card'),
-  moleTurret1Summary: document.getElementById('moleTurret1Summary'),
-  moleTurret2Summary: document.getElementById('moleTurret2Summary'),
-  moleTurret3Summary: document.getElementById('moleTurret3Summary'),
+  mgMoleTurretBar: document.getElementById('mgMoleTurretBar'),
+  shipTurretsSection: document.getElementById('shipTurretsSection'),
+  turretsSectionTitle: document.getElementById('turretsSectionTitle'),
   btnToggleAllTurrets: document.getElementById('btnToggleAllTurrets'),
-  singleLaserSlotsContainer: document.getElementById('singleLaserSlotsContainer'),
-  moleTurret1SlotsContainer: document.getElementById('moleTurret1SlotsContainer'),
-  moleTurret2SlotsContainer: document.getElementById('moleTurret2SlotsContainer'),
-  moleTurret3SlotsContainer: document.getElementById('moleTurret3SlotsContainer'),
+  turretCardsContainer: document.getElementById('turretCardsContainer'),
 
   // Modals
   loadoutModal: document.getElementById('loadoutModal'),
@@ -1740,9 +1754,12 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
       effectDesc.className = `module-effect-desc ${selected.type === 'active' ? 'active-effect' : (selected.type === 'passive' ? 'passive-effect' : '')}`;
       effectDesc.innerHTML = `<span>${newIcon}</span> <span>${newDesc || (state.currentLang === 'fr' ? 'Emplacement vide' : 'Empty slot')}</span>`;
 
-      if (prefix.startsWith('mole_t')) {
+      if (prefix.startsWith('turret_')) {
+        const tIdx = parseInt(prefix.slice(7), 10);
+        updateTurretHeaderSummary(tIdx);
+      } else if (prefix.startsWith('mole_t')) {
         const tNum = parseInt(prefix.slice(6), 10);
-        if (tNum) updateMoleTurretHeaderSummary(tNum);
+        if (tNum) updateTurretHeaderSummary(tNum - 1);
       }
 
       updateLoadoutButtonSummary();
@@ -1757,21 +1774,235 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
   }
 }
 
-// Helper: Update concise summary pill in collapsible turret header
-function updateMoleTurretHeaderSummary(turretNum) {
-  const tKey = `turret${turretNum}`;
-  const cfg = state.moleTurrets ? state.moleTurrets[tKey] : null;
-  const summaryEl = DOM[`moleTurret${turretNum}Summary`];
+// Helper: Get or initialize turret configurations for a ship
+function getShipTurretConfigs(shipId) {
+  const ship = MINING_DATA.ships.find(s => s.id === shipId) || MINING_DATA.ships[0];
+  const count = ship.laserSlots || 1;
+  if (!state.turretsByShip[shipId]) {
+    state.turretsByShip[shipId] = [];
+  }
+  const compatible = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
+  const defaultLaserId = compatible[0]?.id || 'arbor_mh1';
+
+  while (state.turretsByShip[shipId].length < count) {
+    state.turretsByShip[shipId].push({
+      laserId: defaultLaserId,
+      moduleIds: ['none', 'none', 'none']
+    });
+  }
+  return state.turretsByShip[shipId].slice(0, count);
+}
+
+// Helper: Metadata (badge, titles, color accents) for turret cards
+function getTurretMetadata(shipId, turretIdx) {
+  const isEn = state.currentLang === 'en';
+  if (shipId === 'prospector') {
+    return {
+      badge: 'T1',
+      badgeClass: 't1-badge',
+      cardClass: 'turret-1-card',
+      title: isEn ? 'PRIMARY MINING HEAD (SIZE 1)' : 'TÊTE DE MINAGE PRINCIPALE (SIZE 1)',
+      subtitle: isEn ? 'Front Gimbal Arm' : 'Bras articulé frontal'
+    };
+  }
+  if (shipId === 'mole') {
+    const metaList = isEn ? [
+      { badge: '◄ T1 ►', title: 'CENTER TURRET 1 (SIZE 2)', sub: 'Primary Center Cockpit' },
+      { badge: '◄ T2', title: 'PORT TURRET 2 / LEFT (SIZE 2)', sub: 'Left Mining Cabin' },
+      { badge: 'T3 ►', title: 'STARBOARD TURRET 3 / RIGHT (SIZE 2)', sub: 'Right Mining Cabin' }
+    ] : [
+      { badge: '◄ T1 ►', title: 'TOURELLE CENTRALE 1 (SIZE 2)', sub: 'Poste opérateur central' },
+      { badge: '◄ T2', title: 'TOURELLE BÂBORD 2 / GAUCHE (SIZE 2)', sub: 'Poste opérateur gauche' },
+      { badge: 'T3 ►', title: 'TOURELLE TRIBORD 3 / DROITE (SIZE 2)', sub: 'Poste opérateur droite' }
+    ];
+    const m = metaList[turretIdx] || metaList[0];
+    const badgeClasses = ['t1-badge', 't2-badge', 't3-badge'];
+    const cardClasses = ['turret-1-card', 'turret-2-card', 'turret-3-card'];
+    return {
+      badge: m.badge,
+      badgeClass: badgeClasses[turretIdx] || 't1-badge',
+      cardClass: cardClasses[turretIdx] || 'turret-1-card',
+      title: m.title,
+      subtitle: m.sub
+    };
+  }
+  if (shipId === 'arrastra') {
+    const metaList = isEn ? [
+      { badge: '◄ T1 ►', title: 'BOW REMOTE TURRET 1 (SIZE 3)', sub: 'Forward Heavy Arm' },
+      { badge: '◄ T2', title: 'PORT REMOTE TURRET 2 (SIZE 3)', sub: 'Port Side Remote Rig' },
+      { badge: 'T3 ►', title: 'STARBOARD REMOTE TURRET 3 (SIZE 3)', sub: 'Starboard Remote Rig' }
+    ] : [
+      { badge: '◄ T1 ►', title: 'TOURELLE PROUE 1 / AVANT (SIZE 3)', sub: 'Bras lourd frontal' },
+      { badge: '◄ T2', title: 'TOURELLE BÂBORD 2 (SIZE 3)', sub: 'Tourelle latérale gauche' },
+      { badge: 'T3 ►', title: 'TOURELLE TRIBORD 3 (SIZE 3)', sub: 'Tourelle latérale droite' }
+    ];
+    const m = metaList[turretIdx] || metaList[0];
+    const badgeClasses = ['t1-badge', 't2-badge', 't3-badge'];
+    const cardClasses = ['turret-1-card', 'turret-2-card', 'turret-3-card'];
+    return {
+      badge: m.badge,
+      badgeClass: badgeClasses[turretIdx] || 't1-badge',
+      cardClass: cardClasses[turretIdx] || 'turret-1-card',
+      title: m.title,
+      subtitle: m.sub
+    };
+  }
+  if (shipId === 'orion') {
+    const metaList = isEn ? [
+      { badge: '◄ T1', title: 'FORWARD HEAVY TURRET 1 (SIZE 3)', sub: 'Main Extraction Rig' },
+      { badge: 'T2 ►', title: 'DORSAL HEAVY TURRET 2 (SIZE 3)', sub: 'Upper Crushing Rig' }
+    ] : [
+      { badge: '◄ T1', title: 'TOURELLE AVANT PRINCIPALE 1 (SIZE 3)', sub: 'Gantry frontal lourd' },
+      { badge: 'T2 ►', title: 'TOURELLE DORSALE SUPÉRIEURE 2 (SIZE 3)', sub: 'Tourelle supérieure' }
+    ];
+    const m = metaList[turretIdx] || metaList[0];
+    const badgeClasses = ['t1-badge', 't2-badge'];
+    const cardClasses = ['turret-1-card', 'turret-2-card'];
+    return {
+      badge: m.badge,
+      badgeClass: badgeClasses[turretIdx] || 't1-badge',
+      cardClass: cardClasses[turretIdx] || 'turret-1-card',
+      title: m.title,
+      subtitle: m.sub
+    };
+  }
+  // ROC / ROC-DS
+  return {
+    badge: 'ARM',
+    badgeClass: 't1-badge',
+    cardClass: 'turret-1-card',
+    title: isEn ? 'EXTRACTION LASER ARM (SIZE 0)' : "BRAS LASER D'EXTRACTION (SIZE 0)",
+    subtitle: isEn ? 'Vehicle Mounted Arm' : 'Bras articulé de véhicule'
+  };
+}
+
+// Helper: Update summary text inside collapsible turret header
+function updateTurretHeaderSummary(turretIdx) {
+  const ship = state.selectedShip;
+  const configs = getShipTurretConfigs(ship.id);
+  const cfg = configs[turretIdx];
+  const summaryEl = document.getElementById(`turretSummary_${turretIdx}`);
   if (!cfg || !summaryEl) return;
-  const laser = MINING_DATA.lasers.find(l => l.id === cfg.laserId && l.size === 2) || MINING_DATA.lasers.find(l => l.size === 2) || MINING_DATA.lasers[0];
-  const slotCount = laser.slots ?? 2;
+
+  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
+  const laser = compatibleLasers.find(l => l.id === cfg.laserId) || compatibleLasers[0] || MINING_DATA.lasers[0];
+  const slotCount = laser.slots ?? 0;
   const activeModsCount = (cfg.moduleIds || []).slice(0, slotCount).filter(m => m !== 'none').length;
   summaryEl.textContent = `${laser.name} (${activeModsCount}/${slotCount} mods)`;
 }
 
+// Render dynamic turret cards for active ship
+function renderShipTurretsConfig() {
+  if (!DOM.turretCardsContainer) return;
+  DOM.turretCardsContainer.innerHTML = '';
+
+  const ship = state.selectedShip;
+  const configs = getShipTurretConfigs(ship.id);
+  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
+
+  configs.forEach((cfg, idx) => {
+    const meta = getTurretMetadata(ship.id, idx);
+    const currentLaser = compatibleLasers.find(l => l.id === cfg.laserId) || compatibleLasers[0] || MINING_DATA.lasers[0];
+    cfg.laserId = currentLaser.id;
+
+    // Turret card element
+    const card = document.createElement('div');
+    card.className = `turret-config-card ${meta.cardClass}`;
+    card.id = `turretCard_${idx}`;
+
+    // Header with badge, title and collapsible summary
+    const header = document.createElement('div');
+    header.className = 'turret-config-header';
+    header.dataset.turretIdx = idx;
+    header.title = state.currentLang === 'en' ? 'Click to collapse/expand turret' : 'Cliquer pour replier/déplier la tourelle';
+
+    header.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="turret-badge-tag ${meta.badgeClass}">${meta.badge}</span>
+        <div style="display:flex; flex-direction:column;">
+          <span style="font-family:var(--font-hud); font-size:0.85rem; font-weight:700; color:#fff;">${meta.title}</span>
+          <span style="font-size:0.68rem; color:var(--text-muted);">${meta.subtitle}</span>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="turret-header-summary" id="turretSummary_${idx}"></span>
+        <span class="turret-collapse-chevron">▼</span>
+      </div>
+    `;
+
+    // Body with laser dropdown, stats strip, and dynamic module slots
+    const body = document.createElement('div');
+    body.className = 'turret-config-body';
+    body.id = `turretBody_${idx}`;
+
+    const select = document.createElement('select');
+    select.className = 'hud-select-full turret-laser-select';
+    select.id = `turretLaser_${idx}`;
+    select.style.marginBottom = '6px';
+
+    compatibleLasers.forEach(l => {
+      const desc = getLocalized(l, 'desc') || '';
+      const slotText = l.slots !== undefined ? `${l.slots} slots` : '0 slots';
+      const opt = new Option(`${l.name} (S${l.size} • ${slotText} • ${l.power} W) - ${desc.slice(0, 30)}...`, l.id);
+      select.appendChild(opt);
+    });
+    select.value = cfg.laserId;
+
+    const statsStrip = document.createElement('div');
+    statsStrip.id = `turretStats_${idx}`;
+    statsStrip.className = 'laser-stats-strip';
+    statsStrip.style.cssText = 'display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;';
+
+    const slotsContainer = document.createElement('div');
+    slotsContainer.id = `turretSlots_${idx}`;
+    slotsContainer.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
+
+    body.appendChild(select);
+    body.appendChild(statsStrip);
+    body.appendChild(slotsContainer);
+
+    card.appendChild(header);
+    card.appendChild(body);
+    DOM.turretCardsContainer.appendChild(card);
+
+    // Initial render of stats and module slots
+    renderLaserStatsStrip(statsStrip, currentLaser);
+    renderLaserModuleSlots(slotsContainer, currentLaser.slots ?? 0, cfg.moduleIds, `turret_${idx}`);
+    updateTurretHeaderSummary(idx);
+
+    // Laser change listener on this turret
+    select.addEventListener('change', (e) => {
+      sfx.playBeep(600, 'sine', 0.04);
+      cfg.laserId = e.target.value;
+      const newL = compatibleLasers.find(l => l.id === e.target.value) || compatibleLasers[0];
+
+      if (idx === 0) {
+        state.selectedLaser = newL;
+        if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = newL.id;
+      }
+
+      renderLaserStatsStrip(statsStrip, newL);
+      renderLaserModuleSlots(slotsContainer, newL.slots ?? 0, cfg.moduleIds, `turret_${idx}`);
+      updateTurretHeaderSummary(idx);
+      calculateAll();
+      saveLoadout();
+      updateLoadoutButtonSummary();
+    });
+
+    // Toggle collapse on card header click
+    header.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.03);
+      triggerHaptic(12);
+      card.classList.toggle('collapsed');
+      updateToggleAllButtonText();
+    });
+  });
+
+  updateToggleAllButtonText();
+}
+
 // Populate Loadout modal selects
 function populateLoadoutSelects() {
-  // Lasers compatible with ship
   updateLaserOptions();
 
   // Gadgets
@@ -1788,123 +2019,85 @@ function populateLoadoutSelects() {
   }
 }
 
-function populateMoleSelects() {
-  const size2Lasers = MINING_DATA.lasers.filter(l => l.size === 2);
-  const moleTurretLasers = [
-    { sel: DOM.moleLaser1, cfg: state.moleTurrets.turret1, container: DOM.moleTurret1SlotsContainer, statsStrip: DOM.moleLaser1StatsStrip, key: 'turret1' },
-    { sel: DOM.moleLaser2, cfg: state.moleTurrets.turret2, container: DOM.moleTurret2SlotsContainer, statsStrip: DOM.moleLaser2StatsStrip, key: 'turret2' },
-    { sel: DOM.moleLaser3, cfg: state.moleTurrets.turret3, container: DOM.moleTurret3SlotsContainer, statsStrip: DOM.moleLaser3StatsStrip, key: 'turret3' }
-  ];
-
-  moleTurretLasers.forEach((item, idx) => {
-    if (!item.sel) return;
-    item.sel.innerHTML = '';
-    size2Lasers.forEach(l => {
-      const desc = getLocalized(l, 'desc');
-      const opt = new Option(`${l.name} (S2 • ${l.slots} slots • ${l.power} W) - ${desc.slice(0, 32)}...`, l.id);
-      item.sel.appendChild(opt);
-    });
-    item.sel.value = item.cfg.laserId;
-
-    const currentLaser = MINING_DATA.lasers.find(l => l.id === item.cfg.laserId) || size2Lasers[0];
-    renderLaserStatsStrip(item.statsStrip, currentLaser);
-    renderLaserModuleSlots(item.container, currentLaser.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
-    updateMoleTurretHeaderSummary(idx + 1);
-
-    item.sel.onchange = (e) => {
-      sfx.playBeep(600, 'sine', 0.04);
-      item.cfg.laserId = e.target.value;
-      const newL = MINING_DATA.lasers.find(l => l.id === e.target.value) || size2Lasers[0];
-      if (idx === 0) {
-        state.selectedLaser = newL;
-        if (DOM.laserSelect) DOM.laserSelect.value = newL.id;
-        if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = newL.id;
-        if (DOM.laserDescText) DOM.laserDescText.textContent = getLocalized(newL, 'desc');
-        renderLaserStatsStrip(DOM.laserStatsStrip, newL);
-        renderLaserModuleSlots(DOM.singleLaserSlotsContainer, newL.slots ?? 0, item.cfg.moduleIds, 'mole_t1');
-      }
-      renderLaserStatsStrip(item.statsStrip, newL);
-      renderLaserModuleSlots(item.container, newL.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
-      updateMoleTurretHeaderSummary(idx + 1);
-      calculateAll();
-      saveLoadout();
-    };
-  });
-}
-
 function updateLaserOptions() {
-  const isMole = state.selectedShip.id === 'mole';
-  const shipSize = state.selectedShip.laserSize;
+  const ship = state.selectedShip;
+  const isMultiTurret = ship.laserSlots && ship.laserSlots > 1;
   const t = I18N[state.currentLang] || I18N.fr;
 
-  // Toggle header active turrets bar for MOLE
-  if (DOM.moleTurretBar) {
-    DOM.moleTurretBar.style.display = isMole ? 'flex' : 'none';
-  }
-  if (DOM.mgMoleTurretBar) {
-    DOM.mgMoleTurretBar.style.display = isMole ? 'flex' : 'none';
+  // Toggle header active turrets bar for multi-turret ships (MOLE, Arrastra, Orion)
+  [DOM.moleTurretBar, DOM.mgMoleTurretBar].forEach(bar => {
+    if (!bar) return;
+    bar.style.display = isMultiTurret ? 'flex' : 'none';
+
+    // Show/hide trio button if ship only has 2 turrets (e.g. Orion)
+    const trioBtn = bar.querySelector('[data-mole-turret="3"]');
+    if (trioBtn) {
+      trioBtn.style.display = ship.laserSlots >= 3 ? 'inline-block' : 'none';
+    }
+  });
+
+  // Clamp active turrets to ship slots
+  if (isMultiTurret) {
+    if (state.moleActiveTurrets > ship.laserSlots) {
+      state.moleActiveTurrets = ship.laserSlots;
+    }
+    document.querySelectorAll('[data-mole-turret]').forEach(btn => {
+      const val = parseInt(btn.dataset.moleTurret, 10);
+      btn.classList.toggle('active', val === state.moleActiveTurrets);
+    });
   }
 
-  // Toggle modal sections: keep singleLaserSection visible for all ships (represents Primary Turret 1 for MOLE)
-  if (DOM.singleLaserSection && DOM.moleTurretsSection) {
-    DOM.singleLaserSection.style.display = 'block';
-    DOM.moleTurretsSection.style.display = isMole ? 'block' : 'none';
+  // Update section title & toggle-all button
+  if (DOM.turretsSectionTitle) {
+    DOM.turretsSectionTitle.textContent = isMultiTurret
+      ? (state.currentLang === 'en' ? `${ship.laserSlots} TURRETS CONFIGURATION (${ship.name})` : `CONFIGURATION DES ${ship.laserSlots} TOURELLES (${ship.name})`)
+      : (state.currentLang === 'en' ? `MINING HEAD CONFIGURATION (${ship.name})` : `CONFIGURATION DE LA TÊTE DE MINAGE (${ship.name})`);
+  }
+  if (DOM.btnToggleAllTurrets) {
+    DOM.btnToggleAllTurrets.style.display = isMultiTurret ? 'inline-block' : 'none';
   }
 
-  if (DOM.laserSectionLabel) {
-    DOM.laserSectionLabel.textContent = isMole 
-      ? (state.currentLang === 'en' ? "SIZE 2 MINING LASER (PRIMARY TURRET 1)" : "TÊTE DE MINAGE SIZE 2 (TOURELLE CENTRALE 1)")
-      : (t.miningLaser || "TÊTE DE MINAGE (LASER)");
-  }
+  // Compatible lasers for active ship size
+  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
 
-  // Lasers compatible with current ship size (S1 for Prospector/ROC, S2 for MOLE)
-  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === shipSize || (shipSize === 0 && l.size === 0));
-
-  // Populate main laser selects across modal and Panel 1
-  [DOM.laserSelect, DOM.mainLaserSelect].forEach(sel => {
-    if (!sel) return;
-    sel.innerHTML = '';
+  // Populate Panel 1 main laser select
+  if (DOM.mainLaserSelect) {
+    DOM.mainLaserSelect.innerHTML = '';
     compatibleLasers.forEach(laser => {
       const slotText = laser.slots !== undefined ? ` • ${laser.slots} slot(s)` : '';
       const opt = new Option(`${laser.name} (S${laser.size}${slotText})`, laser.id);
-      sel.appendChild(opt);
+      DOM.mainLaserSelect.appendChild(opt);
     });
-  });
-
-  if (compatibleLasers.length > 0) {
-    if (isMole) {
-      const moleLaser = compatibleLasers.find(l => l.id === state.moleTurrets.turret1.laserId) || compatibleLasers[0];
-      state.selectedLaser = moleLaser;
-      state.moleTurrets.turret1.laserId = moleLaser.id;
-    } else {
-      if (!compatibleLasers.some(l => l.id === state.selectedLaser.id)) {
-        state.selectedLaser = compatibleLasers[0];
-      }
-    }
-
-    if (DOM.laserSelect) DOM.laserSelect.value = state.selectedLaser.id;
-    if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = state.selectedLaser.id;
-    if (DOM.laserDescText) DOM.laserDescText.textContent = getLocalized(state.selectedLaser, 'desc');
-    renderLaserStatsStrip(DOM.laserStatsStrip, state.selectedLaser);
-    renderLaserModuleSlots(
-      DOM.singleLaserSlotsContainer,
-      state.selectedLaser.slots ?? 0,
-      isMole ? state.moleTurrets.turret1.moduleIds : state.selectedModules,
-      isMole ? 'mole_t1' : 'single'
-    );
   }
 
-  if (isMole) {
-    populateMoleSelects();
+  // Synchronize primary turret
+  const turrets = getShipTurretConfigs(ship.id);
+  const primaryLaser = compatibleLasers.find(l => l.id === turrets[0].laserId) || compatibleLasers[0] || MINING_DATA.lasers[0];
+  state.selectedLaser = primaryLaser;
+  turrets[0].laserId = primaryLaser.id;
+  state.selectedModules = turrets[0].moduleIds;
+
+  if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = state.selectedLaser.id;
+
+  if (DOM.laserSectionLabel) {
+    DOM.laserSectionLabel.textContent = isMultiTurret
+      ? (state.currentLang === 'en' ? `SIZE ${ship.laserSize} MINING LASER (PRIMARY TURRET 1)` : `TÊTE DE MINAGE SIZE ${ship.laserSize} (TOURELLE PRINCIPALE 1)`)
+      : (t.miningLaser || "TÊTE DE MINAGE (LASER)");
   }
+
+  // Render unified dynamic turret cards
+  renderShipTurretsConfig();
 
   updateLoadoutButtonSummary();
 }
 
 function updateLoadoutButtonSummary() {
   const t = I18N[state.currentLang] || I18N.fr;
-  if (state.selectedShip.id === 'mole') {
-    DOM.loadoutSummary.textContent = t.moleLoadoutBtn.replace('{count}', state.moleActiveTurrets);
+  const ship = state.selectedShip;
+  if (ship.laserSlots && ship.laserSlots > 1) {
+    const activeCount = Math.min(state.moleActiveTurrets || 1, ship.laserSlots);
+    const shipName = ship.name.split(' ').pop();
+    DOM.loadoutSummary.textContent = `${shipName}: ${activeCount}/${ship.laserSlots} ${t.turretsActive || 'Tourelles'}`;
   } else {
     const slotCount = state.selectedLaser.slots ?? 0;
     const activeModsCount = (state.selectedModules || []).slice(0, slotCount).filter(m => m !== 'none').length;
@@ -1989,25 +2182,26 @@ function calculateAll() {
   }
   if (DOM.compLegendInert) DOM.compLegendInert.textContent = `● Inertes: ${inertPct.toFixed(1)}%`;
 
-  // 3. Laser Fracture Feasibility (Single Laser vs Multi-Turret MOLE)
+  // 3. Laser Fracture Feasibility (Single Laser vs Multi-Turret MOLE / Arrastra / Orion)
   let totalLaserPower = 0;
   let combinedResistanceMod = 0;
   let combinedInstabilityMod = 0;
   let activeLaserDescList = [];
 
-  if (ship.id === 'mole') {
-    const activeCount = state.moleActiveTurrets;
-    const turretList = [
-      { cfg: state.moleTurrets.turret1, label: 'Centrale' },
-      { cfg: state.moleTurrets.turret2, label: 'Gauche' },
-      { cfg: state.moleTurrets.turret3, label: 'Droite' }
-    ];
+  const isMultiTurret = ship.laserSlots && ship.laserSlots > 1;
+
+  if (isMultiTurret) {
+    const activeCount = Math.min(state.moleActiveTurrets || 1, ship.laserSlots);
+    const shipTurrets = getShipTurretConfigs(ship.id);
 
     for (let i = 0; i < activeCount; i++) {
-      const item = turretList[i];
-      const l = MINING_DATA.lasers.find(x => x.id === item.cfg.laserId && x.size === 2) || MINING_DATA.lasers.find(x => x.size === 2) || MINING_DATA.lasers[0];
+      const item = shipTurrets[i];
+      if (!item) continue;
+      const l = MINING_DATA.lasers.find(x => x.id === item.laserId && (x.size === ship.laserSize || (ship.laserSize === 0 && x.size === 0)))
+             || MINING_DATA.lasers.find(x => x.size === ship.laserSize)
+             || MINING_DATA.lasers[0];
       const slotCount = l.slots !== undefined ? l.slots : 2;
-      const turretMods = (item.cfg.moduleIds || []).slice(0, slotCount).map(id => MINING_DATA.modules.find(m => m.id === id) || MINING_DATA.modules[0]);
+      const turretMods = (item.moduleIds || []).slice(0, slotCount).map(id => MINING_DATA.modules.find(m => m.id === id) || MINING_DATA.modules[0]);
 
       const turretPwrMod = turretMods.reduce((sum, m) => sum + (m.powerMod || 0), 0);
       const turretResMod = turretMods.reduce((sum, m) => sum + (m.resMod || 0), 0);
@@ -2025,18 +2219,22 @@ function calculateAll() {
       if (effectiveLaserInst < combinedInstabilityMod) combinedInstabilityMod = effectiveLaserInst;
     }
   } else {
-    // Single laser (Prospector, ROC)
-    const slotCount = laser.slots !== undefined ? laser.slots : 0;
-    const equippedMods = (state.selectedModules || []).slice(0, slotCount).map(id => MINING_DATA.modules.find(m => m.id === id) || MINING_DATA.modules[0]);
+    // Single laser (Prospector, ROC, ROC-DS)
+    const turrets = getShipTurretConfigs(ship.id);
+    const cfg = turrets[0];
+    const laserObj = (cfg && MINING_DATA.lasers.find(x => x.id === cfg.laserId)) || laser;
+    const slotCount = laserObj.slots !== undefined ? laserObj.slots : 0;
+    const moduleList = cfg ? cfg.moduleIds : state.selectedModules;
+    const equippedMods = (moduleList || []).slice(0, slotCount).map(id => MINING_DATA.modules.find(m => m.id === id) || MINING_DATA.modules[0]);
 
     const totalPwrMod = equippedMods.reduce((sum, m) => sum + (m.powerMod || 0), 0);
     const totalModRes = equippedMods.reduce((sum, m) => sum + (m.resMod || 0), 0);
     const totalModInst = equippedMods.reduce((sum, m) => sum + (m.instMod || 0), 0);
 
-    totalLaserPower = laser.power * (1 + totalPwrMod);
-    combinedResistanceMod = laser.resistanceMod + totalModRes;
-    combinedInstabilityMod = laser.instabilityMod + totalModInst;
-    activeLaserDescList.push(laser.name);
+    totalLaserPower = laserObj.power * (1 + totalPwrMod);
+    combinedResistanceMod = laserObj.resistanceMod + totalModRes;
+    combinedInstabilityMod = laserObj.instabilityMod + totalModInst;
+    activeLaserDescList.push(laserObj.name);
   }
 
   // Combined Fleet & Squad Wingmen
@@ -2723,12 +2921,14 @@ function setLanguage(lang) {
   [DOM.shipSelect, DOM.mgShipSelect, DOM.loadoutShipSelect].forEach(sel => {
     if (!sel) return;
     const shipOpts = sel.querySelectorAll('option');
-    shipOpts.forEach(opt => {
-      if (opt.value === 'prospector') opt.textContent = t.shipProspector;
-      if (opt.value === 'mole') opt.textContent = t.shipMole;
-      if (opt.value === 'roc') opt.textContent = t.shipRoc;
-      if (opt.value === 'roc_ds') opt.textContent = t.shipRocDs;
-    });
+      shipOpts.forEach(opt => {
+        if (opt.value === 'prospector') opt.textContent = t.shipProspector;
+        if (opt.value === 'mole') opt.textContent = t.shipMole;
+        if (opt.value === 'arrastra') opt.textContent = t.shipArrastra || 'RSI Arrastra (576 SCU)';
+        if (opt.value === 'orion') opt.textContent = t.shipOrion || 'RSI Orion (2 880 SCU)';
+        if (opt.value === 'roc') opt.textContent = t.shipRoc;
+        if (opt.value === 'roc_ds') opt.textContent = t.shipRocDs;
+      });
   });
 
   // 7. Update Theme select options text
@@ -2792,7 +2992,7 @@ function setLanguage(lang) {
 function updateToggleAllButtonText() {
   if (!DOM.btnToggleAllTurrets) return;
   const t = I18N[state.currentLang] || I18N.fr;
-  const cards = [DOM.moleTurret1Card, DOM.moleTurret2Card, DOM.moleTurret3Card].filter(Boolean);
+  const cards = Array.from(DOM.turretCardsContainer?.querySelectorAll('.turret-config-card') || []);
   const allCollapsed = cards.length > 0 && cards.every(c => c.classList.contains('collapsed'));
   DOM.btnToggleAllTurrets.textContent = allCollapsed ? (t.expandAllTurrets || 'Tout déplier') : (t.collapseAllTurrets || 'Tout replier');
 }
@@ -3190,25 +3390,12 @@ function bindEventListeners() {
     });
   });
 
-  // MOLE Collapsible turrets in loadout
-  document.querySelectorAll('[data-toggle-turret]').forEach(header => {
-    header.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.03);
-      triggerHaptic(12);
-      const tNum = header.dataset.toggleTurret;
-      const card = document.getElementById(`moleTurret${tNum}Card`);
-      if (card) {
-        card.classList.toggle('collapsed');
-      }
-      updateToggleAllButtonText();
-    });
-  });
-
+  // Toggle all turrets in loadout
   if (DOM.btnToggleAllTurrets) {
     DOM.btnToggleAllTurrets.addEventListener('click', () => {
       sfx.playBeep(600, 'sine', 0.04);
       triggerHaptic(15);
-      const cards = [DOM.moleTurret1Card, DOM.moleTurret2Card, DOM.moleTurret3Card].filter(Boolean);
+      const cards = Array.from(DOM.turretCardsContainer?.querySelectorAll('.turret-config-card') || []);
       const allCollapsed = cards.length > 0 && cards.every(c => c.classList.contains('collapsed'));
       cards.forEach(c => {
         if (allCollapsed) c.classList.remove('collapsed');
@@ -3222,72 +3409,70 @@ function bindEventListeners() {
   DOM.btnSaveLoadout.addEventListener('click', () => {
     sfx.playSuccess();
     triggerHaptic(20);
-    if (state.selectedShip.id === 'mole') {
-      if (DOM.moleLaser1) state.moleTurrets.turret1.laserId = DOM.moleLaser1.value;
-      if (DOM.moleLaser2) state.moleTurrets.turret2.laserId = DOM.moleLaser2.value;
-      if (DOM.moleLaser3) state.moleTurrets.turret3.laserId = DOM.moleLaser3.value;
 
-      if (DOM.moleTurret1SlotsContainer) {
-        DOM.moleTurret1SlotsContainer.querySelectorAll('select').forEach((sel, i) => {
-          state.moleTurrets.turret1.moduleIds[i] = sel.value;
+    const ship = state.selectedShip;
+    const turrets = getShipTurretConfigs(ship.id);
+
+    // Read values from dynamically generated cards
+    turrets.forEach((cfg, idx) => {
+      const selLaser = document.getElementById(`turretLaser_${idx}`);
+      if (selLaser) cfg.laserId = selLaser.value;
+      const slotsContainer = document.getElementById(`turretSlots_${idx}`);
+      if (slotsContainer) {
+        slotsContainer.querySelectorAll('select').forEach((sel, i) => {
+          cfg.moduleIds[i] = sel.value;
         });
       }
-      if (DOM.moleTurret2SlotsContainer) {
-        DOM.moleTurret2SlotsContainer.querySelectorAll('select').forEach((sel, i) => {
-          state.moleTurrets.turret2.moduleIds[i] = sel.value;
-        });
-      }
-      if (DOM.moleTurret3SlotsContainer) {
-        DOM.moleTurret3SlotsContainer.querySelectorAll('select').forEach((sel, i) => {
-          state.moleTurrets.turret3.moduleIds[i] = sel.value;
-        });
-      }
-    } else {
-      state.selectedLaser = MINING_DATA.lasers.find(l => l.id === DOM.laserSelect.value) || state.selectedLaser;
-      if (DOM.singleLaserSlotsContainer) {
-        DOM.singleLaserSlotsContainer.querySelectorAll('select').forEach((sel, i) => {
-          state.selectedModules[i] = sel.value;
-        });
-      }
+    });
+
+    // Synchronize primary turret to state.selectedLaser & state.selectedModules
+    if (turrets.length > 0) {
+      const primaryLaser = MINING_DATA.lasers.find(l => l.id === turrets[0].laserId) || state.selectedLaser;
+      state.selectedLaser = primaryLaser;
+      state.selectedModules = [...turrets[0].moduleIds];
+      if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = primaryLaser.id;
     }
 
-    state.selectedGadget = MINING_DATA.gadgets.find(g => g.id === DOM.gadgetSelect.value) || state.selectedGadget;
+    if (DOM.gadgetSelect) {
+      state.selectedGadget = MINING_DATA.gadgets.find(g => g.id === DOM.gadgetSelect.value) || state.selectedGadget;
+    }
+
     saveLoadout();
     updateLoadoutButtonSummary();
     closeModal(DOM.loadoutModal);
     calculateAll();
   });
 
-  // Laser select changes (modal laserSelect and Panel 1 mainLaserSelect)
+  // Laser select changes (Panel 1 mainLaserSelect)
   const onMainLaserChange = (e) => {
     sfx.playBeep(600, 'sine', 0.04);
     triggerHaptic(12);
     const l = MINING_DATA.lasers.find(x => x.id === e.target.value);
     if (!l) return;
     state.selectedLaser = l;
-    if (DOM.laserSelect && DOM.laserSelect.value !== l.id) DOM.laserSelect.value = l.id;
     if (DOM.mainLaserSelect && DOM.mainLaserSelect.value !== l.id) DOM.mainLaserSelect.value = l.id;
 
-    if (state.selectedShip.id === 'mole') {
-      state.moleTurrets.turret1.laserId = l.id;
-      if (DOM.moleLaser1 && DOM.moleLaser1.value !== l.id) DOM.moleLaser1.value = l.id;
-      updateMoleTurretHeaderSummary(1);
+    const turrets = getShipTurretConfigs(state.selectedShip.id);
+    if (turrets.length > 0) {
+      turrets[0].laserId = l.id;
     }
 
-    if (DOM.laserDescText) DOM.laserDescText.textContent = getLocalized(l, 'desc');
-    renderLaserStatsStrip(DOM.laserStatsStrip, l);
-    renderLaserModuleSlots(
-      DOM.singleLaserSlotsContainer,
-      l.slots ?? 0,
-      state.selectedShip.id === 'mole' ? state.moleTurrets.turret1.moduleIds : state.selectedModules,
-      state.selectedShip.id === 'mole' ? 'mole_t1' : 'single'
-    );
+    // If modal is rendered, update turret 0 select & stats
+    const t0Select = document.getElementById('turretLaser_0');
+    if (t0Select && t0Select.value !== l.id) {
+      t0Select.value = l.id;
+      const stats0 = document.getElementById('turretStats_0');
+      if (stats0) renderLaserStatsStrip(stats0, l);
+      const slots0 = document.getElementById('turretSlots_0');
+      if (slots0) renderLaserModuleSlots(slots0, l.slots ?? 0, turrets[0].moduleIds, 'turret_0');
+      updateTurretHeaderSummary(0);
+    }
+
     updateLoadoutButtonSummary();
     calculateAll();
     saveLoadout();
   };
 
-  if (DOM.laserSelect) DOM.laserSelect.addEventListener('change', onMainLaserChange);
   if (DOM.mainLaserSelect) DOM.mainLaserSelect.addEventListener('change', onMainLaserChange);
 
   if (DOM.btnQuickOpenLoadout) {
@@ -4086,10 +4271,11 @@ function saveLoadout() {
       laserId: state.selectedLaser.id,
       selectedModules: state.selectedModules,
       gadgetId: state.selectedGadget.id,
+      turretsByShip: state.turretsByShip,
       moleTurrets: {
-        turret1: { laserId: state.moleTurrets.turret1.laserId, moduleIds: state.moleTurrets.turret1.moduleIds },
-        turret2: { laserId: state.moleTurrets.turret2.laserId, moduleIds: state.moleTurrets.turret2.moduleIds },
-        turret3: { laserId: state.moleTurrets.turret3.laserId, moduleIds: state.moleTurrets.turret3.moduleIds }
+        turret1: state.turretsByShip.mole?.[0] || { laserId: 'lancet_s2', moduleIds: [] },
+        turret2: state.turretsByShip.mole?.[1] || { laserId: 'helix_s2', moduleIds: [] },
+        turret3: state.turretsByShip.mole?.[2] || { laserId: 'helix_s2', moduleIds: [] }
       }
     };
     localStorage.setItem('aaron_mfd_loadout', JSON.stringify(data));
@@ -4114,13 +4300,16 @@ function loadSavedLoadout() {
       const g = MINING_DATA.gadgets.find(x => x.id === data.gadgetId);
       if (g) state.selectedGadget = g;
     }
-    if (data.moleTurrets) {
-      ['turret1', 'turret2', 'turret3'].forEach(k => {
-        if (data.moleTurrets[k]) {
-          if (data.moleTurrets[k].laserId) state.moleTurrets[k].laserId = data.moleTurrets[k].laserId;
-          if (Array.isArray(data.moleTurrets[k].moduleIds)) state.moleTurrets[k].moduleIds = data.moleTurrets[k].moduleIds;
+    if (data.turretsByShip && typeof data.turretsByShip === 'object') {
+      Object.keys(data.turretsByShip).forEach(sId => {
+        if (Array.isArray(data.turretsByShip[sId])) {
+          state.turretsByShip[sId] = data.turretsByShip[sId];
         }
       });
+    } else if (data.moleTurrets) {
+      if (data.moleTurrets.turret1) state.turretsByShip.mole[0] = data.moleTurrets.turret1;
+      if (data.moleTurrets.turret2) state.turretsByShip.mole[1] = data.moleTurrets.turret2;
+      if (data.moleTurrets.turret3) state.turretsByShip.mole[2] = data.moleTurrets.turret3;
     }
   } catch (e) {
     console.warn('Loadout load error:', e);
@@ -4744,9 +4933,11 @@ function applyRecommendedAdvice() {
     const m = MINING_DATA.modules.find(x => x.id === state.recommendedModuleId);
     if (m) {
       state.selectedModules[0] = m.id;
-      if (DOM.singleLaserSlotsContainer) {
-        renderLaserModuleSlots(DOM.singleLaserSlotsContainer, state.selectedLaser.slots ?? 0, state.selectedModules, 'single');
+      const turrets = getShipTurretConfigs(state.selectedShip.id);
+      if (turrets.length > 0 && Array.isArray(turrets[0].moduleIds)) {
+        turrets[0].moduleIds[0] = m.id;
       }
+      renderShipTurretsConfig();
     }
   }
   if (state.selectedShip.id === 'mole' && state.moleActiveTurrets < 3) {

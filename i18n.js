@@ -43,6 +43,8 @@ export const I18N = {
     loadoutBtnShortcut: "⚙ MODIFIER",
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
+    shipArrastra: "RSI Arrastra (576 SCU)",
+    shipOrion: "RSI Orion (2 880 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",
     shipRocDs: "Greycat ROC-DS (1.2 SCU)",
 
@@ -529,6 +531,8 @@ export const I18N = {
     loadoutBtnShortcut: "⚙ LOADOUT",
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
+    shipArrastra: "RSI Arrastra (576 SCU)",
+    shipOrion: "RSI Orion (2,880 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",
     shipRocDs: "Greycat ROC-DS (1.2 SCU)",
 
