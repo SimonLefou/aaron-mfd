@@ -598,6 +598,10 @@ const DOM = {
   moleLaser1: document.getElementById('moleLaser1'),
   moleLaser2: document.getElementById('moleLaser2'),
   moleLaser3: document.getElementById('moleLaser3'),
+  laserStatsStrip: document.getElementById('laserStatsStrip'),
+  moleLaser1StatsStrip: document.getElementById('moleLaser1StatsStrip'),
+  moleLaser2StatsStrip: document.getElementById('moleLaser2StatsStrip'),
+  moleLaser3StatsStrip: document.getElementById('moleLaser3StatsStrip'),
   singleLaserSlotsContainer: document.getElementById('singleLaserSlotsContainer'),
   moleTurret1SlotsContainer: document.getElementById('moleTurret1SlotsContainer'),
   moleTurret2SlotsContainer: document.getElementById('moleTurret2SlotsContainer'),
@@ -1256,6 +1260,53 @@ function getModuleTypeBadgeInfo(modType, lang) {
   };
 }
 
+// Helper: Render high-tech spec pill strip for mining laser
+function renderLaserStatsStrip(container, laser) {
+  if (!container || !laser) return;
+  container.innerHTML = '';
+  const locale = getLocale();
+
+  // 1. Power
+  const pwrPill = document.createElement('span');
+  pwrPill.className = 'laser-spec-pill spec-power';
+  pwrPill.innerHTML = `⚡ ${laser.power.toLocaleString(locale)} W`;
+  container.appendChild(pwrPill);
+
+  // 2. Slots
+  const slotCount = laser.slots ?? 0;
+  const slotsPill = document.createElement('span');
+  slotsPill.className = 'laser-spec-pill spec-slots';
+  slotsPill.innerHTML = `◈ ${slotCount} ${slotCount > 1 ? 'slots' : 'slot'}`;
+  container.appendChild(slotsPill);
+
+  // 3. Resistance Mod
+  if (laser.resistanceMod !== 0) {
+    const resPill = document.createElement('span');
+    resPill.className = 'laser-spec-pill spec-res';
+    const sign = laser.resistanceMod > 0 ? '+' : '';
+    resPill.innerHTML = `🛡 ${sign}${Math.round(laser.resistanceMod * 100)}% Res`;
+    container.appendChild(resPill);
+  }
+
+  // 4. Instability Mod
+  if (laser.instabilityMod !== 0) {
+    const instPill = document.createElement('span');
+    instPill.className = 'laser-spec-pill spec-inst';
+    const sign = laser.instabilityMod > 0 ? '+' : '';
+    instPill.innerHTML = `🎯 ${sign}${Math.round(laser.instabilityMod * 100)}% Inst`;
+    container.appendChild(instPill);
+  }
+
+  // 5. Optimal Window
+  if (laser.optimalWindowMod && laser.optimalWindowMod !== 0) {
+    const winPill = document.createElement('span');
+    winPill.className = 'laser-spec-pill spec-win';
+    const sign = laser.optimalWindowMod > 0 ? '+' : '';
+    winPill.innerHTML = `◧ ${sign}${Math.round(laser.optimalWindowMod * 100)}% Zone`;
+    container.appendChild(winPill);
+  }
+}
+
 // Helper: Dynamically render module slots according to laser slot capacity
 function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix = 'slot') {
   if (!container) return;
@@ -1281,8 +1332,11 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
   container.appendChild(titleRow);
 
   for (let i = 0; i < slotCount; i++) {
+    const currentModId = selectedModuleIds[i] || 'none';
+    const currentMod = MINING_DATA.modules.find(m => m.id === currentModId) || MINING_DATA.modules[0];
+
     const card = document.createElement('div');
-    card.className = 'module-slot-card';
+    card.className = `module-slot-card type-${currentMod.type || 'none'}`;
 
     const header = document.createElement('div');
     header.className = 'module-slot-header';
@@ -1290,8 +1344,6 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
     const label = document.createElement('span');
     label.textContent = (t.moduleSlotLabel || 'ACCESSOIRE #{slot} :').replace('{slot}', i + 1);
 
-    const currentModId = selectedModuleIds[i] || 'none';
-    const currentMod = MINING_DATA.modules.find(m => m.id === currentModId) || MINING_DATA.modules[0];
     const badgeInfo = getModuleTypeBadgeInfo(currentMod.type, state.currentLang);
 
     const typeBadge = document.createElement('span');
@@ -1317,6 +1369,13 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
     });
 
     select.value = currentModId;
+
+    const effectDesc = document.createElement('div');
+    effectDesc.className = `module-effect-desc ${currentMod.type === 'active' ? 'active-effect' : (currentMod.type === 'passive' ? 'passive-effect' : '')}`;
+    const descText = getLocalized(currentMod, 'desc');
+    const icon = currentMod.type === 'active' ? '⚡' : (currentMod.type === 'passive' ? '🛡' : '○');
+    effectDesc.innerHTML = `<span>${icon}</span> <span>${descText || (state.currentLang === 'fr' ? 'Emplacement vide' : 'Empty slot')}</span>`;
+
     select.onchange = (e) => {
       sfx.playBeep(650, 'sine', 0.03);
       selectedModuleIds[i] = e.target.value;
@@ -1324,6 +1383,13 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
       const newBadge = getModuleTypeBadgeInfo(selected.type, state.currentLang);
       typeBadge.textContent = newBadge.text;
       typeBadge.style.cssText = newBadge.style;
+
+      card.className = `module-slot-card type-${selected.type || 'none'}`;
+      const newDesc = getLocalized(selected, 'desc');
+      const newIcon = selected.type === 'active' ? '⚡' : (selected.type === 'passive' ? '🛡' : '○');
+      effectDesc.className = `module-effect-desc ${selected.type === 'active' ? 'active-effect' : (selected.type === 'passive' ? 'passive-effect' : '')}`;
+      effectDesc.innerHTML = `<span>${newIcon}</span> <span>${newDesc || (state.currentLang === 'fr' ? 'Emplacement vide' : 'Empty slot')}</span>`;
+
       updateLoadoutButtonSummary();
       calculateAll();
       saveLoadout();
@@ -1331,6 +1397,7 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
 
     card.appendChild(header);
     card.appendChild(select);
+    card.appendChild(effectDesc);
     container.appendChild(card);
   }
 }
@@ -1357,9 +1424,9 @@ function populateLoadoutSelects() {
 function populateMoleSelects() {
   const size2Lasers = MINING_DATA.lasers.filter(l => l.size === 2);
   const moleTurretLasers = [
-    { sel: DOM.moleLaser1, cfg: state.moleTurrets.turret1, container: DOM.moleTurret1SlotsContainer, key: 'turret1' },
-    { sel: DOM.moleLaser2, cfg: state.moleTurrets.turret2, container: DOM.moleTurret2SlotsContainer, key: 'turret2' },
-    { sel: DOM.moleLaser3, cfg: state.moleTurrets.turret3, container: DOM.moleTurret3SlotsContainer, key: 'turret3' }
+    { sel: DOM.moleLaser1, cfg: state.moleTurrets.turret1, container: DOM.moleTurret1SlotsContainer, statsStrip: DOM.moleLaser1StatsStrip, key: 'turret1' },
+    { sel: DOM.moleLaser2, cfg: state.moleTurrets.turret2, container: DOM.moleTurret2SlotsContainer, statsStrip: DOM.moleLaser2StatsStrip, key: 'turret2' },
+    { sel: DOM.moleLaser3, cfg: state.moleTurrets.turret3, container: DOM.moleTurret3SlotsContainer, statsStrip: DOM.moleLaser3StatsStrip, key: 'turret3' }
   ];
 
   moleTurretLasers.forEach((item, idx) => {
@@ -1373,12 +1440,14 @@ function populateMoleSelects() {
     item.sel.value = item.cfg.laserId;
 
     const currentLaser = MINING_DATA.lasers.find(l => l.id === item.cfg.laserId) || size2Lasers[0];
+    renderLaserStatsStrip(item.statsStrip, currentLaser);
     renderLaserModuleSlots(item.container, currentLaser.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
 
     item.sel.onchange = (e) => {
       sfx.playBeep(600, 'sine', 0.04);
       item.cfg.laserId = e.target.value;
       const newL = MINING_DATA.lasers.find(l => l.id === e.target.value) || size2Lasers[0];
+      renderLaserStatsStrip(item.statsStrip, newL);
       renderLaserModuleSlots(item.container, newL.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
       calculateAll();
       saveLoadout();
@@ -1419,6 +1488,7 @@ function updateLaserOptions() {
       }
       DOM.laserSelect.value = state.selectedLaser.id;
       DOM.laserDescText.textContent = getLocalized(state.selectedLaser, 'desc');
+      renderLaserStatsStrip(DOM.laserStatsStrip, state.selectedLaser);
       renderLaserModuleSlots(DOM.singleLaserSlotsContainer, state.selectedLaser.slots ?? 0, state.selectedModules, 'single');
     }
   }
@@ -2405,6 +2475,7 @@ function bindEventListeners() {
     if (l) {
       state.selectedLaser = l;
       DOM.laserDescText.textContent = getLocalized(l, 'desc');
+      renderLaserStatsStrip(DOM.laserStatsStrip, l);
       renderLaserModuleSlots(DOM.singleLaserSlotsContainer, l.slots ?? 0, state.selectedModules, 'single');
       updateLoadoutButtonSummary();
       calculateAll();
