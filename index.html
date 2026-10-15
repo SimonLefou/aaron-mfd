@@ -68,6 +68,18 @@
         <span class="mg-balance-val" id="mgBalanceVal">1 482 900</span>
       </div>
 
+      <!-- Squad / Fleet modal trigger in mobiGlas mode -->
+      <button class="mg-squad-btn" id="btnMgSquadModal" data-i18n-title="titleSquadModal" title="Gestion de flotte & escouade multi-vaisseaux">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span data-i18n="squadBtnLabel">FLOTTE</span>
+        <span class="mg-squad-badge" id="mgSquadCountBadge">1</span>
+      </button>
+
       <!-- Quick Layout Toggle Button in mobiGlas mode -->
       <button class="mg-layout-toggle-btn" id="btnLayoutToggle" data-i18n-title="titleToggleLayout" title="Basculer vers mode Cockpit MFD classique">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -135,15 +147,16 @@
         <span id="loadoutSummary">Lancet MH1</span>
       </button>
 
-      <!-- Crew Sharing Button -->
-      <button class="btn-icon" id="btnOpenCrew" data-i18n-title="titleCrew" title="Partage des gains en équipage (Multi-crew)">
+      <!-- Squad & Fleet Mining Button -->
+      <button class="btn-icon" id="btnOpenCrew" data-i18n-title="titleSquadModal" title="Gestion de flotte & escouade multi-vaisseaux">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
           <circle cx="9" cy="7" r="4"></circle>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
-        <span data-i18n="crew">Équipage</span>
+        <span data-i18n="squadHeaderLabel">Flotte</span>
+        <span class="squad-header-count" id="squadCountBadge" style="background:var(--accent-cyan); color:#000; font-size:0.65rem; font-weight:700; padding:1px 5px; border-radius:10px; margin-left:3px;">1</span>
       </button>
 
       <!-- Aaron Halo Routes Guide -->
@@ -356,6 +369,15 @@
           </select>
         </div>
         <button type="button" class="chip-btn" id="btnQuickOpenLoadout" style="padding:4px 10px; font-size:0.7rem; border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;" data-i18n="loadoutBtnShortcut">⚙ MODIFIER</button>
+      </div>
+
+      <!-- FLEET ACTIVE HUD INDICATOR (Shown when wingmen are actively firing) -->
+      <div class="squad-active-hud-banner" id="squadActiveHudBanner" style="display:none; justify-content:space-between; align-items:center; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.35); border-radius:6px; padding:6px 12px; margin-bottom:12px; font-size:0.78rem;">
+        <div style="display:flex; align-items:center; gap:6px; color:#10b981; font-family:var(--font-hud); font-weight:700;">
+          <span>👥</span>
+          <span id="squadActiveHudText">ESCOUADE ACTIVE : 2 TIRS (6 400 W)</span>
+        </div>
+        <button type="button" class="chip-btn" id="btnQuickOpenSquad" style="padding:2px 8px; font-size:0.68rem; border-color:rgba(16,185,129,0.5); color:#10b981;">GÉRER</button>
       </div>
 
       <!-- MASS INPUT SECTION -->
@@ -733,6 +755,18 @@
           </div>
         </div>
 
+        <!-- SQUAD PROFIT SPLIT MINI CARD (Appears/updates when squad is active) -->
+        <div class="squad-profit-split-card" id="squadProfitSplitCard" style="display:none; background:rgba(16,185,129,0.06); border:1px dashed rgba(16,185,129,0.4); border-radius:6px; padding:8px 12px; margin-top:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:var(--font-hud); font-size:0.72rem; color:var(--accent-emerald); font-weight:700; letter-spacing:0.5px;" data-i18n="squadProfitTitle">👥 PART PAR MEMBRE D'ESCOUADE</span>
+            <span id="squadSplitCountLabel" style="font-family:var(--font-mono); font-size:0.75rem; color:#fff;">(2 parts)</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+            <div id="squadRefinedShareVal" style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--accent-emerald);">~139 900 aUEC</div>
+            <div id="squadRawShareVal" style="font-size:0.75rem; color:var(--text-muted);">Brut: ~73 750 aUEC</div>
+          </div>
+        </div>
+
         <!-- STATION RECOMMANDÉE TAG (Interactive) -->
         <div id="stationRecBox" class="station-rec-box" data-i18n-title="titleStationRec" title="Cliquer pour ouvrir le guide des stations et du Halo">
           <div style="display:flex; align-items:center; gap:8px;">
@@ -956,55 +990,128 @@
     </div>
   </div>
 
-  <!-- MODAL: CREW SPLIT (PARTAGE D'ÉQUIPAGE) -->
+  <!-- MODAL: SQUAD & FLEET MINING (FLOTTE & MULTI-VAISSEAUX) -->
   <div class="modal-overlay" id="crewModal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width:680px;">
       <div class="modal-header">
-        <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan);" data-i18n="crewModalTitle">PARTAGE DES GAINS D'ÉQUIPAGE</h2>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan); margin:0;" data-i18n="squadModalTitle">FLOTTE & ESCOUADE DE MINAGE</h2>
+        </div>
         <button class="btn-close-modal" id="btnCloseCrew">&times;</button>
       </div>
 
-      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;" data-i18n="crewDesc">
-        Idéal pour équipages de MOLE ou sorties en flotte (éclaireur + mineur + transporteur).
+      <div style="font-size:0.83rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;" data-i18n="squadModalDesc">
+        Coordonnez plusieurs vaisseaux miniers ou de transport : cumulez les puissances de fracture, réduisez conjointement la résistance rocheuse et répartissez équitablement les gains.
       </div>
 
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="crewMembersCount">NOMBRE DE MEMBRES D'ÉQUIPAGE</span>
-          <span class="label-val" id="crewCountDisplay">3 Joueurs</span>
+      <!-- FLEET TELEMETRY HEADER TILES -->
+      <div class="fleet-stats-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:16px;">
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
+          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetShipsLabel">Vaisseaux</div>
+          <div id="fleetStatShips" style="font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:var(--accent-cyan);">1</div>
         </div>
-        <div class="quick-chips-row" style="grid-template-columns:repeat(5, 1fr);">
-          <button class="chip-btn" data-crew="1">1</button>
-          <button class="chip-btn" data-crew="2">2</button>
-          <button class="chip-btn" data-crew="3">3</button>
-          <button class="chip-btn" data-crew="4">4</button>
-          <button class="chip-btn" data-crew="5">5</button>
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
+          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetPowerLabel">Puissance W</div>
+          <div id="fleetStatPower" style="font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:#10b981;">1 400 W</div>
+        </div>
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
+          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetCargoLabel">Soute Flotte</div>
+          <div id="fleetStatCargo" style="font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:var(--accent-amber);">32 SCU</div>
+        </div>
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
+          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetShareLabel">Part / Joueur</div>
+          <div id="fleetStatShare" style="font-family:var(--font-mono); font-size:1.05rem; font-weight:700; color:#38bdf8;">~279k</div>
         </div>
       </div>
 
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="crewReserveLabel">RÉSERVE OPÉRATIONNELLE (CARBURANT & FRAIS)</span>
-          <span class="label-val" id="crewReserveDisplay">10 %</span>
-        </div>
-        <input type="range" min="0" max="30" step="5" value="10" class="hud-slider" id="crewReserveSlider">
+      <!-- SQUAD ROSTER LIST -->
+      <div class="squad-roster-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-family:var(--font-hud); font-size:0.78rem; color:var(--accent-cyan); letter-spacing:1px;" data-i18n="squadRosterTitle">MEMBRES DE L'ESCADRE :</span>
+        <button type="button" class="chip-btn" id="btnAddSquadMember" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700; font-size:0.75rem;">+ AJOUTER UN VAISSEAU</button>
       </div>
 
-      <!-- RESULTS -->
-      <div class="metric-card" style="border-color:var(--accent-cyan); margin-bottom:12px;">
-        <div class="metric-title" data-i18n="crewTotalValue">VALEUR TOTALE DE LA SOUTE ACTUELLE</div>
-        <div class="metric-val cyan" id="crewTotalHoldValue">0 aUEC</div>
-      </div>
-
-      <div class="metric-card" style="border-color:var(--accent-emerald);">
-        <div class="metric-title" data-i18n="crewSharePerMember">PART PAR MEMBRE D'ÉQUIPAGE</div>
-        <div class="metric-val emerald" id="crewSharePerMember">0 aUEC / membre</div>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="crewReserveDeducted" data-i18n="shipReserveDeducted">
-          Réserve vaisseau déduite
+      <!-- LEADER (YOU) CARD -->
+      <div class="squad-member-card leader-card" id="squadLeaderCard" style="background:rgba(0,240,255,0.04); border:1px solid var(--accent-cyan); border-radius:8px; padding:12px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="background:var(--accent-cyan); color:#000; font-family:var(--font-hud); font-size:0.65rem; font-weight:700; padding:2px 6px; border-radius:3px;" data-i18n="squadLeaderBadge">CHEF D'ESCADRE (VOUS)</span>
+            <strong id="squadLeaderName" style="color:#fff; font-family:var(--font-hud); font-size:0.9rem;">CITIZEN-1</strong>
+          </div>
+          <span style="font-size:0.75rem; color:#10b981; font-family:var(--font-mono); font-weight:700;">● ACTIF</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--text-muted);">
+          <div>
+            <span id="squadLeaderShipDesc">MISC Prospector (32 SCU)</span> — <strong id="squadLeaderLaserDesc" style="color:var(--accent-cyan);">Lancet MH1</strong>
+          </div>
+          <button type="button" class="chip-btn" id="btnSquadEditLoadout" style="padding:2px 8px; font-size:0.7rem;" data-i18n="editLoadoutBtn">Loadout ➔</button>
         </div>
       </div>
+
+      <!-- WINGMEN DYNAMIC CONTAINER -->
+      <div id="squadWingmenContainer" style="display:flex; flex-direction:column; gap:8px;">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- QUICK FLEET TEMPLATES (PRESETS D'ESCADRE) -->
+      <div style="margin-top:14px; margin-bottom:16px;">
+        <span style="font-family:var(--font-hud); font-size:0.7rem; color:var(--text-muted); letter-spacing:0.8px;" data-i18n="squadTemplatesTitle">MODÈLES D'ESCADRE RAPIDES :</span>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+          <button type="button" class="chip-btn squad-template-btn" data-squad-template="duo_prospectors" style="font-size:0.72rem;">🚀 Duo Prospectors (Lancet + Helix)</button>
+          <button type="button" class="chip-btn squad-template-btn" data-squad-template="mole_prospector" style="font-size:0.72rem;">🚀 MOLE + Prospector</button>
+          <button type="button" class="chip-btn squad-template-btn" data-squad-template="prospector_cargo" style="font-size:0.72rem;">📦 Mineur + Cargo C2</button>
+        </div>
+      </div>
+
+      <!-- PROFIT SPLIT PARAMETERS -->
+      <div class="squad-split-box" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px;">
+        <div style="font-family:var(--font-hud); font-size:0.8rem; color:var(--accent-amber); margin-bottom:10px;" data-i18n="squadSplitTitle">💰 PARAMÈTRES DE RÉPARTITION DES GAINS</div>
+
+        <div class="input-group" style="margin-bottom:10px;">
+          <div class="label-row">
+            <span data-i18n="crewMembersCount">NOMBRE DE PARTS DE RÉPARTITION</span>
+            <span class="label-val" id="crewCountDisplay">1 Part</span>
+          </div>
+          <div class="quick-chips-row" style="grid-template-columns:repeat(6, 1fr);">
+            <button class="chip-btn" data-crew="1">1</button>
+            <button class="chip-btn" data-crew="2">2</button>
+            <button class="chip-btn" data-crew="3">3</button>
+            <button class="chip-btn" data-crew="4">4</button>
+            <button class="chip-btn" data-crew="5">5</button>
+            <button class="chip-btn" data-crew="6">6</button>
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom:10px;">
+          <div class="label-row">
+            <span data-i18n="crewReserveLabel">RÉSERVE OPÉRATIONNELLE (CARBURANT & FRAIS)</span>
+            <span class="label-val" id="crewReserveDisplay">10 %</span>
+          </div>
+          <input type="range" min="0" max="30" step="5" value="10" class="hud-slider" id="crewReserveSlider">
+        </div>
+
+        <div class="metric-card" style="border-color:var(--accent-cyan); margin-bottom:8px;">
+          <div class="metric-title" data-i18n="crewTotalValue">VALEUR TOTALE DE LA SOUTE ACTUELLE</div>
+          <div class="metric-val cyan" id="crewTotalHoldValue">0 aUEC</div>
+        </div>
+
+        <div class="metric-card" style="border-color:var(--accent-emerald);">
+          <div class="metric-title" data-i18n="crewSharePerMember">ESTIMATION GAIN NET / MEMBRE</div>
+          <div class="metric-val emerald" id="crewSharePerMember">0 aUEC / membre</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="crewReserveDeducted" data-i18n="shipReserveDeducted">
+            Réserve vaisseau déduite
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
+
 
   <!-- MODAL: AARON HALO & STATIONS GUIDE -->
   <div class="modal-overlay" id="haloModal">

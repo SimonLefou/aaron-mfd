@@ -59,6 +59,49 @@ export const MINING_DATA = {
     }
   ],
 
+  supportShips: [
+    {
+      id: 'cutlass_black',
+      name: 'Drake Cutlass Black',
+      type_fr: 'Support Polyvalent & Cargo (46 SCU)',
+      type_en: 'Utility & Cargo Support (46 SCU)',
+      scu: 46,
+      laserSize: 0,
+      laserSlots: 0,
+      isCargoSupport: true
+    },
+    {
+      id: 'freelancer_max',
+      name: 'MISC Freelancer MAX',
+      type_fr: 'Transporteur Cargo Moyen (120 SCU)',
+      type_en: 'Medium Freight Support (120 SCU)',
+      scu: 120,
+      laserSize: 0,
+      laserSlots: 0,
+      isCargoSupport: true
+    },
+    {
+      id: 'taurus',
+      name: 'RSI Constellation Taurus',
+      type_fr: 'Support Cargo Lourd (174 SCU)',
+      type_en: 'Heavy Cargo Support (174 SCU)',
+      scu: 174,
+      laserSize: 0,
+      laserSlots: 0,
+      isCargoSupport: true
+    },
+    {
+      id: 'c2',
+      name: 'Crusader C2 Hercules',
+      type_fr: 'Super-Transporteur Cargo (696 SCU)',
+      type_en: 'Heavy Freight Transport (696 SCU)',
+      scu: 696,
+      laserSize: 0,
+      laserSlots: 0,
+      isCargoSupport: true
+    }
+  ],
+
   lasers: [
     {
       id: 'arbor_s1',

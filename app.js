@@ -40,9 +40,10 @@ const state = {
   holdSCU: 0.0,
   sessionLog: [],
 
-  // Crew split settings
-  crewMembers: 3,
+  // Crew split & Squad fleet settings
+  crewMembers: 1,
   crewReservePct: 10,
+  squadMembers: [],
 
   // Argo MOLE 3-turrets settings (each turret supports variable module slots)
   moleActiveTurrets: 2, // 1 (solo), 2 (duo), 3 (trio)
@@ -688,6 +689,28 @@ const DOM = {
   crewTotalHoldValue: document.getElementById('crewTotalHoldValue'),
   crewSharePerMember: document.getElementById('crewSharePerMember'),
   crewReserveDeducted: document.getElementById('crewReserveDeducted'),
+
+  // Squad & Fleet elements
+  btnMgSquadModal: document.getElementById('btnMgSquadModal'),
+  mgSquadCountBadge: document.getElementById('mgSquadCountBadge'),
+  squadCountBadge: document.getElementById('squadCountBadge'),
+  btnQuickOpenSquad: document.getElementById('btnQuickOpenSquad'),
+  squadActiveHudBanner: document.getElementById('squadActiveHudBanner'),
+  squadActiveHudText: document.getElementById('squadActiveHudText'),
+  squadProfitSplitCard: document.getElementById('squadProfitSplitCard'),
+  squadSplitCountLabel: document.getElementById('squadSplitCountLabel'),
+  squadRefinedShareVal: document.getElementById('squadRefinedShareVal'),
+  squadRawShareVal: document.getElementById('squadRawShareVal'),
+  fleetStatShips: document.getElementById('fleetStatShips'),
+  fleetStatPower: document.getElementById('fleetStatPower'),
+  fleetStatCargo: document.getElementById('fleetStatCargo'),
+  fleetStatShare: document.getElementById('fleetStatShare'),
+  squadLeaderName: document.getElementById('squadLeaderName'),
+  squadLeaderShipDesc: document.getElementById('squadLeaderShipDesc'),
+  squadLeaderLaserDesc: document.getElementById('squadLeaderLaserDesc'),
+  btnSquadEditLoadout: document.getElementById('btnSquadEditLoadout'),
+  squadWingmenContainer: document.getElementById('squadWingmenContainer'),
+  btnAddSquadMember: document.getElementById('btnAddSquadMember'),
 
   haloModal: document.getElementById('haloModal'),
   btnCloseHalo: document.getElementById('btnCloseHalo'),
@@ -1981,6 +2004,31 @@ function calculateAll() {
     activeLaserDescList.push(laser.name);
   }
 
+  // Combined Fleet & Squad Wingmen
+  let activeWingmenCount = 0;
+  let fleetCargoSCU = ship.scu;
+  const allShips = [...MINING_DATA.ships, ...(MINING_DATA.supportShips || [])];
+
+  if (Array.isArray(state.squadMembers) && state.squadMembers.length > 0) {
+    state.squadMembers.forEach(m => {
+      const wShip = allShips.find(s => s.id === m.shipId);
+      if (wShip) fleetCargoSCU += (wShip.scu || 0);
+
+      if (m.active && m.laserId) {
+        const wLaser = MINING_DATA.lasers.find(l => l.id === m.laserId);
+        if (wLaser) {
+          totalLaserPower += wLaser.power;
+          activeWingmenCount++;
+          activeLaserDescList.push(`${m.name || 'Équipier'} (${wLaser.name})`);
+
+          // Apply combined resistance and instability reduction
+          if (wLaser.resistanceMod < combinedResistanceMod) combinedResistanceMod = wLaser.resistanceMod;
+          if (wLaser.instabilityMod < combinedInstabilityMod) combinedInstabilityMod = wLaser.instabilityMod;
+        }
+      }
+    });
+  }
+
   const effectiveResistance = Math.max(0, state.resistance * (1 + combinedResistanceMod + gadget.resMod));
   const effectiveInstability = Math.max(0, state.instability * (1 + combinedInstabilityMod + gadget.instMod));
 
@@ -1990,7 +2038,12 @@ function calculateAll() {
 
   // 4. Update UI Outputs
   DOM.metricSCU.textContent = `${pureSCU.toFixed(1)} SCU`;
-  DOM.metricCargoPct.textContent = t.cargoShare.replace('{pct}', cargoPct).replace('{scu}', ship.scu);
+  if (state.squadMembers && state.squadMembers.length > 0) {
+    const fleetCargoPct = Math.min(100, Math.round((pureSCU / Math.max(1, fleetCargoSCU)) * 100));
+    DOM.metricCargoPct.textContent = `Soit ~${fleetCargoPct}% de la flotte (${fleetCargoSCU} SCU)`;
+  } else {
+    DOM.metricCargoPct.textContent = t.cargoShare.replace('{pct}', cargoPct).replace('{scu}', ship.scu);
+  }
   DOM.metricRawPrice.textContent = `${rawPrice.toLocaleString(locale)} aUEC`;
   DOM.metricRefinedPrice.textContent = `${refinedPrice.toLocaleString(locale)} aUEC`;
   DOM.refinerySummaryNote.textContent = `${refinery.name} • ` + t.refineryDeducted.replace('{rate}', Math.round(refinery.yieldRate * 100));
@@ -2003,7 +2056,14 @@ function calculateAll() {
     DOM.fractureBadge.className = 'fracture-badge badge-pass';
     DOM.fractureBadge.textContent = t.fractureEasy;
     DOM.powerBarFill.style.background = 'linear-gradient(90deg, #10b981, #00f0ff)';
-    if (ship.id === 'mole') {
+    if (activeWingmenCount > 0) {
+      const countTotal = (ship.id === 'mole' ? state.moleActiveTurrets : 1) + activeWingmenCount;
+      DOM.fractureAdvice.textContent = t.squadAdviceMulti
+        .replace('{count}', countTotal)
+        .replace('{pwr}', totalLaserPower.toLocaleString(locale))
+        .replace('{lasers}', activeLaserDescList.join(' + '))
+        .replace('{status}', t.fractureEasy);
+    } else if (ship.id === 'mole') {
       DOM.fractureAdvice.textContent = t.moleEnough
         .replace('{active}', state.moleActiveTurrets)
         .replace('{pwr}', totalLaserPower.toLocaleString(locale))
@@ -2015,7 +2075,14 @@ function calculateAll() {
     DOM.fractureBadge.className = 'fracture-badge badge-pass';
     DOM.fractureBadge.textContent = t.fracturePossible;
     DOM.powerBarFill.style.background = 'linear-gradient(90deg, #f59e0b, #eab308)';
-    if (ship.id === 'mole') {
+    if (activeWingmenCount > 0) {
+      const countTotal = (ship.id === 'mole' ? state.moleActiveTurrets : 1) + activeWingmenCount;
+      DOM.fractureAdvice.textContent = t.squadAdviceMulti
+        .replace('{count}', countTotal)
+        .replace('{pwr}', totalLaserPower.toLocaleString(locale))
+        .replace('{lasers}', activeLaserDescList.join(' + '))
+        .replace('{status}', t.fracturePossible);
+    } else if (ship.id === 'mole') {
       DOM.fractureAdvice.textContent = t.moleDuoWeak
         .replace('{pwr}', totalLaserPower.toLocaleString(locale));
     } else {
@@ -2025,7 +2092,14 @@ function calculateAll() {
     DOM.fractureBadge.className = 'fracture-badge badge-fail';
     DOM.fractureBadge.textContent = t.fractureTooHard;
     DOM.powerBarFill.style.background = 'linear-gradient(90deg, #f43f5e, #ef4444)';
-    if (ship.id === 'mole') {
+    if (activeWingmenCount > 0) {
+      const countTotal = (ship.id === 'mole' ? state.moleActiveTurrets : 1) + activeWingmenCount;
+      DOM.fractureAdvice.textContent = t.squadAdviceMulti
+        .replace('{count}', countTotal)
+        .replace('{pwr}', totalLaserPower.toLocaleString(locale))
+        .replace('{lasers}', activeLaserDescList.join(' + '))
+        .replace('{status}', t.fractureTooHard);
+    } else if (ship.id === 'mole') {
       if (state.moleActiveTurrets === 1) {
         DOM.fractureAdvice.textContent = t.moleSoloWeak.replace('{pwr}', totalLaserPower.toLocaleString(locale));
       } else if (state.moleActiveTurrets === 2) {
@@ -2054,6 +2128,9 @@ function calculateAll() {
   updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, activeLaserDescList.join(' + '));
   updateMobiglasHeader(ship, pureSCU, refinedPrice);
   updateMobileLiveSummary(mineral, orePct, pureSCU, refinedPrice, powerRatio);
+
+  // 10. Squad & Fleet Telemetry Display
+  updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU);
 }
 
 function determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
@@ -2135,6 +2212,278 @@ function updateRecommendedStation(mineral) {
     DOM.stationRecBonus.textContent = t.standardYield;
     DOM.stationRecBonus.style.color = 'var(--text-muted)';
   }
+}
+
+// ==========================================
+// SQUAD & FLEET MINING COORDINATOR
+// ==========================================
+function updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const locale = getLocale();
+  const totalShipsCount = 1 + (state.squadMembers ? state.squadMembers.length : 0);
+  const activeFiringCount = (state.selectedShip.id === 'mole' ? state.moleActiveTurrets : 1) +
+    (state.squadMembers ? state.squadMembers.filter(m => m.active && m.laserId).length : 0);
+
+  // 1. Update header badges
+  if (DOM.mgSquadCountBadge) DOM.mgSquadCountBadge.textContent = totalShipsCount;
+  if (DOM.squadCountBadge) DOM.squadCountBadge.textContent = totalShipsCount;
+
+  // 2. Update Scanner HUD banner (Panel 1)
+  if (DOM.squadActiveHudBanner) {
+    const hasActiveWingmen = state.squadMembers && state.squadMembers.some(m => m.active);
+    DOM.squadActiveHudBanner.style.display = hasActiveWingmen ? 'flex' : 'none';
+    if (DOM.squadActiveHudText) {
+      DOM.squadActiveHudText.textContent = t.squadActiveHudText
+        .replace('{count}', activeFiringCount)
+        .replace('{pwr}', totalLaserPower.toLocaleString(locale));
+    }
+  }
+
+  // 3. Update Profit Split Mini Card (Panel 2)
+  if (DOM.squadProfitSplitCard) {
+    const hasSquad = state.squadMembers && state.squadMembers.length > 0;
+    DOM.squadProfitSplitCard.style.display = hasSquad ? 'block' : 'none';
+    if (hasSquad) {
+      const shares = Math.max(1, state.crewMembers || totalShipsCount);
+      const reserveFactor = 1 - (state.crewReservePct / 100);
+      const shareRefined = Math.round((refinedPrice * reserveFactor) / shares);
+      const shareRaw = Math.round((rawPrice * reserveFactor) / shares);
+
+      if (DOM.squadSplitCountLabel) DOM.squadSplitCountLabel.textContent = `(${shares} ${shares > 1 ? t.playersPlural : t.playersSingular})`;
+      if (DOM.squadRefinedShareVal) DOM.squadRefinedShareVal.textContent = `~${shareRefined.toLocaleString(locale)} aUEC`;
+      if (DOM.squadRawShareVal) DOM.squadRawShareVal.textContent = `Brut: ~${shareRaw.toLocaleString(locale)} aUEC`;
+    }
+  }
+
+  // 4. Update Squad Modal Top Stat Tiles
+  if (DOM.fleetStatShips) DOM.fleetStatShips.textContent = totalShipsCount;
+  if (DOM.fleetStatPower) DOM.fleetStatPower.textContent = `${totalLaserPower.toLocaleString(locale)} W`;
+  if (DOM.fleetStatCargo) DOM.fleetStatCargo.textContent = `${fleetCargoSCU} SCU`;
+  if (DOM.fleetStatShare) {
+    const shares = Math.max(1, state.crewMembers || totalShipsCount);
+    const reserveFactor = 1 - (state.crewReservePct / 100);
+    const shareRefined = Math.round((refinedPrice * reserveFactor) / shares);
+    DOM.fleetStatShare.textContent = `~${Math.round(shareRefined / 1000)}k`;
+  }
+}
+
+function renderSquadWingmen() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const isEn = state.currentLang === 'en';
+  const allShips = [...MINING_DATA.ships, ...(MINING_DATA.supportShips || [])];
+
+  // 1. Leader card update
+  if (DOM.squadLeaderName) DOM.squadLeaderName.textContent = state.callsign || 'CITIZEN-1';
+  if (DOM.squadLeaderShipDesc) DOM.squadLeaderShipDesc.textContent = `${state.selectedShip.name} (${state.selectedShip.scu} SCU)`;
+  if (DOM.squadLeaderLaserDesc) {
+    if (state.selectedShip.id === 'mole') {
+      DOM.squadLeaderLaserDesc.textContent = `MOLE (${state.moleActiveTurrets}/3 tourelles actives)`;
+    } else {
+      DOM.squadLeaderLaserDesc.textContent = state.selectedLaser ? state.selectedLaser.name : 'Laser S1';
+    }
+  }
+
+  // 2. Render wingmen container
+  if (!DOM.squadWingmenContainer) return;
+  DOM.squadWingmenContainer.innerHTML = '';
+
+  state.squadMembers.forEach((member, idx) => {
+    const card = document.createElement('div');
+    card.className = `wingman-card ${member.active ? 'active-firing' : 'standby'}`;
+    const shipObj = allShips.find(s => s.id === member.shipId) || MINING_DATA.ships[0];
+    const isMiningShip = !shipObj.isCargoSupport;
+
+    // Ship options
+    const shipOptionsHtml = allShips.map(s => {
+      return `<option value="${s.id}" ${s.id === member.shipId ? 'selected' : ''}>${s.name} (${s.scu} SCU)</option>`;
+    }).join('');
+
+    // Laser options
+    let laserSelectHtml = '';
+    if (isMiningShip) {
+      const shipLaserSize = shipObj.laserSize || 1;
+      const compLasers = MINING_DATA.lasers.filter(l => l.size === shipLaserSize);
+      const laserOpts = compLasers.map(l => {
+        return `<option value="${l.id}" ${l.id === member.laserId ? 'selected' : ''}>${l.name} (${l.power} W)</option>`;
+      }).join('');
+      laserSelectHtml = `
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
+          <select class="hud-select-sm wingman-laser-select" data-member-idx="${idx}" style="font-size:0.75rem; padding:4px;">
+            ${laserOpts}
+          </select>
+        </div>
+      `;
+    } else {
+      laserSelectHtml = `
+        <div style="display:flex; flex-direction:column; gap:2px; justify-content:center;">
+          <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
+          <span style="font-size:0.75rem; color:var(--accent-amber); font-family:var(--font-mono);">📦 Transport Cargo (${shipObj.scu} SCU)</span>
+        </div>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="wingman-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:0.7rem; color:var(--accent-cyan); font-family:var(--font-hud); font-weight:700;">#${idx + 2}</span>
+          <input type="text" class="hud-input wingman-name-input" data-member-idx="${idx}" value="${member.name || `Équipier ${idx + 1}`}" style="background:transparent; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 6px; font-family:var(--font-hud); font-size:0.82rem; color:#fff; width:150px;" />
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.72rem; font-family:var(--font-mono); font-weight:700; color:${member.active ? '#10b981' : 'var(--text-muted)'};">
+            <input type="checkbox" class="wingman-active-toggle" data-member-idx="${idx}" ${member.active ? 'checked' : ''} style="cursor:pointer;" />
+            <span>${member.active ? t.squadActiveFiring : t.squadStandby}</span>
+          </label>
+          <button type="button" class="btn-close-modal wingman-remove-btn" data-member-idx="${idx}" style="font-size:1.1rem; width:22px; height:22px; color:#f43f5e;" title="${t.removeWingmanBtn}">&times;</button>
+        </div>
+      </div>
+      <div class="wingman-row">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanShipLabel}</label>
+          <select class="hud-select-sm wingman-ship-select" data-member-idx="${idx}" style="font-size:0.75rem; padding:4px;">
+            ${shipOptionsHtml}
+          </select>
+        </div>
+        ${laserSelectHtml}
+      </div>
+    `;
+
+    DOM.squadWingmenContainer.appendChild(card);
+  });
+
+  // Attach dynamic event listeners on wingmen inputs
+  DOM.squadWingmenContainer.querySelectorAll('.wingman-name-input').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.dataset.memberIdx, 10);
+      if (state.squadMembers[idx]) {
+        state.squadMembers[idx].name = e.target.value.trim();
+        calculateAll();
+      }
+    });
+  });
+
+  DOM.squadWingmenContainer.querySelectorAll('.wingman-active-toggle').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(12);
+      const idx = parseInt(e.target.dataset.memberIdx, 10);
+      if (state.squadMembers[idx]) {
+        state.squadMembers[idx].active = e.target.checked;
+        renderSquadWingmen();
+        calculateAll();
+        calculateCrewSplit();
+      }
+    });
+  });
+
+  DOM.squadWingmenContainer.querySelectorAll('.wingman-ship-select').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(12);
+      const idx = parseInt(e.target.dataset.memberIdx, 10);
+      if (state.squadMembers[idx]) {
+        state.squadMembers[idx].shipId = e.target.value;
+        const newShip = allShips.find(s => s.id === e.target.value);
+        if (newShip && !newShip.isCargoSupport) {
+          const shipLaserSize = newShip.laserSize || 1;
+          const compLasers = MINING_DATA.lasers.filter(l => l.size === shipLaserSize);
+          state.squadMembers[idx].laserId = compLasers[0] ? compLasers[0].id : 'lancet_s1';
+        } else {
+          state.squadMembers[idx].laserId = null;
+        }
+        renderSquadWingmen();
+        calculateAll();
+        calculateCrewSplit();
+      }
+    });
+  });
+
+  DOM.squadWingmenContainer.querySelectorAll('.wingman-laser-select').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(12);
+      const idx = parseInt(e.target.dataset.memberIdx, 10);
+      if (state.squadMembers[idx]) {
+        state.squadMembers[idx].laserId = e.target.value;
+        calculateAll();
+        calculateCrewSplit();
+      }
+    });
+  });
+
+  DOM.squadWingmenContainer.querySelectorAll('.wingman-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sfx.playBeep(450, 'sine', 0.05);
+      triggerHaptic(15);
+      const idx = parseInt(btn.dataset.memberIdx, 10);
+      state.squadMembers.splice(idx, 1);
+      state.crewMembers = Math.max(1, 1 + state.squadMembers.length);
+      renderSquadWingmen();
+      calculateAll();
+      calculateCrewSplit();
+    });
+  });
+}
+
+function addSquadMember() {
+  sfx.playBeep(650, 'sine', 0.04);
+  triggerHaptic(15);
+  const newIdx = state.squadMembers.length + 2;
+  state.squadMembers.push({
+    id: 'wingman_' + Date.now(),
+    name: `Équipier ${newIdx}`,
+    shipId: 'prospector',
+    laserId: 'lancet_s1',
+    moduleIds: [],
+    active: true
+  });
+  state.crewMembers = 1 + state.squadMembers.length;
+  renderSquadWingmen();
+  calculateAll();
+  calculateCrewSplit();
+}
+
+function applySquadTemplate(key) {
+  sfx.playSuccess();
+  triggerHaptic(20);
+  if (key === 'duo_prospectors') {
+    state.squadMembers = [
+      {
+        id: 'wingman_' + Date.now(),
+        name: 'Prospector 2 (Helix)',
+        shipId: 'prospector',
+        laserId: 'helix_s1',
+        moduleIds: [],
+        active: true
+      }
+    ];
+  } else if (key === 'mole_prospector') {
+    state.squadMembers = [
+      {
+        id: 'wingman_' + Date.now(),
+        name: 'Argo MOLE Alpha',
+        shipId: 'mole',
+        laserId: 'lancet_s2',
+        moduleIds: [],
+        active: true
+      }
+    ];
+  } else if (key === 'prospector_cargo') {
+    state.squadMembers = [
+      {
+        id: 'wingman_' + Date.now(),
+        name: 'C2 Hercules Cargo',
+        shipId: 'c2',
+        laserId: null,
+        moduleIds: [],
+        active: true
+      }
+    ];
+  }
+  state.crewMembers = 1 + state.squadMembers.length;
+  renderSquadWingmen();
+  calculateAll();
+  calculateCrewSplit();
 }
 
 function calculateCrewSplit() {
@@ -2658,27 +3007,56 @@ function bindEventListeners() {
   DOM.btnCloseDonate.addEventListener('click', () => closeModal(DOM.donateModal));
 
   // Crew split modal
-  DOM.btnOpenCrew.addEventListener('click', () => {
+  // Squad & Fleet Mining Modal
+  const onOpenSquadModal = () => {
     sfx.playBeep(600, 'sine', 0.04);
+    renderSquadWingmen();
+    calculateAll();
     calculateCrewSplit();
     openModal(DOM.crewModal);
+  };
+
+  if (DOM.btnOpenCrew) DOM.btnOpenCrew.addEventListener('click', onOpenSquadModal);
+  if (DOM.btnMgSquadModal) DOM.btnMgSquadModal.addEventListener('click', onOpenSquadModal);
+  if (DOM.btnQuickOpenSquad) DOM.btnQuickOpenSquad.addEventListener('click', onOpenSquadModal);
+  if (DOM.btnCloseCrew) DOM.btnCloseCrew.addEventListener('click', () => closeModal(DOM.crewModal));
+
+  if (DOM.btnAddSquadMember) {
+    DOM.btnAddSquadMember.addEventListener('click', () => addSquadMember());
+  }
+
+  if (DOM.btnSquadEditLoadout) {
+    DOM.btnSquadEditLoadout.addEventListener('click', () => {
+      closeModal(DOM.crewModal);
+      openModal(DOM.loadoutModal);
+    });
+  }
+
+  document.querySelectorAll('[data-squad-template]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applySquadTemplate(btn.dataset.squadTemplate);
+    });
   });
-  DOM.btnCloseCrew.addEventListener('click', () => closeModal(DOM.crewModal));
 
   document.querySelectorAll('[data-crew]').forEach(btn => {
     btn.addEventListener('click', () => {
       sfx.playBeep(650, 'sine', 0.04);
       triggerHaptic(12);
       state.crewMembers = parseInt(btn.dataset.crew, 10);
+      calculateAll();
       calculateCrewSplit();
     });
   });
 
-  DOM.crewReserveSlider.addEventListener('input', (e) => {
-    state.crewReservePct = parseInt(e.target.value, 10);
-    DOM.crewReserveDisplay.textContent = `${state.crewReservePct} %`;
-    calculateCrewSplit();
-  });
+  if (DOM.crewReserveSlider) {
+    DOM.crewReserveSlider.addEventListener('input', (e) => {
+      state.crewReservePct = parseInt(e.target.value, 10);
+      DOM.crewReserveDisplay.textContent = `${state.crewReservePct} %`;
+      calculateAll();
+      calculateCrewSplit();
+    });
+  }
+
 
   // Halo, Atlas & Stations modal
   DOM.btnOpenHalo.addEventListener('click', () => {
