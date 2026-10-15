@@ -61,109 +61,186 @@ export const MINING_DATA = {
 
   lasers: [
     {
+      id: 'arbor_s1',
+      name: 'Arbor MH1',
+      size: 1,
+      power: 1200,
+      slots: 1,
+      instabilityMod: -0.10,
+      resistanceMod: -0.10,
+      optimalWindowMod: 0.10,
+      overchargeRateMod: 0.0,
+      desc_fr: 'Tête de série montée d\'origine sur le Prospector. Polyvalente, 1 emplacement d\'accessoire.',
+      desc_en: 'Factory stock head on the Prospector. Balanced and reliable, 1 module slot.'
+    },
+    {
       id: 'lancet_s1',
       name: 'Lancet MH1',
       size: 1,
       power: 1400,
+      slots: 2,
       instabilityMod: -0.75, // -75%
       resistanceMod: -0.50,  // -50%
       optimalWindowMod: 0.20,
       overchargeRateMod: -0.50,
-      desc_fr: 'Le roi pour le Quantainium et les roches instables. Réduit fortement instabilité et résistance.',
-      desc_en: 'The king for Quantainium and volatile rocks. Drastically reduces instability and resistance.'
+      desc_fr: 'Le roi pour le Quantainium et les roches instables. 2 emplacements de modules.',
+      desc_en: 'The king for Quantainium and volatile rocks. 2 module slots.'
     },
     {
       id: 'helix_s1',
       name: 'Helix I',
       size: 1,
       power: 2100,
+      slots: 2,
       instabilityMod: 0.0,
       resistanceMod: -0.30,
       optimalWindowMod: -0.15,
       overchargeRateMod: 0.20,
-      desc_fr: 'Puissance de pénétration brute maximale, mais fenêtre optimale étroite.',
-      desc_en: 'Maximum raw penetration power, but narrow optimal window.'
+      desc_fr: 'Puissance de pénétration brute maximale, mais fenêtre optimale étroite. 2 emplacements de modules.',
+      desc_en: 'Maximum raw penetration power, but narrow optimal window. 2 module slots.'
     },
     {
       id: 'impact_s1',
       name: 'Impact I',
       size: 1,
       power: 1750,
+      slots: 2,
       instabilityMod: -0.20,
       resistanceMod: -0.20,
       optimalWindowMod: 0.0,
       overchargeRateMod: 0.0,
-      desc_fr: 'Polyvalent, bon compromis entre puissance et stabilité.',
-      desc_en: 'Versatile, good balance between power and stability.'
+      desc_fr: 'Polyvalent, bon compromis entre puissance et stabilité. 2 emplacements de modules.',
+      desc_en: 'Versatile, good balance between power and stability. 2 module slots.'
     },
     {
       id: 'hofstede_s1',
       name: 'Hofstede-S1',
       size: 1,
       power: 1550,
+      slots: 1,
       instabilityMod: -0.30,
       resistanceMod: -0.15,
       optimalWindowMod: 0.30,
       overchargeRateMod: -0.20,
-      desc_fr: 'Agrandit la fenêtre optimale de charge, parfait pour débuter en douceur.',
-      desc_en: 'Widens the optimal charge window, great for gentle and safe mining.'
+      desc_fr: 'Agrandit la fenêtre optimale de charge, parfait pour débuter en douceur. 1 emplacement.',
+      desc_en: 'Widens the optimal charge window, great for gentle and safe mining. 1 module slot.'
+    },
+    {
+      id: 'klein_s1',
+      name: 'Klein-S1',
+      size: 1,
+      power: 1600,
+      slots: 1,
+      instabilityMod: -0.15,
+      resistanceMod: -0.25,
+      optimalWindowMod: 0.15,
+      overchargeRateMod: -0.10,
+      desc_fr: 'Laser d\'extraction rapide à pénétration constante. 1 emplacement de module.',
+      desc_en: 'Steady penetration laser with fast extraction speed. 1 module slot.'
+    },
+    {
+      id: 'arbor_s2',
+      name: 'Arbor MH2',
+      size: 2,
+      power: 3200,
+      slots: 2,
+      instabilityMod: -0.15,
+      resistanceMod: -0.15,
+      optimalWindowMod: 0.15,
+      overchargeRateMod: 0.0,
+      desc_fr: 'Tête Size 2 d\'origine de l\'Argo MOLE. Équilibrée avec 2 emplacements de modules.',
+      desc_en: 'Stock Size 2 head on the Argo MOLE. Balanced baseline with 2 module slots.'
     },
     {
       id: 'lancet_s2',
       name: 'Lancet MH2',
       size: 2,
       power: 3600,
+      slots: 3,
       instabilityMod: -0.75,
       resistanceMod: -0.50,
       optimalWindowMod: 0.20,
       overchargeRateMod: -0.50,
-      desc_fr: 'Version Size 2 pour Argo MOLE. La référence anti-instabilité.',
-      desc_en: 'Size 2 version for Argo MOLE. The benchmark for stability control.'
+      desc_fr: 'Version Size 2 pour Argo MOLE. Référence anti-instabilité avec 3 emplacements de modules.',
+      desc_en: 'Size 2 version for Argo MOLE. Anti-instability benchmark with 3 module slots.'
     },
     {
       id: 'helix_s2',
       name: 'Helix II',
       size: 2,
       power: 5200,
+      slots: 3,
       instabilityMod: 0.0,
       resistanceMod: -0.35,
       optimalWindowMod: -0.15,
       overchargeRateMod: 0.25,
-      desc_fr: 'Monstre de puissance brute Size 2 pour MOLE.',
-      desc_en: 'Size 2 raw power powerhouse for the MOLE.'
+      desc_fr: 'Monstre de puissance brute Size 2 pour MOLE. 3 emplacements de modules.',
+      desc_en: 'Size 2 raw power powerhouse for the MOLE. 3 module slots.'
     },
     {
       id: 'impact_s2',
       name: 'Impact II',
       size: 2,
       power: 4200,
+      slots: 2,
       instabilityMod: -0.20,
       resistanceMod: -0.20,
       optimalWindowMod: 0.0,
       overchargeRateMod: 0.0,
-      desc_fr: 'Polyvalent Size 2 pour MOLE, bon équilibre stabilité et pénétration.',
-      desc_en: 'Versatile Size 2 for MOLE, good balance of stability and penetration.'
+      desc_fr: 'Polyvalent Size 2 pour MOLE, bon équilibre stabilité et pénétration. 2 emplacements de modules.',
+      desc_en: 'Versatile Size 2 for MOLE, good balance of stability and penetration. 2 module slots.'
     },
     {
       id: 'hofstede_s2',
       name: 'Hofstede-S2',
       size: 2,
       power: 3900,
+      slots: 2,
       instabilityMod: -0.30,
       resistanceMod: -0.15,
       optimalWindowMod: 0.30,
       overchargeRateMod: -0.20,
-      desc_fr: 'Élargit fortement la zone verte de charge pour le MOLE.',
-      desc_en: 'Significantly widens the green charge window for the MOLE.'
+      desc_fr: 'Élargit fortement la zone verte de charge pour le MOLE. 2 emplacements de modules.',
+      desc_en: 'Significantly widens the green charge window for the MOLE. 2 module slots.'
+    },
+    {
+      id: 'klein_s2',
+      name: 'Klein-S2',
+      size: 2,
+      power: 4000,
+      slots: 2,
+      instabilityMod: -0.15,
+      resistanceMod: -0.25,
+      optimalWindowMod: 0.15,
+      overchargeRateMod: -0.10,
+      desc_fr: 'Excellente vitesse de pénétration pour le MOLE. 2 emplacements de modules.',
+      desc_en: 'High penetration speed for the MOLE. 2 module slots.'
+    },
+    {
+      id: 'roc_laser',
+      name: 'Greycat Mining Laser S0',
+      size: 0,
+      power: 400,
+      slots: 0,
+      instabilityMod: 0.0,
+      resistanceMod: 0.0,
+      optimalWindowMod: 0.0,
+      overchargeRateMod: 0.0,
+      desc_fr: 'Laser miniature monté sur le ROC / ROC-DS. Aucun emplacement d\'accessoire disponible.',
+      desc_en: 'Miniature extraction laser on the ROC / ROC-DS. No module slots available.'
     }
   ],
 
   modules: [
-    { id: 'none', name_fr: 'Aucun', name_en: 'None', type: 'none', powerMod: 0, resMod: 0, instMod: 0 },
+    { id: 'none', name_fr: 'Aucun accessoire', name_en: 'No module', type: 'none', powerMod: 0, resMod: 0, instMod: 0, desc_fr: 'Emplacement vide', desc_en: 'Empty slot' },
     { id: 'surge', name_fr: 'Surge (Actif)', name_en: 'Surge (Active)', type: 'active', desc_fr: '+35% de charge instantanée', desc_en: '+35% instant charge', powerMod: 0.35, resMod: 0, instMod: 0 },
-    { id: 'stampede', name_fr: 'Stampede (Actif)', name_en: 'Stampede (Active)', type: 'active', desc_fr: 'Vitesse de charge x2 temporaire', desc_en: 'Temporary 2x charge rate', powerMod: 0.50, resMod: 0, instMod: 0 },
-    { id: 'rieger_c3', name_fr: 'Rieger-C3 (Passif)', name_en: 'Rieger-C3 (Passive)', type: 'passive', desc_fr: '+12% de puissance laser', desc_en: '+12% laser power', powerMod: 0.12, resMod: 0, instMod: 0 },
-    { id: 'focus_3', name_fr: 'Focus III (Passif)', name_en: 'Focus III (Passive)', type: 'passive', desc_fr: '+40% taille fenêtre verte, -15% puissance', desc_en: '+40% green window, -15% power', powerMod: -0.15, resMod: 0, instMod: -0.2 },
+    { id: 'stampede', name_fr: 'Stampede (Actif)', name_en: 'Stampede (Active)', type: 'active', desc_fr: '+50% vitesse de charge temporaire', desc_en: 'Temporary 50% charge boost', powerMod: 0.50, resMod: 0, instMod: 0 },
+    { id: 'optimum', name_fr: 'Optimum (Actif)', name_en: 'Optimum (Active)', type: 'active', desc_fr: '-20% résistance, +20% zone verte', desc_en: '-20% resistance, +20% green window', powerMod: 0.10, resMod: -0.20, instMod: 0 },
+    { id: 'torrent', name_fr: 'Torrent (Actif)', name_en: 'Torrent (Active)', type: 'active', desc_fr: '+30% puissance, -10% résistance', desc_en: '+30% power, -10% resistance', powerMod: 0.30, resMod: -0.10, instMod: 0 },
+    { id: 'brandt', name_fr: 'Brandt (Actif)', name_en: 'Brandt (Active)', type: 'active', desc_fr: '-30% instabilité, sécurise la charge', desc_en: '-30% instability, stabilizes charge', powerMod: 0, resMod: 0, instMod: -0.30 },
+    { id: 'rieger_c3', name_fr: 'Rieger-C3 (Passif)', name_en: 'Rieger-C3 (Passive)', type: 'passive', desc_fr: '+12% de puissance laser constante', desc_en: '+12% constant laser power', powerMod: 0.12, resMod: 0, instMod: 0 },
+    { id: 'focus_3', name_fr: 'Focus III (Passif)', name_en: 'Focus III (Passive)', type: 'passive', desc_fr: '+40% zone verte, -20% instabilité, -15% puissance', desc_en: '+40% green window, -20% instability, -15% power', powerMod: -0.15, resMod: 0, instMod: -0.20 },
+    { id: 'vaux_c3', name_fr: 'Vaux-C3 (Passif)', name_en: 'Vaux-C3 (Passive)', type: 'passive', desc_fr: '-15% instabilité, +10% zone verte', desc_en: '-15% instability, +10% green window', powerMod: 0, resMod: 0, instMod: -0.15 },
     { id: 'fltr_xl', name_fr: 'FLTR-XL (Passif)', name_en: 'FLTR-XL (Passive)', type: 'passive', desc_fr: '+40% filtration des inertes', desc_en: '+40% inert materials filtering', powerMod: 0, resMod: 0, instMod: 0, filterInert: 0.40 }
   ],
 

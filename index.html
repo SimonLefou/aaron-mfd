@@ -680,18 +680,9 @@
           <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; line-height:1.4;" id="laserDescText"></p>
         </div>
 
-        <div class="input-group">
-          <label class="label-row" data-i18n="module1">MODULE MINIER 1</label>
-          <select id="moduleSelect1" class="hud-select-full">
-            <!-- modules populated -->
-          </select>
-        </div>
-
-        <div class="input-group">
-          <label class="label-row" data-i18n="module2">MODULE MINIER 2</label>
-          <select id="moduleSelect2" class="hud-select-full">
-            <!-- modules populated -->
-          </select>
+        <!-- DYNAMIC MODULE SLOTS ACCORDING TO LASER SLOTS -->
+        <div id="singleLaserSlotsContainer" style="display:flex; flex-direction:column; gap:8px;">
+          <!-- Dynamically populated via app.js -->
         </div>
       </div>
 
@@ -706,12 +697,12 @@
           <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); margin-bottom:6px;" data-i18n="moleTurret1">
             TOURELLE 1 (CENTRALE)
           </div>
-          <select id="moleLaser1" class="hud-select-full" style="margin-bottom:6px;">
+          <select id="moleLaser1" class="hud-select-full" style="margin-bottom:8px;">
             <!-- Size 2 lasers -->
           </select>
-          <select id="moleMod1" class="hud-select-full">
-            <!-- Modules -->
-          </select>
+          <div id="moleTurret1SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
+            <!-- Dynamically populated based on laser slots -->
+          </div>
         </div>
 
         <!-- Turret 2 -->
@@ -719,12 +710,12 @@
           <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); margin-bottom:6px;" data-i18n="moleTurret2">
             TOURELLE 2 (GAUCHE)
           </div>
-          <select id="moleLaser2" class="hud-select-full" style="margin-bottom:6px;">
+          <select id="moleLaser2" class="hud-select-full" style="margin-bottom:8px;">
             <!-- Size 2 lasers -->
           </select>
-          <select id="moleMod2" class="hud-select-full">
-            <!-- Modules -->
-          </select>
+          <div id="moleTurret2SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
+            <!-- Dynamically populated based on laser slots -->
+          </div>
         </div>
 
         <!-- Turret 3 -->
@@ -732,12 +723,12 @@
           <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); margin-bottom:6px;" data-i18n="moleTurret3">
             TOURELLE 3 (DROITE)
           </div>
-          <select id="moleLaser3" class="hud-select-full" style="margin-bottom:6px;">
+          <select id="moleLaser3" class="hud-select-full" style="margin-bottom:8px;">
             <!-- Size 2 lasers -->
           </select>
-          <select id="moleMod3" class="hud-select-full">
-            <!-- Modules -->
-          </select>
+          <div id="moleTurret3SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
+            <!-- Dynamically populated based on laser slots -->
+          </div>
         </div>
       </div>
 
