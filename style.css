@@ -695,6 +695,30 @@ html[data-layout="classic"] body {
   transform: translateY(-1px);
 }
 
+.mg-donate-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  border-radius: 6px;
+  color: #fbbf24;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mg-donate-btn:hover {
+  background: #fbbf24;
+  color: #030712;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.7);
+  transform: translateY(-1px);
+}
+
 .mg-quick-actions {
   display: flex;
   gap: 4px;
@@ -911,6 +935,24 @@ html[data-layout="classic"] body {
 .dock-item-layout:hover .dock-label {
   color: #f59e0b;
   text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+/* Soutenir / Donate dock item */
+.dock-circle-donate {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.18) 0%, rgba(6, 18, 38, 0.6) 100%);
+}
+.dock-circle-donate svg {
+  stroke: #fbbf24;
+}
+.dock-item-donate:hover .dock-circle-donate {
+  border-color: #fbbf24;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.8), inset 0 0 8px rgba(251, 191, 36, 0.4);
+  transform: translateY(-3px) scale(1.08);
+}
+.dock-item-donate:hover .dock-label {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.7);
 }
 
 /* Badge for refinery jobs in dock */

@@ -82,14 +82,12 @@
         <span class="mg-squad-badge" id="mgSquadCountBadge">1</span>
       </button>
 
-      <!-- Quick Layout Toggle Button in mobiGlas mode -->
-      <button class="mg-layout-toggle-btn" id="btnLayoutToggle" data-i18n-title="titleToggleLayout" title="Basculer vers mode Cockpit MFD classique">
+      <!-- Donate / Support Modal Button in mobiGlas mode -->
+      <button type="button" class="mg-donate-btn" id="btnMgDonate" data-i18n-title="titleDonate" title="Soutenir le développement">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
         </svg>
-        <span id="mgLayoutToggleLabel" data-i18n="layoutToggleToClassic">MFD COCKPIT</span>
+        <span data-i18n="support">SOUTENIR</span>
       </button>
 
       <!-- Compact Quick Actions in mobiGlas header -->
@@ -1927,16 +1925,14 @@
         <span class="dock-label" data-i18n="dockGuide">GUIDE</span>
       </button>
 
-      <!-- 9. Layout Mode Switcher App (mobiGlas <-> Cockpit MFD) -->
-      <button class="dock-item dock-item-layout" id="dockBtnLayout" data-dock-target="layout" title="Basculer vers mode Cockpit MFD classique">
-        <div class="dock-circle dock-circle-layout">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
+      <!-- 9. Soutenir / Donate App -->
+      <button class="dock-item dock-item-donate" id="dockBtnDonate" data-dock-target="donate" data-i18n-title="titleDonate" title="Soutenir le développement">
+        <div class="dock-circle dock-circle-donate">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
         </div>
-        <span class="dock-label" data-i18n="dockLayout">COCKPIT</span>
+        <span class="dock-label" data-i18n="support">SOUTENIR</span>
       </button>
     </div>
   </nav>
@@ -1945,6 +1941,8 @@
   <footer class="hud-footer">
     <div class="footer-links">
       <span class="footer-link" id="btnOpenGuideFooter" data-i18n="guideLink">📖 Guide & Prise en main</span>
+      <span>•</span>
+      <span class="footer-link" id="btnOpenDonateFooter" style="color:#fbbf24; font-weight:700;" data-i18n="support">💛 Soutenir</span>
       <span>•</span>
       <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.5)</span>
       <span>•</span>

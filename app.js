@@ -511,6 +511,8 @@ const DOM = {
   btnVoiceCommand: document.getElementById('btnVoiceCommand'),
   btnAudioToggle: document.getElementById('btnAudioToggle'),
   btnOpenDonate: document.getElementById('btnOpenDonate'),
+  btnMgDonate: document.getElementById('btnMgDonate'),
+  btnOpenDonateFooter: document.getElementById('btnOpenDonateFooter'),
 
   // mobiGlas 4.0 Layout & System Header
   mobiglasSystemHeader: document.getElementById('mobiglasSystemHeader'),
@@ -547,6 +549,7 @@ const DOM = {
   dockBtnLedger: document.getElementById('dockBtnLedger'),
   dockBtnCrew: document.getElementById('dockBtnCrew'),
   dockBtnGuide: document.getElementById('dockBtnGuide'),
+  dockBtnDonate: document.getElementById('dockBtnDonate'),
   dockBtnLayout: document.getElementById('dockBtnLayout'),
 
   // Mobile / Tablet Tabbed Navigation & Live Mini-HUD
@@ -3259,11 +3262,15 @@ function bindEventListeners() {
   });
   DOM.btnCloseLoadout.addEventListener('click', () => closeModal(DOM.loadoutModal));
 
-  DOM.btnOpenDonate.addEventListener('click', () => {
-    sfx.playBeep(600, 'sine', 0.04);
-    openModal(DOM.donateModal);
+  [DOM.btnOpenDonate, DOM.btnMgDonate, DOM.dockBtnDonate, DOM.btnOpenDonateFooter].forEach(btn => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(15);
+      openModal(DOM.donateModal);
+    });
   });
-  DOM.btnCloseDonate.addEventListener('click', () => closeModal(DOM.donateModal));
+  if (DOM.btnCloseDonate) DOM.btnCloseDonate.addEventListener('click', () => closeModal(DOM.donateModal));
 
   // Crew split modal & Squad Mining Modal
   if (DOM.btnOpenCrew) DOM.btnOpenCrew.addEventListener('click', openSquadModal);
