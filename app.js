@@ -673,7 +673,9 @@ const DOM = {
   mobileViewTabs: document.getElementById('mobileViewTabs'),
   tabBtnScanner: document.getElementById('tabBtnScanner'),
   tabBtnAnalysis: document.getElementById('tabBtnAnalysis'),
+  tabBtnMarket: document.getElementById('tabBtnMarket'),
   mobileTabVerdictBadge: document.getElementById('mobileTabVerdictBadge'),
+  mobileTabMarketBadge: document.getElementById('mobileTabMarketBadge'),
   mobileLiveSummaryBar: document.getElementById('mobileLiveSummaryBar'),
   mlSummaryBadge: document.getElementById('mlSummaryBadge'),
   mlSummaryPrice: document.getElementById('mlSummaryPrice'),
@@ -681,6 +683,35 @@ const DOM = {
   mainGrid: document.getElementById('mainGrid'),
   panelScanData: document.getElementById('panelScanData'),
   panelTacticalAnalysis: document.getElementById('panelTacticalAnalysis'),
+  panelMarketHold: document.getElementById('panelMarketHold'),
+
+  // Scan Panel Internal Sub-tabs (Ergonomic Compact Navigation)
+  scanSubtabsBar: document.getElementById('scanSubtabsBar'),
+  btnScanSubtabQuick: document.getElementById('btnScanSubtabQuick'),
+  btnScanSubtabAdvanced: document.getElementById('btnScanSubtabAdvanced'),
+  btnScanSubtabHotspots: document.getElementById('btnScanSubtabHotspots'),
+  scanSubtabPaneQuick: document.getElementById('scanSubtabPaneQuick'),
+  scanSubtabPaneAdvanced: document.getElementById('scanSubtabPaneAdvanced'),
+  scanSubtabPaneHotspots: document.getElementById('scanSubtabPaneHotspots'),
+  subtabArchBadge: document.getElementById('subtabArchBadge'),
+  subtabOreBadge: document.getElementById('subtabOreBadge'),
+
+  // Cockpit MFD Telemetry Extensions (Where to mine, Active laser, Loadout solver, Station prices)
+  whereToMineCard: document.getElementById('whereToMineCard'),
+  wtmMineralBadge: document.getElementById('wtmMineralBadge'),
+  wtmSpotsList: document.getElementById('wtmSpotsList'),
+  activeLaserDashStrip: document.getElementById('activeLaserDashStrip'),
+  alsShipTag: document.getElementById('alsShipTag'),
+  alsHeadName: document.getElementById('alsHeadName'),
+  alsModulesList: document.getElementById('alsModulesList'),
+  alsPowerVal: document.getElementById('alsPowerVal'),
+  btnQuickEditLaser: document.getElementById('btnQuickEditLaser'),
+  optimalLoadoutCard: document.getElementById('optimalLoadoutCard'),
+  olcFeasibilityTag: document.getElementById('olcFeasibilityTag'),
+  olcBody: document.getElementById('olcBody'),
+  stationPriceComparatorCard: document.getElementById('stationPriceComparatorCard'),
+  spcOreTag: document.getElementById('spcOreTag'),
+  spcTableContainer: document.getElementById('spcTableContainer'),
 
   // Cockpit Voice (TTS) & Radar Decoder Triggers
   btnVoiceTTS: document.getElementById('btnVoiceTTS'),
@@ -706,8 +737,6 @@ const DOM = {
   archetypeScroller: document.getElementById('archetypeScroller'),
   archetypeDescText: document.getElementById('archetypeDescText'),
   archetypeStatsText: document.getElementById('archetypeStatsText'),
-  btnAutoCalcProps: document.getElementById('btnAutoCalcProps'),
-
   // Minerals & Percentage
   selectedMineralLabel: document.getElementById('selectedMineralLabel'),
   oreGrid: document.getElementById('oreGrid'),
@@ -1038,6 +1067,13 @@ function selectMineral(min) {
   DOM.selectedMineralLabel.textContent = `${getLocalized(min, 'name')}${rsText}`;
   DOM.selectedMineralLabel.style.color = min.color;
 
+  // Prevent primary mineral from conflicting with secondary mineral
+  if (state.secondaryMineral && state.secondaryMineral.id === min.id) {
+    state.secondaryMineral = null;
+    if (DOM.secondaryOreSelect) DOM.secondaryOreSelect.value = 'none';
+    updateSecondaryOreUI();
+  }
+
   document.querySelectorAll('.ore-card').forEach(c => {
     c.classList.toggle('selected', c.dataset.id === min.id);
   });
@@ -1053,6 +1089,7 @@ function selectMineral(min) {
 
   // Auto-calculer dès la sélection du minerai
   applyDynamicRockProperties();
+  calculateAll();
 }
 
 // ==========================================
@@ -1721,6 +1758,9 @@ function setMobileView(view) {
   if (DOM.tabBtnScanner && DOM.tabBtnAnalysis) {
     DOM.tabBtnScanner.classList.toggle('active', view === 'scanner');
     DOM.tabBtnAnalysis.classList.toggle('active', view === 'analysis');
+    if (DOM.tabBtnMarket) {
+      DOM.tabBtnMarket.classList.toggle('active', view === 'market');
+    }
   }
   if (DOM.dockBtnScanner && DOM.dockBtnAnalysis) {
     DOM.dockBtnScanner.classList.toggle('active', view === 'scanner');
@@ -1732,6 +1772,36 @@ function setMobileView(view) {
   sfx.playBeep(650, 'sine', 0.03);
   triggerHaptic(12);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==========================================
+// SCAN PANEL INTERNAL SUB-TABS (Compact Ergonomics)
+// ==========================================
+
+function setScanSubtab(tab) {
+  state.activeScanSubtab = tab;
+
+  if (DOM.btnScanSubtabQuick) DOM.btnScanSubtabQuick.classList.toggle('active', tab === 'quick');
+  if (DOM.btnScanSubtabAdvanced) DOM.btnScanSubtabAdvanced.classList.toggle('active', tab === 'advanced');
+  if (DOM.btnScanSubtabHotspots) DOM.btnScanSubtabHotspots.classList.toggle('active', tab === 'hotspots');
+
+  if (DOM.scanSubtabPaneQuick) DOM.scanSubtabPaneQuick.style.display = tab === 'quick' ? 'block' : 'none';
+  if (DOM.scanSubtabPaneAdvanced) DOM.scanSubtabPaneAdvanced.style.display = tab === 'advanced' ? 'block' : 'none';
+  if (DOM.scanSubtabPaneHotspots) DOM.scanSubtabPaneHotspots.style.display = tab === 'hotspots' ? 'block' : 'none';
+
+  sfx.playBeep(680, 'sine', 0.025);
+  triggerHaptic(10);
+}
+
+function updateScanSubtabBadges(arch, mineral) {
+  if (DOM.subtabArchBadge && arch) {
+    DOM.subtabArchBadge.textContent = (arch.name_fr || arch.name || 'GÉO').split(' ')[0].toUpperCase();
+  }
+  if (DOM.subtabOreBadge && mineral) {
+    DOM.subtabOreBadge.textContent = mineral.symbol || 'ORE';
+    DOM.subtabOreBadge.style.color = mineral.color || '#00f0ff';
+    DOM.subtabOreBadge.style.borderColor = mineral.color || 'rgba(0,240,255,0.4)';
+  }
 }
 
 function updateMobileLiveSummary(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
@@ -2551,6 +2621,196 @@ function calculateAll() {
 
   // 10. Squad & Fleet Telemetry Display
   updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU);
+
+  // 11. Cockpit MFD Telemetry Extensions (High-density telemetry)
+  updateWhereToMineBox(mineral);
+  updateActiveLaserStrip(ship, totalLaserPower, activeLaserDescList);
+  updateOptimalLoadoutAdvisor(mass, effectiveResistance, totalLaserPower, ship, mineral, powerRatio);
+  updateStationPriceComparison(mineral, pureSCU, refinedPrice);
+  updateScanSubtabBadges(state.selectedArchetype, mineral);
+}
+
+// ==========================================================================
+// COCKPIT MFD HUD EXTENSIONS (High-density Cockpit MFD features)
+// ==========================================================================
+
+function updateWhereToMineBox(mineral) {
+  if (!DOM.whereToMineCard || !DOM.wtmSpotsList || !DOM.wtmMineralBadge) return;
+  const isEn = state.currentLang === 'en';
+  const minName = getLocalized(mineral, 'name');
+  DOM.wtmMineralBadge.textContent = minName.toUpperCase();
+  DOM.wtmMineralBadge.style.color = mineral.color || '#00f0ff';
+  DOM.wtmMineralBadge.style.borderColor = mineral.color || 'rgba(0,240,255,0.4)';
+
+  const allHotspots = MINING_DATA.miningHotspots || [];
+  // Find hotspots that explicitly mention this mineral
+  let matchingHotspots = allHotspots.filter(h => {
+    const ores = (h.primaryOres || '').toLowerCase();
+    const desc = (h.desc_fr || '').toLowerCase() + ' ' + (h.desc_en || '').toLowerCase();
+    const mId = mineral.id.toLowerCase();
+    const mName = minName.toLowerCase();
+    return ores.includes(mId) || ores.includes(mName) || desc.includes(mId) || desc.includes(mName);
+  });
+
+  if (matchingHotspots.length === 0) {
+    matchingHotspots = allHotspots.slice(0, 3);
+  } else {
+    matchingHotspots = matchingHotspots.slice(0, 4);
+  }
+
+  DOM.wtmSpotsList.innerHTML = matchingHotspots.map(h => {
+    const spotName = isEn ? (h.name_en || h.name_fr) : h.name_fr;
+    const spotType = isEn ? (h.type_en || h.type_fr) : h.type_fr;
+    const sysUpper = (h.system || 'Stanton').toUpperCase();
+    const refHub = h.refineryHub || 'ARC-L1';
+
+    return `
+      <div class="wtm-spot-item">
+        <div>
+          <div class="wtm-spot-name">${spotName}</div>
+          <div class="wtm-spot-env">📍 ${spotType} • Hub: ${refHub}</div>
+        </div>
+        <div class="wtm-spot-system">${sysUpper}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateActiveLaserStrip(ship, totalLaserPower, activeLaserDescList) {
+  if (!DOM.activeLaserDashStrip) return;
+  if (DOM.alsShipTag) {
+    DOM.alsShipTag.textContent = (ship.shortName || ship.name || 'SHIP').toUpperCase();
+  }
+
+  if (DOM.alsHeadName) {
+    if (ship.id === 'mole' && state.moleActiveTurrets > 1) {
+      DOM.alsHeadName.textContent = `MOLE (${state.moleActiveTurrets} tourelles)`;
+    } else {
+      DOM.alsHeadName.textContent = state.selectedLaser ? state.selectedLaser.name : 'Laser MH1';
+    }
+  }
+
+  if (DOM.alsModulesList) {
+    const mods = (state.selectedModules || []).filter(Boolean);
+    if (mods.length > 0) {
+      DOM.alsModulesList.innerHTML = mods.map(m => `<span class="als-module-badge">${m.name}</span>`).join('');
+    } else {
+      DOM.alsModulesList.innerHTML = `<span class="als-module-badge" style="opacity:0.6;">0 module</span>`;
+    }
+  }
+
+  if (DOM.alsPowerVal) {
+    const locale = getLocale();
+    DOM.alsPowerVal.textContent = `${totalLaserPower.toLocaleString(locale)} W`;
+  }
+}
+
+function updateOptimalLoadoutAdvisor(mass, effResistance, totalLaserPower, ship, mineral, powerRatio) {
+  if (!DOM.optimalLoadoutCard || !DOM.olcBody || !DOM.olcFeasibilityTag) return;
+  const isEn = state.currentLang === 'en';
+  const locale = getLocale();
+
+  let tagClass = 'optimal';
+  let tagText = isEn ? 'OPTIMAL' : 'OPTIMAL';
+  let tips = [];
+
+  if (powerRatio >= 1.05) {
+    tagClass = 'optimal';
+    tagText = isEn ? 'READY TO FRACTURE' : 'PRÊT À FRACTURER';
+    tips.push({
+      icon: '✅',
+      text: isEn 
+        ? `Sufficient power output (${totalLaserPower.toLocaleString(locale)} W). Stable optimal window.`
+        : `Puissance amplement suffisante (${totalLaserPower.toLocaleString(locale)} W). Fenêtre verte facilement saturable.`
+    });
+  } else if (powerRatio >= 0.85) {
+    tagClass = 'warning';
+    tagText = isEn ? 'BORDERLINE' : 'LIMITE';
+    tips.push({
+      icon: '⚠️',
+      text: isEn
+        ? `Power is close to threshold. Recommend mounting a Sabir 21 gadget (-50% res.) or a Surge module.`
+        : `Puissance limite pour cette masse (${mass.toLocaleString(locale)} kg). Conseil Tactique : posez un gadget Sabir 21 (-50% rés.) ou déclenchez un module Surge.`
+    });
+  } else {
+    tagClass = 'danger';
+    tagText = isEn ? 'UNDERPOWERED' : 'INSUFFISANT';
+    const deficitW = Math.round(totalLaserPower * (1 - powerRatio) / (powerRatio || 1));
+    tips.push({
+      icon: '🚨',
+      text: isEn
+        ? `Deficit of ~${deficitW.toLocaleString(locale)} W. Switch to Lancet-MH2 / Helix or attach BoreMax gadget (-75% res).`
+        : `Déficit d'environ ~${deficitW.toLocaleString(locale)} W. Recommandation : équipez une tête Lancet / Helix, un gadget BoreMax (-75% rés.) ou activez une 2e tourelle en escouade.`
+    });
+  }
+
+  // Resistance tip
+  if (effResistance > 50) {
+    tips.push({
+      icon: '🛡️',
+      text: isEn
+        ? `High rock resistance (${effResistance}%). Opt for a Lancet head (-75% resistance bonus).`
+        : `Forte résistance géologique (${effResistance}%). Privilégiez une tête Lancet ou un gadget OptiMax.`
+    });
+  }
+
+  DOM.olcFeasibilityTag.className = `olc-feasibility-tag ${tagClass}`;
+  DOM.olcFeasibilityTag.textContent = tagText;
+
+  DOM.olcBody.innerHTML = tips.map(tip => `
+    <div class="olc-tip-item">
+      <span class="olc-tip-icon">${tip.icon}</span>
+      <span>${tip.text}</span>
+    </div>
+  `).join('');
+}
+
+function updateStationPriceComparison(mineral, pureSCU, refinedPrice) {
+  if (!DOM.stationPriceComparatorCard || !DOM.spcTableContainer) return;
+  const isEn = state.currentLang === 'en';
+  const locale = getLocale();
+
+  if (DOM.spcOreTag) {
+    DOM.spcOreTag.textContent = mineral.symbol || 'ORE';
+    DOM.spcOreTag.style.color = mineral.color || '#10b981';
+  }
+
+  const stations = (MINING_DATA.refineryStations || []).slice();
+  stations.sort((a, b) => {
+    const aBonus = a.bonusMineral === mineral.id ? (a.bonusRate || 0) : 0;
+    const bBonus = b.bonusMineral === mineral.id ? (b.bonusRate || 0) : 0;
+    return bBonus - aBonus;
+  });
+
+  const topStations = stations.slice(0, 4);
+
+  DOM.spcTableContainer.innerHTML = topStations.map((st, idx) => {
+    const isSpecialBonus = st.bonusMineral === mineral.id;
+    const bonusRate = isSpecialBonus ? (st.bonusRate || 0) : 0;
+    const bonusPct = Math.round(bonusRate * 100);
+    const stationYield = Math.round(refinedPrice * (1 + bonusRate));
+    const isBest = idx === 0 && isSpecialBonus;
+
+    let bonusBadgeHtml = '';
+    if (isSpecialBonus && bonusPct > 0) {
+      bonusBadgeHtml = `<span class="spc-bonus-tag high">+${bonusPct}% Rendement</span>`;
+    } else {
+      bonusBadgeHtml = `<span class="spc-bonus-tag none">Standard</span>`;
+    }
+
+    return `
+      <div class="spc-row ${isBest ? 'best-row' : ''}">
+        <div>
+          <div class="spc-st-name">${isBest ? '🌟 ' : ''}${st.name}</div>
+          <div class="spc-st-meta">${st.system} • ${st.sector ? st.sector.toUpperCase() : 'STANTON'}</div>
+        </div>
+        <div class="spc-right">
+          ${bonusBadgeHtml}
+          <div class="spc-yield-val">~${stationYield.toLocaleString(locale)} aUEC</div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
@@ -4084,17 +4344,6 @@ function bindEventListeners() {
     });
   }
 
-  // Alpha 4.10: Dynamic Archetype Auto-Calc Button
-  if (DOM.btnAutoCalcProps) {
-    DOM.btnAutoCalcProps.addEventListener('click', () => {
-      sfx.playSuccess();
-      triggerHaptic(15);
-      applyDynamicRockProperties();
-      const t = I18N[state.currentLang] || I18N.fr;
-      showToast(t.toastAutoCalcRockProps || (state.currentLang === 'en' ? 'Rock properties recalculated from geological composition!' : 'Propriétés de la roche recalculées selon la géologie !'));
-    });
-  }
-
   // Alpha 4.10: Secondary Ore & Composition controls
   if (DOM.secondaryOreSelect) {
     DOM.secondaryOreSelect.addEventListener('change', (e) => {
@@ -4104,6 +4353,7 @@ function bindEventListeners() {
       state.secondaryMineral = val === 'none' ? null : MINING_DATA.minerals.find(m => m.id === val);
       updateSecondaryOreUI();
       applyDynamicRockProperties();
+      calculateAll();
     });
   }
 
@@ -4115,6 +4365,7 @@ function bindEventListeners() {
       if (DOM.secondaryOreSelect) DOM.secondaryOreSelect.value = 'none';
       updateSecondaryOreUI();
       applyDynamicRockProperties();
+      calculateAll();
     });
   }
 
@@ -4123,9 +4374,33 @@ function bindEventListeners() {
       state.secondaryPercentage = parseFloat(e.target.value);
       if (DOM.secondaryPctLabel) DOM.secondaryPctLabel.textContent = `${state.secondaryPercentage.toFixed(1)} %`;
       if (DOM.secondaryPctDisplay) DOM.secondaryPctDisplay.textContent = `${state.secondaryPercentage.toFixed(0)}%`;
+      document.querySelectorAll('[data-set-sec-pct]').forEach(b => {
+        b.classList.toggle('active', parseFloat(b.dataset.setSecPct) === state.secondaryPercentage);
+      });
+      updateSecondaryOreUI();
       applyDynamicRockProperties();
+      calculateAll();
     });
   }
+
+  // Quick chips for secondary ore percentage
+  document.querySelectorAll('[data-set-sec-pct]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(12);
+      const secVal = parseFloat(btn.dataset.setSecPct);
+      state.secondaryPercentage = secVal;
+      if (DOM.secondaryPctSlider) DOM.secondaryPctSlider.value = secVal;
+      if (DOM.secondaryPctLabel) DOM.secondaryPctLabel.textContent = `${secVal.toFixed(1)} %`;
+      if (DOM.secondaryPctDisplay) DOM.secondaryPctDisplay.textContent = `${secVal.toFixed(0)}%`;
+      document.querySelectorAll('[data-set-sec-pct]').forEach(b => {
+        b.classList.toggle('active', parseFloat(b.dataset.setSecPct) === secVal);
+      });
+      updateSecondaryOreUI();
+      applyDynamicRockProperties();
+      calculateAll();
+    });
+  });
 
   // Alpha 4.10: Saddlebags Detach & Tractor beam manager
   if (DOM.btnDetachOneBag) {
@@ -4242,8 +4517,29 @@ function bindEventListeners() {
   if (DOM.tabBtnAnalysis) {
     DOM.tabBtnAnalysis.addEventListener('click', () => setMobileView('analysis'));
   }
+  if (DOM.tabBtnMarket) {
+    DOM.tabBtnMarket.addEventListener('click', () => setMobileView('market'));
+  }
   if (DOM.mobileLiveSummaryBar) {
     DOM.mobileLiveSummaryBar.addEventListener('click', () => setMobileView('analysis'));
+  }
+  if (DOM.btnQuickEditLaser) {
+    DOM.btnQuickEditLaser.addEventListener('click', () => {
+      sfx.playBeep(700, 'sine', 0.04);
+      triggerHaptic(12);
+      if (DOM.btnOpenLoadout) DOM.btnOpenLoadout.click();
+    });
+  }
+
+  // Scan Panel Internal Sub-tabs (Ergonomic Compact Navigation)
+  if (DOM.btnScanSubtabQuick) {
+    DOM.btnScanSubtabQuick.addEventListener('click', () => setScanSubtab('quick'));
+  }
+  if (DOM.btnScanSubtabAdvanced) {
+    DOM.btnScanSubtabAdvanced.addEventListener('click', () => setScanSubtab('advanced'));
+  }
+  if (DOM.btnScanSubtabHotspots) {
+    DOM.btnScanSubtabHotspots.addEventListener('click', () => setScanSubtab('hotspots'));
   }
 
   // mobiGlas 4.0: Bottom App Launcher Dock Handlers

@@ -1300,11 +1300,29 @@ html[data-layout="classic"] body {
 
 .main-grid {
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
+  grid-template-columns: 1fr 1.08fr 1fr;
   gap: 16px;
+  align-items: start;
 }
 
-@media (max-width: 980px) {
+/* Tablet view (861px to 1200px): 2 columns, 3rd panel spans bottom */
+@media (max-width: 1200px) and (min-width: 861px) {
+  .main-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  #panelScanData {
+    grid-column: 1;
+  }
+  #panelTacticalAnalysis {
+    grid-column: 2;
+  }
+  #panelMarketHold {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
   .main-grid {
     grid-template-columns: 1fr;
   }
@@ -1444,16 +1462,440 @@ html[data-layout="classic"] body {
   .main-grid[data-mobile-view="scanner"] #panelScanData {
     display: block !important;
   }
-  .main-grid[data-mobile-view="scanner"] #panelTacticalAnalysis {
+  .main-grid[data-mobile-view="scanner"] #panelTacticalAnalysis,
+  .main-grid[data-mobile-view="scanner"] #panelMarketHold {
     display: none !important;
   }
 
-  .main-grid[data-mobile-view="analysis"] #panelScanData {
-    display: none !important;
-  }
   .main-grid[data-mobile-view="analysis"] #panelTacticalAnalysis {
     display: block !important;
   }
+  .main-grid[data-mobile-view="analysis"] #panelScanData,
+  .main-grid[data-mobile-view="analysis"] #panelMarketHold {
+    display: none !important;
+  }
+
+  .main-grid[data-mobile-view="market"] #panelMarketHold {
+    display: block !important;
+  }
+  .main-grid[data-mobile-view="market"] #panelScanData,
+  .main-grid[data-mobile-view="market"] #panelTacticalAnalysis {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   SCAN PANEL INTERNAL SUB-TABS (High-ergonomics Compact Cockpit Layout)
+   ========================================================================== */
+.scan-subtabs-bar {
+  display: flex;
+  gap: 6px;
+  background: rgba(4, 12, 24, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 7px;
+  padding: 4px;
+  margin-bottom: 14px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.scan-subtab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-family: var(--font-hud);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scan-subtab-btn:hover {
+  background: rgba(0, 240, 255, 0.08);
+  color: #fff;
+  border-color: rgba(0, 240, 255, 0.25);
+}
+
+.scan-subtab-btn.active {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.22) 0%, rgba(6, 26, 56, 0.95) 100%);
+  border-color: var(--accent-cyan);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.35), inset 0 1px 0 rgba(0, 240, 255, 0.4);
+}
+
+.scan-subtab-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.scan-subtab-badge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  color: var(--accent-cyan);
+}
+
+.scan-subtab-pane {
+  animation: fadeInPane 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInPane {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ore grid compact styling to avoid vertical stretching */
+.ore-grid-compact {
+  max-height: 155px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.ore-grid-compact::-webkit-scrollbar {
+  width: 4px;
+}
+.ore-grid-compact::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.3);
+  border-radius: 2px;
+}
+
+/* 1. Where-to-mine / Hotspots card */
+.where-to-mine-card {
+  margin-top: 14px;
+  background: rgba(4, 14, 28, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: inset 0 0 14px rgba(0, 240, 255, 0.05);
+}
+.wtm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+}
+.wtm-title {
+  font-family: var(--font-hud);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  letter-spacing: 0.5px;
+}
+.wtm-mineral-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  color: #c084fc;
+}
+.wtm-spots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wtm-spot-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  padding: 6px 9px;
+  transition: all 0.2s ease;
+}
+.wtm-spot-item:hover {
+  background: rgba(0, 240, 255, 0.06);
+  border-color: rgba(0, 240, 255, 0.3);
+}
+.wtm-spot-name {
+  font-family: var(--font-hud);
+  font-size: 0.76rem;
+  color: #fff;
+  font-weight: 600;
+}
+.wtm-spot-env {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+.wtm-spot-system {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent-amber);
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* 2. Active Laser & Module Strip */
+.active-laser-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(8, 22, 44, 0.9) 0%, rgba(5, 14, 28, 0.95) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(0, 240, 255, 0.06);
+}
+.als-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.als-laser-info {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.als-ship-tag {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.15);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.als-head-name {
+  font-family: var(--font-hud);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+}
+.als-modules-list {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.als-module-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--text-muted);
+}
+.als-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.als-power-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.als-power-val {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-emerald);
+}
+.als-power-sub {
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+.als-edit-btn {
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: var(--accent-cyan);
+  font-family: var(--font-hud);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.als-edit-btn:hover {
+  background: rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+/* 3. Optimal Loadout Card (Solver) */
+.optimal-loadout-card {
+  margin-top: 12px;
+  background: rgba(6, 18, 36, 0.8);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  padding: 11px 13px;
+  box-shadow: inset 0 0 14px rgba(245, 158, 11, 0.05);
+}
+.olc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+.olc-title {
+  font-family: var(--font-hud);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent-amber);
+  letter-spacing: 0.5px;
+}
+.olc-feasibility-tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.olc-feasibility-tag.optimal {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.olc-feasibility-tag.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.olc-feasibility-tag.danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.olc-body {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #d1d5db;
+}
+.olc-tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 5px;
+}
+.olc-tip-icon {
+  font-size: 0.85rem;
+  line-height: 1.1;
+}
+
+/* 4. Station Price & Bonus Comparator Card */
+.station-price-comparator-card {
+  margin-bottom: 12px;
+  background: rgba(5, 16, 32, 0.8);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 8px;
+  padding: 11px 13px;
+  box-shadow: inset 0 0 14px rgba(16, 185, 129, 0.05);
+}
+.spc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+}
+.spc-title {
+  font-family: var(--font-hud);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent-emerald);
+  letter-spacing: 0.5px;
+}
+.spc-ore-tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.spc-table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.spc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  padding: 5px 8px;
+  transition: all 0.2s ease;
+}
+.spc-row:hover {
+  background: rgba(16, 185, 129, 0.07);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.spc-row.best-row {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+.spc-st-name {
+  font-family: var(--font-hud);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #fff;
+}
+.spc-st-meta {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+.spc-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.spc-bonus-tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.spc-bonus-tag.high {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.spc-bonus-tag.mid {
+  background: rgba(0, 240, 255, 0.15);
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+}
+.spc-bonus-tag.none {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.spc-yield-val {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-amber);
 }
 
 /* HUD PANEL */
@@ -2304,6 +2746,13 @@ html[data-layout="classic"] body {
   font-size: 0.95rem;
   outline: none;
   min-height: 44px;
+  cursor: pointer;
+}
+
+.hud-select-full option {
+  background: #08121f;
+  color: #fff;
+  padding: 8px 12px;
 }
 
 /* ==========================================================================

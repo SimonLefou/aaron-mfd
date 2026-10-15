@@ -1,7 +1,7 @@
 # 🗺️ FEUILLE DE ROUTE OFFICIELLE (ROADMAP) — AARON MFD
 ## Système d'Exploitation Tactique, Logistique, Commercial & Flotte Multijoueur (*Star Citizen 4.0+*)
 
-> **Direction stratégique du logiciel** : Élever AARON MFD au rang de **plateforme intégrale pour les opérations industrielles de Star Citizen**.
+> **Direction stratégique du logiciel** : Élever AARON MFD au rang de **plateforme intégrale de référence pour les opérations industrielles de Star Citizen**.
 > L'application réunit sous une même interface immersive (mobiGlas) l'ensemble des acteurs d'une opération : **éclaireurs, mineurs, transporteurs lourds, escorteurs de combat et gestionnaires de corporation**. Les calculs de puissance et de faisabilité, la synchronisation temps réel des vaisseaux, le partage instantané des scans de rochers, le transbordement de fret en vol, le suivi des ordres de raffinage, la cartographie GPS des filons et l'arbitrage commercial aux TDD sont orchestrés de manière fluide, 100% autonome et sans aucun serveur payant (P2P Serverless).
 
 ---
@@ -15,19 +15,20 @@
 
 2. **Chaîne de Valeur Industrielle Complète (Du Laser au TDD) :**
    * **1. Prospection & Scan OCR :** Détection de rochers, lecture optique par caméra / capture F12 et diffusion à la flotte.
-   * **2. Fracturation & Extraction :** Puissance cumulée, régulation thermique, assistance vocale et alertes d'instabilité.
+   * **2. Fracturation & Extraction :** Puissance cumulée, solveur de loadout optimal (*Optimal Loadout Finder*), régulation thermique, assistance vocale et alertes d'instabilité.
    * **3. Sécurité & Escorte :** Sentinelle radar, bouton d'alerte rouge et prime de protection pour les chasseurs de combat.
    * **4. Logistique & Fret Spécialisé :** Transbordement en vol de sacs miniers / conteneurs SCU vers des cargos dédiés.
-   * **5. Raffinage Industriel :** Gestionnaire d'ordres de raffinage, minuteries en arrière-plan et notifications push déportées.
-   * **6. Commerce & Vente TDD :** Analyse des cours du marché de Stanton et Pyro, calcul des marges nettes et arbitrage commercial.
-   * **7. Intégration Corpo & Matériel :** Webhooks Discord corporatifs automatiques et profils Stream Deck.
+   * **5. Raffinage & Inventaire :** Gestionnaire d'ordres de raffinage, minuteries en arrière-plan, notifications push déportées et registre de corporation (*Corpo Mining Reserves*).
+   * **6. Commerce, Vente TDD & API UEX Corp :** Analyse des cours du marché en temps réel (intégration API live UEX Corp avec cache hors-ligne), calcul des marges nettes et optimisation des routes de vente de cargaisons mixtes.
+   * **7. Localisateur de Minerais & Crafting 4.0 :** Base de données des gisements (*Where to mine*) et suivi des blueprints de fabrication.
+   * **8. Intégration Corpo & Matériel :** Webhooks Discord corporatifs automatiques et profils Stream Deck.
 
 3. **Immersion Cockpit Authentique (Style mobiGlas Star Citizen 4.0+) :**
    * Interface sombre néon inspirée des cockpits de vaisseaux, voyants de comms chiffrées, ping en direct, indicatifs radio personnalisés (`CITIZEN-1`, etc.).
    * Synthèse vocale cockpit (TTS) et retours sonores immersifs.
 
 4. **100% Hors-Ligne & Rétro-compatibilité :**
-   * L'application reste utilisable à 100% en mode solo hors-ligne (PWA).
+   * L'application reste utilisable à 100% en mode solo hors-ligne (PWA avec cache local).
 
 ---
 
@@ -37,12 +38,12 @@
 graph TD
     M1["Jalon 1 : Réseau P2P<br/>(Codes WING-XXXX)"] --> M2["Jalon 2 : Synchro Vaisseaux<br/>(Loadouts, Lasers, Soutes)"]
     M2 --> M3["Jalon 3 : Scan Partagé & OCR<br/>(Diffusion instantanée & Caméra F12)"]
-    M3 --> M4["Jalon 4 : Tir Collectif & Escorte<br/>(Séquençage, Alerte Rouge & Profit Split)"]
+    M3 --> M4["Jalon 4 : Tir Collectif & Loadout Finder<br/>(Solveur optimal, Alerte Rouge & Profit Split)"]
     M4 --> M5["Jalon 5 : Logistique & Fret Cargo<br/>(Transbordement sacs SCU & Transporteurs)"]
-    M5 --> M6["Jalon 6 : Bourse Matériaux & TDD<br/>(Arbitrage brut/raffiné & Routes de vente)"]
-    M6 --> M7["Jalon 7 : Ordres de Raffinage<br/>(Minuteurs & Notifications Push déportées)"]
-    M7 --> M8["Jalon 8 : GPS & Waypoints Filons<br/>(Triangulation OM & Secteurs Pyro)"]
-    M8 --> M9["Jalon 9 : Corpo & Hardware<br/>(Webhooks Discord & Profils Stream Deck)"]
+    M5 --> M6["Jalon 6 : Bourse TDD & API UEX Corp<br/>(Prix live, Vente optimale & Arbitrage brut/raffiné)"]
+    M6 --> M7["Jalon 7 : Ordres de Raffinage & Inventaire Corpo<br/>(Portefeuille minier & Notifications Push)"]
+    M7 --> M8["Jalon 8 : GPS, Cartographie & Crafting 4.0<br/>(Where to mine, Triangulation OM & Blueprints)"]
+    M8 --> M9["Jalon 9 : Écosystème Corpo & Hardware<br/>(Webhooks Discord & Profils Stream Deck)"]
 ```
 
 ---
@@ -71,6 +72,17 @@ graph TD
   * **Tourelles actives :** Prise en compte dynamique des tourelles du MOLE (1 solo, 2 duo, 3 trio).
   * **Capacité de soute :** SCU disponible et cumulé de l'escadre.
   * **Identité radio :** Indicatif personnalisé du pilote (ex: `Ghost-Leader`, `Miner-02`).
+* **Éditeur de Têtes de Minage & Gadgets Craftés (*Custom & Crafted Mining Heads*) :**
+  *(Adapté au système de Crafting Star Citizen 4.0)*
+  * **Création et clonage de têtes artisanales :** Les joueurs peuvent créer de nouvelles têtes personnalisées ou modifier les stats de têtes existantes (ex: *Lancet MH1 Tier 3 Craft*, *Helix Overclocké*).
+  * **Réglage fin des caractéristiques :**
+    * Puissance de fracture brute (Watts).
+    * Modificateur de réduction de résistance rocheuse (% de bonus/malus).
+    * Modificateur d'atténuation d'instabilité (%).
+    * Taille et vitesse de charge de la fenêtre optimale (Optimal Window %).
+    * Nombre d'emplacements de sous-modules (1, 2 ou 3 slots).
+  * **Créateur de Gadgets Miniers Sur-Mesure :** Ajout de gadgets artisanaux ou prototypes de guilde avec réglages personnalisés des bonus de résistance, instabilité et fenêtre verte.
+  * **Persistance & Synchronisation P2P :** Vos têtes et gadgets craftés sont sauvegardés dans votre profil local et automatiquement diffusés à vos coéquipiers lors de la connexion (`FLEET_SYNC`), afin que les calculateurs de toute l'escadre intègrent vos vraies statistiques artisanales.
 * **Calculateur de Flotte Dynamique :**
   * Puissance combinée en Watts calculée et mise à jour en direct sur tous les écrans.
   * Réduction globale de résistance cumulée selon les lasers Lancet actifs.
@@ -88,22 +100,26 @@ graph TD
   * Mise à jour automatique des jauges et calculs de faisabilité sur tous les MFD connectés.
   * Notification visuelle et synthèse vocale cockpit (*"📡 Scan reçu de [Callsign] : Rocher Quantainium 5 200 kg"*).
 * **Scanner OCR Instantané (Caméra Smartphone / Capture d'Écran F12) :**
+  *(Reconnaissance optique de scan instantanée)*
   * Pointez la caméra vers l'écran ou glissez une capture d'écran du réticule de scan de Star Citizen.
   * Moteur OCR 100% local (exécuté dans le navigateur sans envoyer d'image sur un serveur distant).
   * Extraction automatique en 0,3 seconde de toutes les valeurs et injection directe dans le calculateur.
 
 ---
 
-### ⚡ JALON 4 — Coordination Tactique de Tir, Alerte Rouge Escorte & Profit Split
-*Objectif : Coordonner le tir conjoint des lasers et assurer la protection de la flottille.*
+### ⚡ JALON 4 — Coordination Tactique, Solveur Optimal & Escorte
+*Objectif : Coordonner le tir conjoint des lasers, recommander le meilleur loadout et sécuriser la flottille.*
 
+* **Solveur de Loadout Optimal (*Optimal Loadout Finder*) :**
+  *(Algorithme prédictif de puissance et résistances)*
+  * Pour un rocher donné particulièrement résistant, l'algorithme calcule et suggère immédiatement la configuration exacte de lasers et de modules à équiper (ex: *« Pour cette roche de 8 200 kg à 58% de résistance : Équiper Lancet MH1 + 2x Focus III + 1x Surge »* ou *« Duo requis : 1x Lancet + 1x Helix »*).
 * **Conseiller de Tir Conjoint :**
   * Séquençage tactique : affaiblissement de résistance au Lancet puis déclenchement de la puissance brute Helix.
   * Calcul de la fenêtre thermique et alerte de surcharge collective.
 * **Module Sentinelle & Escorte de Combat (`RED ALERT`) :**
   * Affichage simplifié pour les pilotes de chasseurs de protection (Gladius, Scorpius, Vanguard, F7C).
-  * **Bouton d'Alerte Rouge en 1 tap** : dès qu'un mineur est attaqué ou verrouillé, une alarme sonore retentit sur les MFD des escortes avec le vecteur de repli Quantum d'urgence.
-  * **Prime de protection automatique** : part dédiée réservée pour les pilotes d'escorte dans la répartition des gains.
+  * **Bouton d'Alerte Rouge en 1 tap** : alarme sonore d'attaque pirate envoyée en direct avec vecteur de repli Quantum d'urgence.
+  * Prime de protection automatique intégrée dans le partage des gains.
 
 ---
 
@@ -121,47 +137,60 @@ graph TD
 
 ---
 
-### 📈 JALON 6 — Bourse Commerciale des Matériaux & Optimisation TDD
-*Objectif : Maximiser les bénéfices financiers de l'escadre en indiquant où, quand et comment vendre.*
+### 📈 JALON 6 — Bourse Commerciale, API UEX Corp & Intelligence de Guilde
+*Objectif : Maximiser les bénéfices financiers grâce aux cours du marché en direct, au partage collaboratif au sein de la corporation et à l'optimisation des trajets.*
 
-* **Cartographie des Marchés de Stanton & Pyro :**
-  * Centres TDD de capitales (*Area18, New Babbage, Orison, Lorville*), stations spatiales L1-L5 et acheteurs non régulés (*Scrap Yards, Brio's*).
+* **Intégration API Live UEX Corp (*Live Price Integration*) :**
+  *(Données de marché en temps réel)*
+  * Connexion transparente à l'API publique UEX Corp (`uexcorp.space`) pour récupérer les cours réels d'achat et de vente des minerais dans tous les terminaux TDD et stations de Stanton et Pyro.
+  * **Cache local hors-ligne (`price_cache`)** : si la connexion Internet est coupée en vol, le MFD bascule automatiquement sur les derniers prix mis en cache sans bloquer l'interface.
+* **Crowdsourcing & Intelligence des Prix de Guilde (*Corpo Price Scouts*) :**
+  *(Innovation exclusive AARON MFD)*
+  * **Mise à jour collaborative en 1 tap** : Lorsqu'un membre de la guilde se pose à un terminal TDD, une raffinerie ou un avant-poste de Pyro et constate les cours réels, les frais ou la demande disponible, il valide ou ajuste le prix sur son MFD.
+  * **Diffusion instantanée à toute la guilde** : En moins de 150 ms, un paquet `CORPO_PRICE_UPDATE` est répercuté sur les MFD de tous les membres de la guilde avec la mention : *"Prix actualisé par [Callsign] il y a 2 min"*.
 * **Moteur d'Arbitrage Économique (Brut vs Raffiné) :**
   * Calcul en temps réel du gain net après déduction des frais de raffinage, de carburant et de manutention cargo.
   * Recommandation de la méthode optimale (*Dinyx, Cormack, Ferron, Gencore*).
-* **Calculateur d'Itinéraire Commercial Optimal :**
-  * Classement des meilleures destinations de vente selon la marge nette, la distance Quantum et le risque pirate.
+* **Calculateur de Vente Globale de Stock (*Best Sales Locations Optimizer*) :**
+  * L'application analyse l'ensemble des stocks de votre guilde et calcule le plan de tournée commercial optimal pour maximiser les aUEC en un minimum de sauts Quantum, sans saturer la demande des terminaux TDD.
 
 ---
 
-### ⏱️ JALON 7 — Gestionnaire d'Ordres de Raffinage & Notifications Push
-*Objectif : Ne plus jamais oublier ses commandes de raffinage en cours (qui durent de 12 à 36 heures).*
+### ⏱️ JALON 7 — Ordres de Raffinage & Inventaire Partagé de Guilde
+*Objectif : Suivre le portefeuille d'actifs miniers individuel et mutualiser les stocks et dépenses à l'échelle de toute la corporation.*
 
-* **Fiches d'Ordres de Raffinage en 1 Tap :**
-  * Enregistrement rapide : station de dépôt, minerai raffiné, quantité en SCU, méthode sélectionnée et heure de fin estimée.
-* **Compte à Rebours Dynamique & Télémétrie de Stock :**
-  * Calcul de la valeur marchande finale estimée en aUEC au terme du procédé.
-  * Vue d'ensemble des stocks entreposés dans les différentes raffineries du système pour planifier les rotations du cargo.
-* **Notifications Push Déportées (Web Push Notifications) :**
-  * Même si le MFD ou le navigateur est fermé, l'utilisateur reçoit une notification sur son smartphone ou PC :  
+* **Inventaire Collaboratif & Stockpile de Guilde (*Guild Shared Stockpile*) :**
+  *(Innovation exclusive AARON MFD)*
+  * **Inventaire de guilde partagé en temps réel** : Chaque fois qu'un mineur dépose du minerai en raffinerie ou qu'un transporteur stocke des caisses SCU dans un hangar de guilde, l'inventaire est synchronisé sur les MFD de toute la corporation (`CORPO_STOCK_SYNC`).
+  * **Visibilité logistique totale** : N'importe quel membre ou responsable logistique voit en direct les réserves globales :  
+    *Exemple : « ARC-L1 : 256 SCU Quantainium raffiné (prêt au transport C2) » • « HUR-L1 : 512 SCU Laranite »*.
+  * **Livre des coûts partagés de corporation (*Corpo Expense Ledger*)** : Centralisation des frais engagés (frais de raffinage payés, carburant des transporteurs, réparations) déduits automatiquement des recettes brutes pour une répartition équitable.
+  * Calcul en direct de la **valeur nette totale du patrimoine minier de la guilde (Guild Net Worth en aUEC)**.
+* **Gestionnaire d'Ordres de Raffinage & Notifications Push :**
+  * Minuteur dynamique et décompte précis (heures/minutes) pour chaque ordre de raffinage en cours.
+  * **Notifications Web Push déportées** sur smartphone ou PC (même navigateur fermé) :  
     `🔔 Raffinerie ARC-L1 : Votre commande de 64 SCU de Quantainium est prête au chargement !`
 
 ---
 
-### 📍 JALON 8 — Carnet de Coordonnées GPS & Balises de Gisements (Stanton & Pyro)
-*Objectif : Marquer et retrouver facilement des gisements riches d'astéroïdes ou de surface après un déchargement.*
+### 📍 JALON 8 — Cartographie "Where to Mine", GPS & Crafting 4.0
+*Objectif : Savoir où trouver chaque minerai, marquer ses gisements et suivre ses besoins de fabrication.*
 
-* **Calculateur de Triangulation Orbitale :**
-  * Saisie rapide des distances vers deux balises orbitales (ex: OM-1 et OM-2) ou stations proches pour fixer les coordonnées précises d'un amas rocheux.
-* **Carnet de Prospection Partagé (Waypoint Book) :**
-  * Enregistrement de filons remarquables avec fiches détaillées (composition, masse, repères visuels).
+* **Guide des Gisements & Probabilités (*Resource Location Data / Where to Mine*) :**
+  *(Cartographie géologique & astéroïdes)*
+  * Base de données complète des lieux de prospection de Stanton et Pyro : où trouver en priorité du Quantainium, de la Bexalite, de la Taranite ou de l'Hadanite (ceintures d'astéroïdes, lunes, taux d'apparition et densité moyenne).
+* **Calculateur de Triangulation Orbitale & Carnet de Waypoints :**
+  * Saisie rapide des distances aux balises orbitales (OM-1 à OM-6) ou stations pour retrouver un amas riche après déchargement.
   * Envoi d'une balise de gisement en direct aux membres de l'escadre via le réseau P2P.
-* **Secteurs Miniers Spécifiques de Pyro :**
-  * Intégration des ceintures d'astéroïdes et lunes de Pyro (*Monox, Terminus, Bloom*) avec leurs spécificités physiques et risques d'éruptions solaires.
+* **Suivi des Blueprints & Crafting 4.0 (*Blueprint & Material Tracking*) :**
+  *(Planification et artisanat d'équipements)*
+  * Dans Star Citizen 4.0, la fabrication de composants, armures et surtout **de têtes de minage et gadgets supérieurs** nécessite des minerais spécifiques.
+  * Créez une « Liste de souhaits » de matériaux (ex: *« Besoin de 45 SCU de Titane et 15 SCU de Béryl pour crafter ma tête Lancet Custom Mk II »*) avec barre de progression qui se remplit automatiquement lors de vos sessions de minage.
+  * **Simulateur de Gain d'Artisanat (*Crafting ROI Simulator*)** : Évaluez en amont si fabriquer une tête craftée supérieure permet de franchir de nouveaux seuils de fracture sur les rochers de haute résistance sans consommer de consommables/gadgets coûteux.
 
 ---
 
-### 🤖 JALON 9 — Écosystème Corporation & Matériel Dédié (Hardware & Discord)
+### 🤖 JALON 9 — Écosystème Corporation & Matériel Dédié (Discord & Stream Deck)
 *Objectif : Faciliter le partage corporatif et l'utilisation physique à côté des joysticks HOTAS.*
 
 * **Intégration Webhook Discord Automatique (Corpo Dispatch) :**
@@ -238,6 +267,33 @@ Les messages échangés via WebRTC DataChannels sont au format JSON ultra-léger
     "emergencyVector": "Jump HUR-L3"
   }
 }
+
+// 5. CORPO_PRICE_UPDATE : Mise à jour collaborative des prix du marché
+{
+  "type": "CORPO_PRICE_UPDATE",
+  "senderId": "peer_9a2f1b",
+  "callsign": "SCOUT-MERCHANT",
+  "terminal": "New Babbage TDD (microTech)",
+  "mineralId": "quantainium",
+  "commodityType": "refined",
+  "verifiedPrice": 268.5,
+  "demandLevel": "high",
+  "timestamp": 1729000015000
+}
+
+// 6. CORPO_STOCK_SYNC : Synchronisation des stocks & Inventaire de guilde
+{
+  "type": "CORPO_STOCK_SYNC",
+  "senderId": "peer_8f7b2c",
+  "callsign": "MINER-PROSPECTOR",
+  "action": "deposit",
+  "location": "ARC-L1 Wide Forest Station",
+  "minerals": [
+    { "mineralId": "quantainium", "scu": 32.0, "status": "refining_dinyx", "etaMinutes": 840 },
+    { "mineralId": "bexalite", "scu": 16.0, "status": "refined_ready" }
+  ],
+  "timestamp": 1729000020000
+}
 ```
 
 ---
@@ -251,12 +307,16 @@ Les messages échangés via WebRTC DataChannels sont au format JSON ultra-léger
 | Connexion P2P WebRTC (*FLEET-NET*) | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
 | Synchronisation Auto des Vaisseaux | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
 | Diffusion des Scans de Roches | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
+| Solveur Optimal Loadout Finder | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
 | Scanner OCR par Caméra / F12 | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
 | Alerte Rouge & Rôle Escorte Chasse | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
 | Transbordement en Vol & Soutes SCU | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
-| Bourse Commerciale & Arbitrage TDD | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
+| Bourse Commerciale & API UEX Corp | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
+| Optimiseur de Ventes Globales | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
 | Suivi Raffinage & Notifications Push | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
-| Carnet GPS Waypoints (Stanton/Pyro) | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
+| Portefeuille Minier & Stocks Guilde | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
+| Guide "Where to Mine" & GPS Pyro | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
+| Wishlist Crafting & Blueprints 4.0 | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
 | Webhook Discord Automatique Corpo | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu |
 | Intégration Stream Deck / Hardware | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu |
 

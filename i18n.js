@@ -131,8 +131,8 @@ export const I18N = {
     dockGuide: "GUIDE",
     dockLayout: "COCKPIT",
     dockAnalysis: "ANALYSE",
-    tabScanner: "🎯 SCANNER & SAISIE",
-    tabAnalysis: "⚡ ANALYSE & PROFIT",
+    tabScanner: "SCAN & GÉO",
+    tabAnalysis: "FRACTURE",
     viewAnalysisBtn: "VOIR L'ANALYSE →",
     titleMobileSummaryBar: "Toucher pour voir l'analyse tactique et la rentabilité",
     toastLayoutSwitchedToMobiglas: "Interface mobiGlas 4.0 activée (Hologramme)",
@@ -448,6 +448,19 @@ export const I18N = {
     roadmapTagFuture: "FUTUR",
     roadmapOpenRawBtn: "📄 Consulter ROADMAP.md brut",
 
+    // Cockpit MFD Extensions & Telemetry
+    tabMarket: "BOURSE & SOUTE",
+    marketAndHoldTitle: "BOURSE, RAFFINAGE & SOUTE",
+    whereToMineTitle: "GISEMENTS & OÙ MINER",
+    optimalLoadoutTitle: "SOLVEUR D'ÉQUIPEMENT OPTIMAL",
+    liveStationPricesTitle: "BOURSE DES STATIONS & MEILLEURS RENDEMENTS",
+    activeLaserStripTitle: "ÉQUIPEMENT LASER ACTIF",
+    prospectorLedgerTitle: "BILAN DE PROSPECTION",
+    directLaserEdit: "Modifier",
+    scanTabQuick: "SCAN RAPIDE",
+    scanTabAdvanced: "GÉOLOGIE AVANCÉE",
+    scanTabHotspots: "GISEMENTS",
+
     // Guide & Onboarding Modal
     guideBtn: "Guide",
     guideLink: "📖 Guide & Prise en main",
@@ -663,8 +676,8 @@ export const I18N = {
     dockGuide: "GUIDE",
     dockLayout: "COCKPIT",
     dockAnalysis: "ANALYSIS",
-    tabScanner: "🎯 ROCK SCAN",
-    tabAnalysis: "⚡ PROFIT & ANALYSIS",
+    tabScanner: "ROCK SCAN",
+    tabAnalysis: "FRACTURE",
     viewAnalysisBtn: "VIEW ANALYSIS →",
     titleMobileSummaryBar: "Tap to view tactical analysis and profit",
     toastLayoutSwitchedToMobiglas: "mobiGlas 4.0 interface enabled (Hologram)",
@@ -979,6 +992,19 @@ export const I18N = {
     roadmapTagPlanned: "PLANNED",
     roadmapTagFuture: "FUTURE",
     roadmapOpenRawBtn: "📄 View Raw ROADMAP.md",
+
+    // Cockpit MFD Extensions & Telemetry
+    tabMarket: "TRADE & HOLD",
+    marketAndHoldTitle: "MARKET, REFINERY & CARGO HOLD",
+    whereToMineTitle: "RESOURCE LOCATIONS & WHERE TO MINE",
+    optimalLoadoutTitle: "OPTIMAL LOADOUT SOLVER",
+    liveStationPricesTitle: "LIVE REFINERY YIELDS & STATION PRICES",
+    activeLaserStripTitle: "ACTIVE MINING HEAD & MODULES",
+    prospectorLedgerTitle: "SESSION LEDGER",
+    directLaserEdit: "Edit",
+    scanTabQuick: "QUICK SCAN",
+    scanTabAdvanced: "ADVANCED GEOLOGY",
+    scanTabHotspots: "HOTSPOTS",
 
     // Guide & Onboarding Modal
     guideBtn: "Guide",

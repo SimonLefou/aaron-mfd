@@ -320,21 +320,29 @@
   </header>
 
 
-  <!-- MOBILE / TABLET DUAL-VIEW TAB SWITCHER (<= 980px) -->
+  <!-- MOBILE / TABLET 3-VIEW TAB SWITCHER (<= 980px) -->
   <div class="mobile-view-tabs" id="mobileViewTabs">
     <button class="mobile-view-tab active" id="tabBtnScanner" data-view="scanner">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"></circle>
         <circle cx="12" cy="12" r="4"></circle>
       </svg>
-      <span data-i18n="tabScanner">🎯 SCANNER & SAISIE</span>
+      <span data-i18n="tabScanner">SCAN & GÉO</span>
     </button>
     <button class="mobile-view-tab" id="tabBtnAnalysis" data-view="analysis">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
       </svg>
-      <span data-i18n="tabAnalysis">⚡ ANALYSE & PROFIT</span>
-      <span class="mobile-tab-badge" id="mobileTabVerdictBadge">💎 147k</span>
+      <span data-i18n="tabAnalysis">FRACTURE</span>
+      <span class="mobile-tab-badge" id="mobileTabVerdictBadge">82%</span>
+    </button>
+    <button class="mobile-view-tab" id="tabBtnMarket" data-view="market">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+      </svg>
+      <span data-i18n="tabMarket">BOURSE & SOUTE</span>
+      <span class="mobile-tab-badge" id="mobileTabMarketBadge" style="background:rgba(16,185,129,0.2); color:#10b981; border:1px solid rgba(16,185,129,0.5);">+10%</span>
     </button>
   </div>
 
@@ -366,163 +374,182 @@
         <div class="panel-subtag" data-i18n="quickTactile">SAISIE RAPIDE TACTILE</div>
       </div>
 
-
-      <!-- FLEET ACTIVE HUD INDICATOR (Shown when wingmen are actively firing) -->
-      <div class="squad-active-hud-banner" id="squadActiveHudBanner" style="display:none; justify-content:space-between; align-items:center; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.35); border-radius:6px; padding:6px 12px; margin-bottom:12px; font-size:0.78rem;">
-        <div style="display:flex; align-items:center; gap:6px; color:#10b981; font-family:var(--font-hud); font-weight:700;">
-          <span>👥</span>
-          <span id="squadActiveHudText">ESCOUADE ACTIVE : 2 TIRS (6 400 W)</span>
-        </div>
-        <button type="button" class="chip-btn" id="btnQuickOpenSquad" style="padding:2px 8px; font-size:0.68rem; border-color:rgba(16,185,129,0.5); color:#10b981;">GÉRER</button>
+      <!-- SCAN PANEL SUB-TABS (High-ergonomics Compact Cockpit Layout) -->
+      <div class="scan-subtabs-bar" id="scanSubtabsBar">
+        <button type="button" class="scan-subtab-btn active" id="btnScanSubtabQuick" data-scan-tab="quick">
+          <span class="scan-subtab-icon">🎯</span>
+          <span data-i18n="scanTabQuick">SCAN RAPIDE</span>
+        </button>
+        <button type="button" class="scan-subtab-btn" id="btnScanSubtabAdvanced" data-scan-tab="advanced">
+          <span class="scan-subtab-icon">🔬</span>
+          <span data-i18n="scanTabAdvanced">GÉOLOGIE AVANCÉE</span>
+        </button>
+        <button type="button" class="scan-subtab-btn" id="btnScanSubtabHotspots" data-scan-tab="hotspots">
+          <span class="scan-subtab-icon">📍</span>
+          <span data-i18n="scanTabHotspots">GISEMENTS</span>
+        </button>
       </div>
 
-      <!-- MASS INPUT SECTION -->
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="rockMass">MASSE DE LA ROCHE</span>
-          <span class="label-val" id="massLabel">5 200 kg</span>
-        </div>
+      <!-- SUB-PANE 1: QUICK TACTILE SCAN (Primary Operational Mode) -->
+      <div class="scan-subtab-pane active" id="scanSubtabPaneQuick">
 
-        <div class="mass-display-box">
-          <button class="mass-stepper-btn" id="btnMassMinus" title="-100 kg" aria-label="Decrease mass">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-          <div class="mass-digital-wrapper">
-            <span class="mass-digital" id="massDigitalDisplay">5200</span>
-            <span class="mass-unit">KG</span>
+        <!-- FLEET ACTIVE HUD INDICATOR (Shown when wingmen are actively firing) -->
+        <div class="squad-active-hud-banner" id="squadActiveHudBanner" style="display:none; justify-content:space-between; align-items:center; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.35); border-radius:6px; padding:6px 12px; margin-bottom:12px; font-size:0.78rem;">
+          <div style="display:flex; align-items:center; gap:6px; color:#10b981; font-family:var(--font-hud); font-weight:700;">
+            <span>👥</span>
+            <span id="squadActiveHudText">ESCOUADE ACTIVE : 2 TIRS (6 400 W)</span>
           </div>
-          <button class="mass-stepper-btn" id="btnMassPlus" title="+100 kg" aria-label="Increase mass">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
+          <button type="button" class="chip-btn" id="btnQuickOpenSquad" style="padding:2px 8px; font-size:0.68rem; border-color:rgba(16,185,129,0.5); color:#10b981;">GÉRER</button>
         </div>
 
-        <!-- Quick Chips (-1000, +500, +1000, +2000, Keypad) -->
-        <div class="quick-chips-row">
-          <button class="chip-btn" data-add-mass="-1000">-1000</button>
-          <button class="chip-btn" data-add-mass="500">+500</button>
-          <button class="chip-btn" data-add-mass="1000">+1000</button>
-          <button class="chip-btn" data-add-mass="2000">+2000</button>
-          <button class="chip-btn accent-keypad" id="btnToggleNumpad" data-i18n="keypad">CLAVIER</button>
-        </div>
-
-        <!-- TACTILE NUMPAD (Toggled or standard) -->
-        <div class="numpad-grid" id="numpadContainer" style="display:none;">
-          <button class="num-btn" data-key="7">7</button>
-          <button class="num-btn" data-key="8">8</button>
-          <button class="num-btn" data-key="9">9</button>
-          <button class="num-btn" data-key="4">4</button>
-          <button class="num-btn" data-key="5">5</button>
-          <button class="num-btn" data-key="6">6</button>
-          <button class="num-btn" data-key="1">1</button>
-          <button class="num-btn" data-key="2">2</button>
-          <button class="num-btn" data-key="3">3</button>
-          <button class="num-btn accent" data-key="C">C</button>
-          <button class="num-btn" data-key="0">0</button>
-          <button class="num-btn" data-key="BACK">⌫</button>
-        </div>
-      </div>
-
-      <!-- ROCK ARCHETYPE SELECTION (4.10) -->
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="rockArchetypeLabel">ARCHÉTYPE GÉOLOGIQUE DE LA ROCHE</span>
-          <span class="label-val" id="selectedArchetypeLabel" style="color:var(--accent-cyan); font-weight:700;">Basalte (Dense)</span>
-        </div>
-        
-        <!-- Fast Dropdown Select Option -->
-        <select class="mfd-select" id="archetypeSelect" style="margin-bottom:8px; width:100%; font-weight:600;" aria-label="Sélectionner l'archétype géologique">
-          <!-- Dynamically populated via MINING_DATA.rockArchetypes -->
-        </select>
-
-        <!-- 3x3 Ergonomic Multi-line Grid: all 9 archetypes visible without scrolling -->
-        <div class="archetype-grid" id="archetypeScroller">
-          <!-- Populated dynamically via MINING_DATA.rockArchetypes -->
-        </div>
-
-        <div class="archetype-info-box" id="archetypeInfoBox" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:8px 10px; margin-top:8px;">
-          <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4;" id="archetypeDescText">
-            Roche volcanique sombre et dense. Très répandue sur les lunes volcaniques et ceintures denses.
+        <!-- MASS INPUT SECTION -->
+        <div class="input-group">
+          <div class="label-row">
+            <span data-i18n="rockMass">MASSE DE LA ROCHE</span>
+            <span class="label-val" id="massLabel">5 200 kg</span>
           </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.72rem; color:var(--accent-cyan); flex-wrap:wrap; gap:6px;">
-            <span id="archetypeStatsText" style="font-family:var(--font-mono);">Densité: 3.0 • Résistance base: 45% • Instabilité base: 35%</span>
-            <button class="chip-btn" id="btnAutoCalcProps" style="padding:4px 10px; font-size:0.72rem; border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;" data-i18n="btnAutoCalcProps">⚡ Calibrer Géologie</button>
+
+          <div class="mass-display-box">
+            <button class="mass-stepper-btn" id="btnMassMinus" title="-100 kg" aria-label="Decrease mass">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <div class="mass-digital-wrapper">
+              <span class="mass-digital" id="massDigitalDisplay">5200</span>
+              <span class="mass-unit">KG</span>
+            </div>
+            <button class="mass-stepper-btn" id="btnMassPlus" title="+100 kg" aria-label="Increase mass">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Quick Chips (-1000, +500, +1000, +2000, Keypad) -->
+          <div class="quick-chips-row">
+            <button class="chip-btn" data-add-mass="-1000">-1000</button>
+            <button class="chip-btn" data-add-mass="500">+500</button>
+            <button class="chip-btn" data-add-mass="1000">+1000</button>
+            <button class="chip-btn" data-add-mass="2000">+2000</button>
+            <button class="chip-btn accent-keypad" id="btnToggleNumpad" data-i18n="keypad">CLAVIER</button>
+          </div>
+
+          <!-- TACTILE NUMPAD (Toggled or standard) -->
+          <div class="numpad-grid" id="numpadContainer" style="display:none;">
+            <button class="num-btn" data-key="7">7</button>
+            <button class="num-btn" data-key="8">8</button>
+            <button class="num-btn" data-key="9">9</button>
+            <button class="num-btn" data-key="4">4</button>
+            <button class="num-btn" data-key="5">5</button>
+            <button class="num-btn" data-key="6">6</button>
+            <button class="num-btn" data-key="1">1</button>
+            <button class="num-btn" data-key="2">2</button>
+            <button class="num-btn" data-key="3">3</button>
+            <button class="num-btn accent" data-key="C">C</button>
+            <button class="num-btn" data-key="0">0</button>
+            <button class="num-btn" data-key="BACK">⌫</button>
           </div>
         </div>
-      </div>
 
-      <!-- MINERAL SELECTION -->
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="primaryMineral">MINERAI PRINCIPAL</span>
-          <span class="label-val" id="selectedMineralLabel">Quantainium</span>
-        </div>
-
-        <!-- SYSTEM FILTER PILLS (STANTON / PYRO / NYX) -->
-        <div class="system-filter-bar" id="systemFilterBar" style="display:flex; gap:6px; margin-bottom:8px; overflow-x:auto; padding-bottom:2px;">
-          <button class="chip-btn active" data-mineral-system="all" data-i18n="filterAll">TOUS LES SYSTÈMES</button>
-          <button class="chip-btn" data-mineral-system="stanton" data-i18n="filterStanton">STANTON</button>
-          <button class="chip-btn" data-mineral-system="pyro" style="border-color:rgba(255,68,68,0.4); color:#ff6b6b;" data-i18n="filterPyro">🔥 PYRO (4.10)</button>
-          <button class="chip-btn" data-mineral-system="nyx" style="border-color:rgba(129,140,248,0.4); color:#a5b4fc;" data-i18n="filterNyx">🚀 NYX</button>
-        </div>
-
-        <div class="ore-grid" id="oreGrid">
-          <!-- Dynamically populated from MINING_DATA -->
-        </div>
-      </div>
-
-      <!-- ORE PERCENTAGE SLIDER & CHIPS -->
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="oreContent">TENEUR EN MINERAI PRIMAIRE</span>
-          <span class="label-val" id="pctLabel">32.0 %</span>
-        </div>
-
-        <div class="pct-controller">
-          <input type="range" min="1" max="100" step="0.5" value="32" class="pct-slider" id="pctSlider">
-          <span class="pct-val-display" id="pctDisplay">32%</span>
-        </div>
-
-        <div class="quick-chips-row" style="grid-template-columns: repeat(5, 1fr);">
-          <button class="chip-btn" data-set-pct="10">10%</button>
-          <button class="chip-btn" data-set-pct="20">20%</button>
-          <button class="chip-btn" data-set-pct="30">30%</button>
-          <button class="chip-btn" data-set-pct="45">45%</button>
-          <button class="chip-btn" data-set-pct="100">100%</button>
-        </div>
-      </div>
-
-      <!-- SECONDARY ORE SELECTION & INERTS (4.10) -->
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="secondaryMineral">MINERAI SECONDAIRE</span>
-          <span class="label-val" id="selectedSecondaryLabel">Aucun</span>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin-bottom:8px;">
-          <select id="secondaryOreSelect" class="hud-select-full">
-            <option value="none" data-i18n="noSecondaryMineral">Aucun minerai secondaire</option>
-            <!-- Populated dynamically via MINING_DATA.minerals -->
+        <!-- FAST ROCK ARCHETYPE SELECTION (4.10) -->
+        <div class="input-group">
+          <div class="label-row">
+            <span data-i18n="rockArchetypeLabel">ARCHÉTYPE GÉOLOGIQUE DE LA ROCHE</span>
+            <span class="label-val" id="selectedArchetypeLabel" style="color:var(--accent-cyan); font-weight:700;">Basalte (Dense)</span>
+          </div>
+          
+          <!-- Fast Dropdown Select Option -->
+          <select class="mfd-select" id="archetypeSelect" style="margin-bottom:8px; width:100%; font-weight:600;" aria-label="Sélectionner l'archétype géologique">
+            <!-- Dynamically populated via MINING_DATA.rockArchetypes -->
           </select>
-          <button class="chip-btn" id="btnClearSecondaryOre" title="Réinitialiser minerai secondaire" style="padding:6px 10px; font-size:0.75rem;">✕</button>
+
+          <div class="archetype-info-box" id="archetypeInfoBox" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:8px 10px; margin-top:2px;">
+            <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4;" id="archetypeDescText">
+              Roche volcanique sombre et dense. Très répandue sur les lunes volcaniques et ceintures denses.
+            </div>
+            <div style="margin-top:6px; font-size:0.72rem; color:var(--accent-cyan);">
+              <span id="archetypeStatsText" style="font-family:var(--font-mono);">Densité: 3.0 • Résistance: 45% • Instabilité: 35%</span>
+            </div>
+          </div>
         </div>
 
-        <div id="secondaryOreControls" style="display:none; margin-bottom:10px;">
-          <div class="label-row" style="font-size:0.78rem;">
-            <span>Teneur minerai secondaire</span>
-            <span class="label-val" id="secondaryPctLabel">15.0 %</span>
+        <!-- MINERAL SELECTION (Compact Cockpit Grid) -->
+        <div class="input-group">
+          <div class="label-row">
+            <span data-i18n="primaryMineral">MINERAI PRINCIPAL</span>
+            <span class="label-val" id="selectedMineralLabel">Quantainium</span>
           </div>
+
+          <!-- SYSTEM FILTER PILLS (STANTON / PYRO / NYX) -->
+          <div class="system-filter-bar" id="systemFilterBar" style="display:flex; gap:6px; margin-bottom:8px; overflow-x:auto; padding-bottom:2px;">
+            <button class="chip-btn active" data-mineral-system="all" data-i18n="filterAll">TOUS LES SYSTÈMES</button>
+            <button class="chip-btn" data-mineral-system="stanton" data-i18n="filterStanton">STANTON</button>
+            <button class="chip-btn" data-mineral-system="pyro" style="border-color:rgba(255,68,68,0.4); color:#ff6b6b;" data-i18n="filterPyro">🔥 PYRO (4.10)</button>
+            <button class="chip-btn" data-mineral-system="nyx" style="border-color:rgba(129,140,248,0.4); color:#a5b4fc;" data-i18n="filterNyx">🚀 NYX</button>
+          </div>
+
+          <div class="ore-grid ore-grid-compact" id="oreGrid">
+            <!-- Dynamically populated from MINING_DATA -->
+          </div>
+        </div>
+
+        <!-- ORE PERCENTAGE SLIDER & CHIPS -->
+        <div class="input-group">
+          <div class="label-row">
+            <span data-i18n="oreContent">TENEUR EN MINERAI PRIMAIRE</span>
+            <span class="label-val" id="pctLabel">32.0 %</span>
+          </div>
+
           <div class="pct-controller">
-            <input type="range" min="0.5" max="60" step="0.5" value="15" class="pct-slider" id="secondaryPctSlider">
-            <span class="pct-val-display" id="secondaryPctDisplay">15%</span>
+            <input type="range" min="1" max="100" step="0.5" value="32" class="pct-slider" id="pctSlider">
+            <span class="pct-val-display" id="pctDisplay">32%</span>
+          </div>
+
+          <div class="quick-chips-row" style="grid-template-columns: repeat(5, 1fr);">
+            <button class="chip-btn" data-set-pct="10">10%</button>
+            <button class="chip-btn" data-set-pct="20">20%</button>
+            <button class="chip-btn" data-set-pct="30">30%</button>
+            <button class="chip-btn" data-set-pct="45">45%</button>
+            <button class="chip-btn" data-set-pct="100">100%</button>
+          </div>
+        </div>
+
+        <!-- SECONDARY ORE SELECTION & INERTS (4.10) -->
+        <div class="input-group" style="margin-top:8px;">
+          <div class="label-row">
+            <span data-i18n="secondaryMineral">MINERAI SECONDAIRE</span>
+            <span class="label-val" id="selectedSecondaryLabel">Aucun</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin-bottom:8px;">
+            <select id="secondaryOreSelect" class="hud-select-full">
+              <option value="none" data-i18n="noSecondaryMineral">Aucun minerai secondaire</option>
+              <!-- Populated dynamically via MINING_DATA.minerals -->
+            </select>
+            <button class="chip-btn" id="btnClearSecondaryOre" title="Réinitialiser minerai secondaire" style="padding:6px 10px; font-size:0.75rem;">✕</button>
+          </div>
+
+          <div id="secondaryOreControls" style="display:none; margin-bottom:8px;">
+            <div class="label-row" style="font-size:0.78rem;">
+              <span>Teneur minerai secondaire</span>
+              <span class="label-val" id="secondaryPctLabel">15.0 %</span>
+            </div>
+            <div class="pct-controller">
+              <input type="range" min="0.5" max="60" step="0.5" value="15" class="pct-slider" id="secondaryPctSlider">
+              <span class="pct-val-display" id="secondaryPctDisplay">15%</span>
+            </div>
+            <div class="quick-chips-row" style="grid-template-columns: repeat(4, 1fr); margin-top:6px;">
+              <button type="button" class="chip-btn" data-set-sec-pct="5">5%</button>
+              <button type="button" class="chip-btn" data-set-sec-pct="10">10%</button>
+              <button type="button" class="chip-btn" data-set-sec-pct="15">15%</button>
+              <button type="button" class="chip-btn" data-set-sec-pct="25">25%</button>
+            </div>
           </div>
         </div>
 
         <!-- COMPOSITION & INERT GAUGE -->
-        <div class="composition-gauge-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:8px 10px;">
+        <div class="composition-gauge-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:8px 10px; margin-top:8px;">
           <div class="label-row" style="margin-bottom:4px; font-size:0.75rem;">
             <span data-i18n="inertMaterials">MATÉRIAUX INERTES (GRAVIER STÉRILE)</span>
             <span class="label-val" id="inertPctLabel" style="color:var(--text-muted); font-weight:700;">68.0 %</span>
@@ -538,74 +565,111 @@
             <span id="compLegendInert" style="color:#94a3b8;">● Inertes: 68%</span>
           </div>
         </div>
+
       </div>
 
-      <!-- RESISTANCE & INSTABILITY SLIDERS -->
-      <div class="input-group">
-        <div class="label-row">
-          <span data-i18n="resistance">RÉSISTANCE</span>
-          <span class="label-val" id="resistanceLabel">40 %</span>
-        </div>
-        <div class="hud-slider-row">
-          <input type="range" min="0" max="95" step="1" value="40" class="hud-slider" id="resistanceSlider">
-        </div>
+      <!-- SUB-PANE 2: ADVANCED GEOLOGY & ROCK ARCHETYPES -->
+      <div class="scan-subtab-pane" id="scanSubtabPaneAdvanced" style="display:none;">
 
-        <div class="label-row" style="margin-top:12px;">
-          <span data-i18n="instability">INSTABILITÉ</span>
-          <span class="label-val" id="instabilityLabel">50 %</span>
-        </div>
-        <div class="hud-slider-row">
-          <input type="range" min="0" max="100" step="1" value="50" class="hud-slider" id="instabilitySlider">
-        </div>
-      </div>
-
-      <!-- ROC GEM CLUSTER CALCULATOR (Shown for ROC) -->
-      <div class="roc-cluster-box" id="rocClusterBox" style="display:none;">
-        <div class="roc-cluster-header">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.2rem;">🌸</span>
-            <div>
-              <div class="roc-cluster-title" data-i18n="rocClusterTitle">MODE CLUSTER DE GEMMES (ROC)</div>
-              <div class="roc-cluster-desc" data-i18n="rocClusterDesc">Spécialement conçu pour les filons de surface d'Hadanite, Dolivine et Aphorite.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="input-group" style="margin-top:10px;">
-          <div class="label-row">
-            <span data-i18n="gemNodesCount">NOMBRE DE CAILLOUX DU CLUSTER</span>
-            <span class="label-val" id="rocNodesDisplay">6 Cailloux</span>
-          </div>
-          <div class="quick-chips-row" style="grid-template-columns: repeat(5, 1fr);">
-            <button class="chip-btn" data-roc-nodes="2">2</button>
-            <button class="chip-btn" data-roc-nodes="4">4</button>
-            <button class="chip-btn active" data-roc-nodes="6">6</button>
-            <button class="chip-btn" data-roc-nodes="9">9</button>
-            <button class="chip-btn" data-roc-nodes="12">12</button>
-          </div>
-        </div>
-
+        <!-- 3x3 Ergonomic Multi-line Grid: all 9 archetypes visible without scrolling -->
         <div class="input-group">
           <div class="label-row">
-            <span data-i18n="avgGemsPerNode">GEMMES ESTIMÉES PAR ROCHE</span>
-            <span class="label-val" id="rocGemsPerNodeDisplay">135 gemmes</span>
+            <span data-i18n="rockArchetypeLabel">CATALOGUE GÉOLOGIQUE (9 ARCHÉTYPES)</span>
           </div>
-          <input type="range" min="80" max="220" step="5" value="135" class="hud-slider" id="rocGemsSlider">
+          <div class="archetype-grid" id="archetypeScroller">
+            <!-- Populated dynamically via MINING_DATA.rockArchetypes -->
+          </div>
         </div>
 
-        <div class="metrics-row" style="margin-top:10px;">
-          <div class="metric-card" style="border-color:var(--accent-purple);">
-            <div class="metric-title" data-i18n="totalGemsEstimate">TOTAL GEMMES RÉCOLTÉES</div>
-            <div class="metric-val purple" id="rocTotalGemsDisplay">810 gemmes (~0.81 SCU)</div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="rocHoldStatusNote" data-i18n="rocHoldFillRate">
-              Remplissage soute ROC (0.8 SCU = 800 gemmes)
+        <!-- RESISTANCE & INSTABILITY SLIDERS -->
+        <div class="input-group">
+          <div class="label-row">
+            <span data-i18n="resistance">RÉSISTANCE MANUELLE</span>
+            <span class="label-val" id="resistanceLabel">40 %</span>
+          </div>
+          <div class="hud-slider-row">
+            <input type="range" min="0" max="95" step="1" value="40" class="hud-slider" id="resistanceSlider">
+          </div>
+
+          <div class="label-row" style="margin-top:12px;">
+            <span data-i18n="instability">INSTABILITÉ MANUELLE</span>
+            <span class="label-val" id="instabilityLabel">50 %</span>
+          </div>
+          <div class="hud-slider-row">
+            <input type="range" min="0" max="100" step="1" value="50" class="hud-slider" id="instabilitySlider">
+          </div>
+        </div>
+
+        <!-- ROC GEM CLUSTER CALCULATOR (Shown for ROC) -->
+        <div class="roc-cluster-box" id="rocClusterBox" style="display:none;">
+          <div class="roc-cluster-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.2rem;">🌸</span>
+              <div>
+                <div class="roc-cluster-title" data-i18n="rocClusterTitle">MODE CLUSTER DE GEMMES (ROC)</div>
+                <div class="roc-cluster-desc" data-i18n="rocClusterDesc">Spécialement conçu pour les filons de surface d'Hadanite, Dolivine et Aphorite.</div>
+              </div>
             </div>
           </div>
+
+          <div class="input-group" style="margin-top:10px;">
+            <div class="label-row">
+              <span data-i18n="gemNodesCount">NOMBRE DE CAILLOUX DU CLUSTER</span>
+              <span class="label-val" id="rocNodesDisplay">6 Cailloux</span>
+            </div>
+            <div class="quick-chips-row" style="grid-template-columns: repeat(5, 1fr);">
+              <button class="chip-btn" data-roc-nodes="2">2</button>
+              <button class="chip-btn" data-roc-nodes="4">4</button>
+              <button class="chip-btn active" data-roc-nodes="6">6</button>
+              <button class="chip-btn" data-roc-nodes="9">9</button>
+              <button class="chip-btn" data-roc-nodes="12">12</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <div class="label-row">
+              <span data-i18n="avgGemsPerNode">GEMMES ESTIMÉES PAR ROCHE</span>
+              <span class="label-val" id="rocGemsPerNodeDisplay">135 gemmes</span>
+            </div>
+            <input type="range" min="80" max="220" step="5" value="135" class="hud-slider" id="rocGemsSlider">
+          </div>
+
+          <div class="metrics-row" style="margin-top:10px;">
+            <div class="metric-card" style="border-color:var(--accent-purple);">
+              <div class="metric-title" data-i18n="totalGemsEstimate">TOTAL GEMMES RÉCOLTÉES</div>
+              <div class="metric-val purple" id="rocTotalGemsDisplay">810 gemmes (~0.81 SCU)</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="rocHoldStatusNote" data-i18n="rocHoldFillRate">
+                Remplissage soute ROC (0.8 SCU = 800 gemmes)
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-primary-action" id="btnAddClusterToROC" style="margin-top:10px; background:linear-gradient(135deg, #ec4899, #a855f7); color:#fff;">
+            <span data-i18n="btnAddClusterToROC">CHARGER LE CLUSTER DANS LE ROC</span>
+          </button>
         </div>
 
-        <button class="btn-primary-action" id="btnAddClusterToROC" style="margin-top:10px; background:linear-gradient(135deg, #ec4899, #a855f7); color:#fff;">
-          <span data-i18n="btnAddClusterToROC">CHARGER LE CLUSTER DANS LE ROC</span>
-        </button>
+      </div>
+
+      <!-- SUB-PANE 3: WHERE TO MINE / BEST HOTSPOTS -->
+      <div class="scan-subtab-pane" id="scanSubtabPaneHotspots" style="display:none;">
+
+        <div class="where-to-mine-card" id="whereToMineCard" style="margin-top:0;">
+          <div class="wtm-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span class="wtm-title" data-i18n="whereToMineTitle">GISEMENTS & OÙ MINER</span>
+            </div>
+            <span class="wtm-mineral-badge" id="wtmMineralBadge">QUANTAINIUM</span>
+          </div>
+          <div class="wtm-spots-list" id="wtmSpotsList">
+            <!-- Populated dynamically based on selected mineral -->
+          </div>
+        </div>
+
       </div>
 
     </section>
@@ -620,6 +684,29 @@
           <span data-i18n="tacticalAnalysis">ANALYSE TACTIQUE & RENTABILITÉ</span>
         </div>
         <div class="panel-subtag" data-i18n="instantCalc">CALCUL IMMÉDIAT</div>
+      </div>
+
+      <!-- COCKPIT MFD EXTENSION: ACTIVE LASER & MODULE STRIP -->
+      <div class="active-laser-strip" id="activeLaserDashStrip">
+        <div class="als-left">
+          <div class="als-laser-info">
+            <span class="als-ship-tag" id="alsShipTag">PROSPECTOR</span>
+            <span class="als-head-name" id="alsHeadName">Spiral I (S1)</span>
+          </div>
+          <div class="als-modules-list" id="alsModulesList">
+            <span class="als-module-badge">Focus III</span>
+            <span class="als-module-badge">Brandt</span>
+          </div>
+        </div>
+        <div class="als-right">
+          <div class="als-power-display">
+            <span class="als-power-val" id="alsPowerVal">2 400 W</span>
+            <span class="als-power-sub">PUISSANCE EFFECTIVE</span>
+          </div>
+          <button type="button" class="als-edit-btn" id="btnQuickEditLaser" data-i18n-title="directLaserEdit" title="Modifier le laser ou crafter">
+            ⚙ <span data-i18n="directLaserEdit">Modifier</span>
+          </button>
+        </div>
       </div>
 
       <!-- GIANT VERDICT BOX -->
@@ -717,6 +804,54 @@
           </svg>
           <span data-i18n="btnBreakTree">🌿 SIMULER SOUS-ROCHES</span>
         </button>
+      </div>
+
+      <!-- COCKPIT MFD EXTENSION: OPTIMAL LOADOUT ADVISOR / SOLVER -->
+      <div class="optimal-loadout-card" id="optimalLoadoutCard">
+        <div class="olc-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span class="olc-title" data-i18n="optimalLoadoutTitle">SOLVEUR D'ÉQUIPEMENT OPTIMAL</span>
+          </div>
+          <span class="olc-feasibility-tag" id="olcFeasibilityTag">OPTIMAL</span>
+        </div>
+        <div class="olc-body" id="olcBody">
+          <!-- Dynamic advice: recommended laser, modules, gadgets -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT/THIRD PANEL: MARKET, LIVE STATIONS & REFINING HOLD -->
+    <section class="mfd-panel" id="panelMarketHold">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+          <span data-i18n="marketAndHoldTitle">BOURSE, RAFFINAGE & SOUTE</span>
+        </div>
+        <div class="panel-subtag" data-i18n="instantCalc">TEMPS RÉEL</div>
+      </div>
+
+      <!-- COCKPIT MFD EXTENSION: LIVE STATION PRICE & BONUS COMPARATOR -->
+      <div class="station-price-comparator-card" id="stationPriceComparatorCard">
+        <div class="spc-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span class="spc-title" data-i18n="liveStationPricesTitle">BOURSE DES STATIONS & MEILLEURS RENDEMENTS</span>
+          </div>
+          <span class="spc-ore-tag" id="spcOreTag">QT</span>
+        </div>
+        <div class="spc-table-container" id="spcTableContainer">
+          <!-- Populated dynamically with top 3-4 stations, bonus % and net expected yield in aUEC -->
+        </div>
       </div>
 
       <!-- METRICS GRID -->
