@@ -14,11 +14,66 @@
   <meta name="apple-mobile-web-app-title" content="AARON MFD">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
 
+  <!-- Google Fonts: Official Star Citizen typography (Chakra Petch, Rajdhani, Share Tech Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css?v=1.4">
 </head>
-<body>
+<body data-layout="mobiglas">
 
-  <!-- TOP HUD BAR -->
+  <!-- MOBIGLAS SYSTEM STATUS HEADER (Star Citizen Alpha 4.0+ Authentique) -->
+  <header class="mobiglas-system-header" id="mobiglasSystemHeader">
+    <div class="mg-header-left">
+      <div class="mg-sys-node">
+        <span class="mg-sys-prefix">SYS//</span>
+        <span class="mg-sys-val" data-i18n="mgSystemName">STANTON // SECTEUR MINIER ORBITAL</span>
+      </div>
+      <div class="mg-sys-sub">
+        <span class="mg-sub-item"><span data-i18n="mgComms">COMMS :</span> <span class="mg-status-online">CONNECTÉ [|||||]</span></span>
+        <span class="mg-sub-sep">//</span>
+        <span class="mg-sub-item"><span data-i18n="mgCallsign">INDICATIF :</span> <strong id="mgCallsignVal">CITIZEN-1</strong></span>
+      </div>
+    </div>
+
+    <div class="mg-header-center">
+      <div class="mg-lore-clock-wrapper">
+        <span class="mg-clock-tag">UTC (STANTON LORE 2954)</span>
+        <span class="mg-clock-digital" id="mgLoreClock">2954.10.15 11:42:00</span>
+      </div>
+      <div class="mg-active-ship-tag">
+        <span class="mg-ship-indicator">●</span>
+        <span id="mgActiveShipDisplay">MISC PROSPECTOR [32 SCU]</span>
+      </div>
+    </div>
+
+    <div class="mg-header-right">
+      <div class="mg-balance-box">
+        <span class="mg-balance-label">SOLDE aUEC</span>
+        <span class="mg-balance-val" id="mgBalanceVal">1 482 900</span>
+      </div>
+
+      <!-- Quick Layout Toggle Button in mobiGlas mode -->
+      <button class="mg-layout-toggle-btn" id="btnLayoutToggle" data-i18n-title="titleToggleLayout" title="Basculer vers mode Cockpit MFD classique">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span id="mgLayoutToggleLabel" data-i18n="layoutToggleToClassic">MFD COCKPIT</span>
+      </button>
+
+      <!-- Compact Quick Actions in mobiGlas header -->
+      <div class="mg-quick-actions">
+        <button class="mg-icon-btn" id="btnMgLang" title="Langue / Language">🇬🇧 EN</button>
+        <button class="mg-icon-btn" id="btnMgAudio" title="Audio">🔊</button>
+        <button class="mg-icon-btn" id="btnMgVoiceTTS" title="Voix TTS">🎙️</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOP HUD BAR (Classic Cockpit MFD mode) -->
   <header class="hud-header">
     <div class="brand">
       <div class="brand-icon">
@@ -219,6 +274,15 @@
         </svg>
         <span data-i18n="support">Soutenir</span>
       </button>
+      <!-- Layout Mode Switcher (to mobiGlas) -->
+      <button class="btn-icon" id="btnClassicLayoutToggle" data-i18n-title="titleToggleLayout" title="Basculer vers l'interface mobiGlas Star Citizen" style="border-color:var(--accent-cyan); color:var(--accent-cyan);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+          <path d="M2 12h20"></path>
+        </svg>
+        <span data-i18n="layoutToggleToMobiglas">mobiGlas</span>
+      </button>
     </div>
   </header>
 
@@ -247,6 +311,54 @@
           <span data-i18n="scanData">DONNÉES DU SCAN</span>
         </div>
         <div class="panel-subtag" data-i18n="quickTactile">SAISIE RAPIDE TACTILE</div>
+      </div>
+
+      <!-- MOBIGLAS HOLOGRAPHIC SCANNER RETICLE -->
+      <div class="mobiglas-scan-reticle" id="mobiglasScanReticle">
+        <div class="reticle-hud-brackets">
+          <span class="corner-tl"></span>
+          <span class="corner-tr"></span>
+          <span class="corner-bl"></span>
+          <span class="corner-br"></span>
+        </div>
+        <div class="reticle-top-status">
+          <span class="reticle-scan-lock" id="reticleScanLock">[ CIBLE VERROUILLÉE // 42.8m ]</span>
+          <span class="reticle-archetype-tag" id="reticleArchetypeDisplay">ARCHÉTYPE : BASALTE</span>
+        </div>
+        
+        <div class="reticle-center-viewport">
+          <svg class="reticle-svg" viewBox="0 0 260 170" width="100%" height="160">
+            <defs>
+              <radialGradient id="rockCoreGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <!-- Outer Target Range Ring (rotating / dashed) -->
+            <circle class="reticle-ring-dashed" cx="130" cy="85" r="70" fill="none" stroke="rgba(0, 240, 255, 0.35)" stroke-width="1.5" stroke-dasharray="6, 6" />
+            <circle class="reticle-ring-inner" cx="130" cy="85" r="56" fill="none" stroke="rgba(0, 240, 255, 0.2)" stroke-width="1" />
+            <circle cx="130" cy="85" r="45" fill="url(#rockCoreGlow)" />
+            
+            <!-- Crosshairs & Range Notches -->
+            <line x1="45" y1="85" x2="62" y2="85" stroke="var(--accent-cyan)" stroke-width="1.5" />
+            <line x1="198" y1="85" x2="215" y2="85" stroke="var(--accent-cyan)" stroke-width="1.5" />
+            <line x1="130" y1="15" x2="130" y2="30" stroke="var(--accent-cyan)" stroke-width="1.5" />
+            <line x1="130" y1="140" x2="130" y2="155" stroke="var(--accent-cyan)" stroke-width="1.5" />
+
+            <!-- Dynamic 3D Faceted Asteroid Wireframe -->
+            <polygon class="reticle-rock-facet" points="130,48 165,64 156,108 130,124 104,108 95,64" fill="rgba(0, 240, 255, 0.08)" stroke="#00f0ff" stroke-width="1.8" />
+            <polyline class="reticle-rock-wire" points="130,48 130,85 104,108" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
+            <polyline class="reticle-rock-wire" points="130,85 156,108" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
+            <polyline class="reticle-rock-wire" points="130,85 165,64" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
+            <polyline class="reticle-rock-wire" points="130,85 95,64" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
+            <polyline class="reticle-rock-wire" points="130,85 130,124" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2" />
+            
+            <!-- Pitch/Yaw Compass Telemetry -->
+            <text x="68" y="81" class="reticle-svg-telemetry" fill="rgba(0,240,255,0.7)" font-size="8" font-family="var(--font-mono)">AZ 184°</text>
+            <text x="165" y="81" class="reticle-svg-telemetry" fill="rgba(0,240,255,0.7)" font-size="8" font-family="var(--font-mono)">EL +12°</text>
+            <text x="130" y="165" class="reticle-svg-telemetry" text-anchor="middle" fill="rgba(0,240,255,0.85)" font-size="9" font-family="var(--font-mono)" id="reticleDensityDisplay">DENSITÉ : 3.8 g/cm³ // COMPACT</text>
+          </svg>
+        </div>
       </div>
 
       <!-- MASS INPUT SECTION -->
@@ -508,6 +620,54 @@
           <span class="fracture-label" data-i18n="fractureFeasibility">FAISABILITÉ DE FRACTURATION</span>
           <span class="fracture-badge badge-pass" id="fractureBadge" data-i18n="fractureEasy">FRACTURE FACILE</span>
         </div>
+
+        <!-- MOBIGLAS CURVED ARC FRACTURE GAUGE (Star Citizen Alpha 4.0+ Telemetry) -->
+        <div class="arc-fracture-gauge-wrapper" id="arcFractureGaugeWrapper">
+          <svg class="arc-fracture-svg" viewBox="0 0 340 215" width="100%" height="215">
+            <defs>
+              <linearGradient id="arcLaserPowerGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00f0ff" />
+                <stop offset="65%" stop-color="#38bdf8" />
+                <stop offset="100%" stop-color="#10b981" />
+              </linearGradient>
+              <filter id="arcGlowFilter" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- Background Arc Track (240 deg sweep from 150° to 390°, radius 110, center 170,145) -->
+            <path class="arc-track-bg" d="M 74.7 200 A 110 110 0 1 1 265.3 200" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="14" stroke-linecap="round" />
+            
+            <!-- Segmented Gauge Notch Ticks -->
+            <path class="arc-track-ticks" d="M 74.7 200 A 110 110 0 1 1 265.3 200" fill="none" stroke="rgba(0,240,255,0.2)" stroke-width="16" stroke-dasharray="2, 8" />
+
+            <!-- Safe Optimal Window Arc Zone (Green segment) -->
+            <path class="arc-safe-zone" id="arcSafeZone" d="M 74.7 200 A 110 110 0 1 1 265.3 200" fill="none" stroke="rgba(16, 185, 129, 0.4)" stroke-width="18" stroke-dasharray="75 400" stroke-dashoffset="-220" />
+
+            <!-- Overcharge Danger Arc Zone (Red segment) -->
+            <path class="arc-danger-zone" id="arcDangerZone" d="M 74.7 200 A 110 110 0 1 1 265.3 200" fill="none" stroke="rgba(244, 63, 94, 0.45)" stroke-width="18" stroke-dasharray="100 400" stroke-dashoffset="-360" />
+
+            <!-- Dynamic Laser Power Fill Arc -->
+            <path class="arc-power-fill" id="arcPowerFill" d="M 74.7 200 A 110 110 0 1 1 265.3 200" fill="none" stroke="url(#arcLaserPowerGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="460.8" stroke-dashoffset="150" filter="url(#arcGlowFilter)" />
+
+            <!-- Center Digital Telemetry Display -->
+            <g class="arc-center-content">
+              <text x="170" y="112" class="arc-text-power-pct" id="arcPowerPct" text-anchor="middle" font-family="var(--font-hud)" font-size="28" font-weight="700" fill="#00f0ff">82%</text>
+              <text x="170" y="132" class="arc-text-power-sub" id="arcPowerSub" text-anchor="middle" font-family="var(--font-data)" font-size="11" font-weight="600" fill="#94a3b8" letter-spacing="1">SATURATION DU CŒUR</text>
+              <text x="170" y="150" class="arc-text-laser-name" id="arcLaserName" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="#38bdf8">LANCET MH1 // 1800W</text>
+            </g>
+
+            <!-- Arc Gauge Min & Max Labels -->
+            <text x="68" y="214" font-family="var(--font-mono)" font-size="9" fill="rgba(255,255,255,0.4)">0%</text>
+            <text x="135" y="58" font-family="var(--font-mono)" font-size="9" fill="var(--accent-emerald)" text-anchor="middle">SAFE (OPT)</text>
+            <text x="260" y="214" font-family="var(--font-mono)" font-size="9" fill="var(--accent-rose)">150% CRIT</text>
+          </svg>
+        </div>
+
         <div class="power-bar-wrapper">
           <div class="power-bar-ticks">
             <span class="tick-marker tick-min" title="88% Seuil Minimum"></span>
@@ -1582,6 +1742,123 @@
 
   <!-- TOAST NOTIFICATION -->
   <div id="toastNotice" class="toast-notice"></div>
+
+  <!-- MOBIGLAS BOTTOM APP LAUNCHER DOCK (Star Citizen Alpha 4.0+ Authentique) -->
+  <nav class="mobiglas-dock" id="mobiglasDock" aria-label="mobiGlas Navigation Dock">
+    <div class="dock-backdrop-glow"></div>
+    <div class="dock-container">
+      <!-- 1. Scanner App -->
+      <button class="dock-item active" id="dockBtnScanner" data-dock-target="scanner" title="Scanner de Roche">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="4"></circle>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockScanner">SCANNER</span>
+      </button>
+
+      <!-- 2. Ship / Loadout App -->
+      <button class="dock-item" id="dockBtnLoadout" data-dock-target="loadout" title="Vaisseau & Équipement Laser">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 19 22 19"></polygon>
+            <circle cx="12" cy="14" r="2"></circle>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockLoadout">LOADOUT</span>
+      </button>
+
+      <!-- 3. Refinery Jobs App -->
+      <button class="dock-item" id="dockBtnRefinery" data-dock-target="refinery" title="Suivi des Raffineries">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 20h20"></path>
+            <path d="M5 20V8l5 4V4l9 7v9"></path>
+          </svg>
+          <span class="dock-badge" id="dockRefineryBadge" style="display:none;">0</span>
+        </div>
+        <span class="dock-label" data-i18n="dockRefinery">RAFFINAGE</span>
+      </button>
+
+      <!-- 4. Starmap & Halo Routes App -->
+      <button class="dock-item" id="dockBtnStarmap" data-dock-target="starmap" title="Starmap & Coordonnées Aaron Halo">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockStarmap">STARMAP</span>
+      </button>
+
+      <!-- 5. Radar RS Ping App -->
+      <button class="dock-item" id="dockBtnRadar" data-dock-target="radar" title="Décodeur Radar Ping RS 2.0">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10"></path>
+            <path d="M12 6a6 6 0 0 1 6 6"></path>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockRadar">RADAR RS</span>
+      </button>
+
+      <!-- 6. Ledger App -->
+      <button class="dock-item" id="dockBtnLedger" data-dock-target="ledger" title="Journal de Bord & Statistiques">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockLedger">JOURNAL</span>
+      </button>
+
+      <!-- 7. Multi-Crew App -->
+      <button class="dock-item" id="dockBtnCrew" data-dock-target="crew" title="Équipage Multi-Crew">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockCrew">ÉQUIPAGE</span>
+      </button>
+
+      <!-- 8. User Guide App -->
+      <button class="dock-item" id="dockBtnGuide" data-dock-target="guide" title="Guide Tactique">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockGuide">GUIDE</span>
+      </button>
+
+      <!-- 9. Layout Mode Switcher App (mobiGlas <-> Cockpit MFD) -->
+      <button class="dock-item dock-item-layout" id="dockBtnLayout" data-dock-target="layout" title="Basculer vers mode Cockpit MFD classique">
+        <div class="dock-circle dock-circle-layout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <span class="dock-label" data-i18n="dockLayout">COCKPIT</span>
+      </button>
+    </div>
+  </nav>
 
   <!-- FOOTER -->
   <footer class="hud-footer">

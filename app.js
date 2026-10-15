@@ -7,6 +7,7 @@ import { I18N } from './i18n.js';
 const state = {
   currentLang: localStorage.getItem('aaron_mfd_lang') || 'fr',
   currentTheme: localStorage.getItem('aaron_mfd_theme') || 'mobiglas',
+  layoutMode: localStorage.getItem('aaron_mfd_layout_mode') || 'mobiglas',
   wakeLock: null,
 
   selectedShip: MINING_DATA.ships[0], // MISC Prospector
@@ -439,6 +440,45 @@ const DOM = {
   btnAudioToggle: document.getElementById('btnAudioToggle'),
   btnOpenDonate: document.getElementById('btnOpenDonate'),
 
+  // mobiGlas 4.0 Layout & System Header
+  mobiglasSystemHeader: document.getElementById('mobiglasSystemHeader'),
+  mgLoreClock: document.getElementById('mgLoreClock'),
+  mgCallsignVal: document.getElementById('mgCallsignVal'),
+  mgActiveShipDisplay: document.getElementById('mgActiveShipDisplay'),
+  mgBalanceVal: document.getElementById('mgBalanceVal'),
+  btnLayoutToggle: document.getElementById('btnLayoutToggle'),
+  btnClassicLayoutToggle: document.getElementById('btnClassicLayoutToggle'),
+  mgLayoutToggleLabel: document.getElementById('mgLayoutToggleLabel'),
+  btnMgLang: document.getElementById('btnMgLang'),
+  btnMgAudio: document.getElementById('btnMgAudio'),
+  btnMgVoiceTTS: document.getElementById('btnMgVoiceTTS'),
+
+  // mobiGlas Holographic Reticle & Arc Gauge
+  mobiglasScanReticle: document.getElementById('mobiglasScanReticle'),
+  reticleScanLock: document.getElementById('reticleScanLock'),
+  reticleArchetypeDisplay: document.getElementById('reticleArchetypeDisplay'),
+  reticleDensityDisplay: document.getElementById('reticleDensityDisplay'),
+  arcFractureGaugeWrapper: document.getElementById('arcFractureGaugeWrapper'),
+  arcSafeZone: document.getElementById('arcSafeZone'),
+  arcDangerZone: document.getElementById('arcDangerZone'),
+  arcPowerFill: document.getElementById('arcPowerFill'),
+  arcPowerPct: document.getElementById('arcPowerPct'),
+  arcPowerSub: document.getElementById('arcPowerSub'),
+  arcLaserName: document.getElementById('arcLaserName'),
+
+  // mobiGlas Bottom App Launcher Dock
+  mobiglasDock: document.getElementById('mobiglasDock'),
+  dockBtnScanner: document.getElementById('dockBtnScanner'),
+  dockBtnLoadout: document.getElementById('dockBtnLoadout'),
+  dockBtnRefinery: document.getElementById('dockBtnRefinery'),
+  dockRefineryBadge: document.getElementById('dockRefineryBadge'),
+  dockBtnStarmap: document.getElementById('dockBtnStarmap'),
+  dockBtnRadar: document.getElementById('dockBtnRadar'),
+  dockBtnLedger: document.getElementById('dockBtnLedger'),
+  dockBtnCrew: document.getElementById('dockBtnCrew'),
+  dockBtnGuide: document.getElementById('dockBtnGuide'),
+  dockBtnLayout: document.getElementById('dockBtnLayout'),
+
   // Cockpit Voice (TTS) & Radar Decoder Triggers
   btnVoiceTTS: document.getElementById('btnVoiceTTS'),
   voiceTTSLabel: document.getElementById('voiceTTSLabel'),
@@ -694,6 +734,9 @@ const DOM = {
 // ==========================================
 function init() {
   setTheme(state.currentTheme);
+  setLayoutMode(state.layoutMode, false);
+  updateLoreClock();
+  setInterval(updateLoreClock, 1000);
   bindEventListeners();
   loadSavedSession();
   loadSavedLoadout();
@@ -1227,6 +1270,145 @@ function updateVoiceTTSUI() {
   }
 }
 
+// ==========================================
+// MOBIGLAS 4.0 TELEMETRY & INTERFACE ENGINE
+// ==========================================
+
+function setLayoutMode(mode, showNotice = false) {
+  state.layoutMode = mode;
+  localStorage.setItem('aaron_mfd_layout_mode', mode);
+  document.documentElement.setAttribute('data-layout', mode);
+  if (document.body) {
+    document.body.setAttribute('data-layout', mode);
+  }
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (DOM.mgLayoutToggleLabel) {
+    DOM.mgLayoutToggleLabel.textContent = mode === 'mobiglas' ? t.layoutToggleToClassic : t.layoutToggleToMobiglas;
+  }
+
+  if (DOM.dockBtnLayout) {
+    const label = DOM.dockBtnLayout.querySelector('.dock-label');
+    if (label) label.textContent = mode === 'mobiglas' ? t.dockLayout : 'MOBIGLAS';
+  }
+
+  if (showNotice) {
+    const msg = mode === 'mobiglas' ? t.toastLayoutSwitchedToMobiglas : t.toastLayoutSwitchedToClassic;
+    showToast(msg);
+    sfx.playBeep(750, 'sine', 0.05);
+    triggerHaptic(20);
+  }
+}
+
+function updateLoreClock() {
+  if (!DOM.mgLoreClock) return;
+  const now = new Date();
+  const year = 2954;
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(now.getUTCDate()).padStart(2, '0');
+  const hours = String(now.getUTCHours()).padStart(2, '0');
+  const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+  DOM.mgLoreClock.textContent = `${year}.${month}.${day} ${hours}:${minutes}:${seconds}`;
+}
+
+function updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, laserDesc) {
+  if (!DOM.arcFractureGaugeWrapper || !DOM.arcPowerFill) return;
+
+  const TOTAL_ARC_LENGTH = 460.8;
+  const pct = Math.round(powerRatio * 100);
+
+  if (DOM.arcPowerPct) {
+    DOM.arcPowerPct.textContent = `${pct}%`;
+  }
+
+  if (DOM.arcPowerSub) {
+    if (powerRatio >= 1.15) {
+      DOM.arcPowerSub.textContent = state.currentLang === 'en' ? 'OPTIMAL SATURATION (SAFE)' : 'SATURATION OPTIMALE (ZONE VERTE)';
+      DOM.arcPowerSub.setAttribute('fill', 'var(--accent-emerald)');
+      if (DOM.arcPowerPct) DOM.arcPowerPct.setAttribute('fill', '#10b981');
+    } else if (powerRatio >= 0.88) {
+      DOM.arcPowerSub.textContent = state.currentLang === 'en' ? 'MARGINAL PENETRATION' : 'PÉNÉTRATION MARGINALE';
+      DOM.arcPowerSub.setAttribute('fill', 'var(--accent-amber)');
+      if (DOM.arcPowerPct) DOM.arcPowerPct.setAttribute('fill', '#f59e0b');
+    } else {
+      DOM.arcPowerSub.textContent = state.currentLang === 'en' ? 'INSUFFICIENT POWER' : 'DÉFICIT ÉNERGÉTIQUE CRITIQUE';
+      DOM.arcPowerSub.setAttribute('fill', 'var(--accent-rose)');
+      if (DOM.arcPowerPct) DOM.arcPowerPct.setAttribute('fill', '#f43f5e');
+    }
+  }
+
+  if (DOM.arcLaserName) {
+    const laserText = laserDesc || (state.selectedShip.id === 'mole' ? `MOLE (${state.moleActiveTurrets} TURRETS)` : state.selectedLaser.name);
+    DOM.arcLaserName.textContent = `${laserText.toUpperCase()} // ${Math.round(totalLaserPower).toLocaleString(getLocale())} W`;
+  }
+
+  // Dynamic arc stroke dashoffset
+  const normalizedRatio = Math.max(0, Math.min(1.5, powerRatio));
+  const offset = TOTAL_ARC_LENGTH * (1 - (normalizedRatio / 1.5));
+  DOM.arcPowerFill.style.strokeDashoffset = offset;
+
+  // Safe window arc positioning
+  if (DOM.arcSafeZone) {
+    const safeStartFraction = 0.88 / 1.5;
+    const safeEndFraction = 1.15 / 1.5;
+    const safeLength = TOTAL_ARC_LENGTH * (safeEndFraction - safeStartFraction);
+    const safeOffset = TOTAL_ARC_LENGTH * (1 - safeStartFraction);
+    DOM.arcSafeZone.setAttribute('stroke-dasharray', `${safeLength.toFixed(1)} ${TOTAL_ARC_LENGTH}`);
+    DOM.arcSafeZone.setAttribute('stroke-dashoffset', `-${(TOTAL_ARC_LENGTH - safeOffset).toFixed(1)}`);
+  }
+
+  // Overcharge danger zone
+  if (DOM.arcDangerZone) {
+    const dangerStartFraction = 1.0 / 1.5;
+    const dangerLength = TOTAL_ARC_LENGTH * (1 - dangerStartFraction);
+    DOM.arcDangerZone.setAttribute('stroke-dasharray', `${dangerLength.toFixed(1)} ${TOTAL_ARC_LENGTH}`);
+    DOM.arcDangerZone.setAttribute('stroke-dashoffset', `-${(TOTAL_ARC_LENGTH * dangerStartFraction).toFixed(1)}`);
+  }
+}
+
+function updateMobiglasHeader(ship, pureSCU, refinedPrice) {
+  if (!DOM.mobiglasSystemHeader) return;
+  const locale = getLocale();
+  if (DOM.mgActiveShipDisplay) {
+    DOM.mgActiveShipDisplay.textContent = `${ship.name.toUpperCase()} [${ship.scu} SCU]`;
+  }
+  if (DOM.mgBalanceVal) {
+    let totalRefined = state.sessionLog.reduce((acc, x) => acc + x.refinedVal, 0);
+    if (totalRefined === 0 && refinedPrice) totalRefined = refinedPrice;
+    DOM.mgBalanceVal.textContent = `${totalRefined.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.btnMgLang) {
+    DOM.btnMgLang.textContent = state.currentLang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR';
+  }
+  if (DOM.btnMgAudio) {
+    DOM.btnMgAudio.textContent = state.audioEnabled ? '🔊' : '🔇';
+    DOM.btnMgAudio.style.opacity = state.audioEnabled ? '1' : '0.5';
+  }
+  if (DOM.btnMgVoiceTTS) {
+    DOM.btnMgVoiceTTS.textContent = state.voiceTTSEnabled ? '🎙️ ON' : '🎙️ OFF';
+    DOM.btnMgVoiceTTS.style.color = state.voiceTTSEnabled ? 'var(--accent-emerald)' : 'var(--text-muted)';
+  }
+  if (DOM.dockRefineryBadge) {
+    const count = state.refineryJobs.length;
+    DOM.dockRefineryBadge.style.display = count > 0 ? 'flex' : 'none';
+    DOM.dockRefineryBadge.textContent = count;
+  }
+}
+
+function updateMobiglasReticle() {
+  if (!DOM.mobiglasScanReticle) return;
+  if (DOM.reticleArchetypeDisplay) {
+    const archName = state.selectedArchetype ? getLocalized(state.selectedArchetype, 'name') : 'BASALTE';
+    DOM.reticleArchetypeDisplay.textContent = `ARCHÉTYPE : ${archName.toUpperCase()}`;
+  }
+  if (DOM.reticleDensityDisplay) {
+    const density = state.selectedArchetype?.density || (state.selectedMineral?.density || 3.8);
+    const compactness = state.resistance > 50 ? 'HAUTE RÉSISTANCE' : 'COMPACT';
+    DOM.reticleDensityDisplay.textContent = `DENSITÉ : ${density} g/cm³ // ${compactness}`;
+  }
+}
+
 // Populate Refinery dropdown
 function populateRefinerySelect() {
   const currentVal = DOM.refinerySelect.value || state.selectedRefinery.id;
@@ -1728,6 +1910,11 @@ function calculateAll() {
 
   // 8. ROC Gem Cluster Calculator
   updateRocCluster();
+
+  // 9. mobiGlas 4.0 Telemetry, Arc Gauge & Reticle
+  updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, activeLaserDescList.join(' + '));
+  updateMobiglasHeader(ship, pureSCU, refinedPrice);
+  updateMobiglasReticle();
 }
 
 function determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
@@ -2030,8 +2217,21 @@ function setLanguage(lang) {
   updateHoldDisplay();
   calculateCrewSplit();
   updateRocCluster();
-  renderChangelog();
   updateToggleAllButtonText();
+
+  // 9. Update mobiGlas 4.0 layout toggle & dock labels
+  if (DOM.mgLayoutToggleLabel) {
+    DOM.mgLayoutToggleLabel.textContent = state.layoutMode === 'mobiglas' ? t.layoutToggleToClassic : t.layoutToggleToMobiglas;
+  }
+  if (DOM.dockBtnLayout) {
+    const layoutLabel = DOM.dockBtnLayout.querySelector('.dock-label');
+    if (layoutLabel) {
+      layoutLabel.textContent = state.layoutMode === 'mobiglas' ? t.dockLayout : 'MOBIGLAS';
+    }
+  }
+  if (DOM.btnMgLang) {
+    DOM.btnMgLang.textContent = lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR';
+  }
 
   // 9. Update Guide Modal language buttons
   if (DOM.btnGuideLangFr && DOM.btnGuideLangEn) {
@@ -2932,6 +3132,85 @@ function bindEventListeners() {
         cockpitVoice.stop();
         showToast(t.cockpitVoiceOff || 'Voix cockpit désactivée');
       }
+    });
+  }
+
+  // mobiGlas 4.0: Layout mode toggles
+  if (DOM.btnLayoutToggle) {
+    DOM.btnLayoutToggle.addEventListener('click', () => {
+      setLayoutMode(state.layoutMode === 'mobiglas' ? 'classic' : 'mobiglas', true);
+    });
+  }
+  if (DOM.btnClassicLayoutToggle) {
+    DOM.btnClassicLayoutToggle.addEventListener('click', () => {
+      setLayoutMode('mobiglas', true);
+    });
+  }
+  if (DOM.dockBtnLayout) {
+    DOM.dockBtnLayout.addEventListener('click', () => {
+      setLayoutMode(state.layoutMode === 'mobiglas' ? 'classic' : 'mobiglas', true);
+    });
+  }
+
+  // mobiGlas 4.0: System Header Quick Actions
+  if (DOM.btnMgLang) {
+    DOM.btnMgLang.addEventListener('click', () => {
+      if (DOM.btnLangToggle) DOM.btnLangToggle.click();
+    });
+  }
+  if (DOM.btnMgAudio) {
+    DOM.btnMgAudio.addEventListener('click', () => {
+      if (DOM.btnAudioToggle) DOM.btnAudioToggle.click();
+      if (DOM.btnMgAudio) DOM.btnMgAudio.textContent = state.audioEnabled ? '🔊' : '🔇';
+    });
+  }
+  if (DOM.btnMgVoiceTTS) {
+    DOM.btnMgVoiceTTS.addEventListener('click', () => {
+      if (DOM.btnVoiceTTS) DOM.btnVoiceTTS.click();
+    });
+  }
+
+  // mobiGlas 4.0: Bottom App Launcher Dock Handlers
+  if (DOM.dockBtnScanner) {
+    DOM.dockBtnScanner.addEventListener('click', () => {
+      sfx.playBeep(700, 'sine', 0.03);
+      triggerHaptic(10);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+  if (DOM.dockBtnLoadout) {
+    DOM.dockBtnLoadout.addEventListener('click', () => {
+      if (DOM.btnOpenLoadout) DOM.btnOpenLoadout.click();
+    });
+  }
+  if (DOM.dockBtnRefinery) {
+    DOM.dockBtnRefinery.addEventListener('click', () => {
+      if (DOM.btnOpenRefinery) DOM.btnOpenRefinery.click();
+    });
+  }
+  if (DOM.dockBtnStarmap) {
+    DOM.dockBtnStarmap.addEventListener('click', () => {
+      if (DOM.btnOpenHalo) DOM.btnOpenHalo.click();
+    });
+  }
+  if (DOM.dockBtnRadar) {
+    DOM.dockBtnRadar.addEventListener('click', () => {
+      if (DOM.btnOpenRadarDecoder) DOM.btnOpenRadarDecoder.click();
+    });
+  }
+  if (DOM.dockBtnLedger) {
+    DOM.dockBtnLedger.addEventListener('click', () => {
+      if (DOM.btnOpenLedger) DOM.btnOpenLedger.click();
+    });
+  }
+  if (DOM.dockBtnCrew) {
+    DOM.dockBtnCrew.addEventListener('click', () => {
+      if (DOM.btnOpenCrew) DOM.btnOpenCrew.click();
+    });
+  }
+  if (DOM.dockBtnGuide) {
+    DOM.dockBtnGuide.addEventListener('click', () => {
+      if (DOM.btnOpenGuide) DOM.btnOpenGuide.click();
     });
   }
 }

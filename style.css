@@ -3,7 +3,7 @@
    Sci-Fi / High-Tech Glassmorphism & Tactical Tablet Ergonomics
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
 
 :root {
   /* Default: MISC CYAN / TEAL */
@@ -27,8 +27,10 @@
   --accent-purple: #c084fc;
   
   --font-hud: 'Orbitron', -apple-system, sans-serif;
+  --font-mobiglas: 'Chakra Petch', -apple-system, sans-serif;
   --font-data: 'Rajdhani', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-sc-telemetry: 'Share Tech Mono', 'JetBrains Mono', monospace;
 
   --safe-bottom: env(safe-area-inset-bottom, 12px);
   --hud-corner-cut: 12px;
@@ -259,6 +261,656 @@ body::after {
     rgba(3, 7, 18, 0.85) 10px
   ) !important;
   box-shadow: 0 0 16px rgba(245, 158, 11, 0.7) !important;
+}
+
+/* ==========================================================================
+   MOBIGLAS 4.0 TOTAL REWORK (STAR CITIZEN ALPHA 4.0+ ARCHITECTURE)
+   ========================================================================== */
+
+/* Layout Mode: mobiGlas active */
+body[data-layout="mobiglas"],
+html[data-layout="mobiglas"] body {
+  padding-bottom: 96px;
+}
+
+[data-layout="mobiglas"] .hud-header {
+  display: none !important;
+}
+
+[data-layout="mobiglas"] .mobiglas-system-header {
+  display: flex !important;
+}
+
+[data-layout="mobiglas"] .mobiglas-scan-reticle {
+  display: block !important;
+}
+
+[data-layout="mobiglas"] .arc-fracture-gauge-wrapper {
+  display: block !important;
+}
+
+[data-layout="mobiglas"] .mobiglas-dock {
+  display: flex !important;
+}
+
+[data-layout="mobiglas"] .brand-title,
+[data-layout="mobiglas"] .panel-title,
+[data-layout="mobiglas"] .dock-label,
+[data-layout="mobiglas"] .verdict-status,
+[data-layout="mobiglas"] .metric-title,
+[data-layout="mobiglas"] .mass-digital,
+[data-layout="mobiglas"] .chip-btn,
+[data-layout="mobiglas"] .mg-sys-prefix,
+[data-layout="mobiglas"] .mg-sys-val,
+[data-layout="mobiglas"] .mg-balance-label,
+[data-layout="mobiglas"] .mg-layout-toggle-btn {
+  font-family: var(--font-mobiglas);
+}
+
+[data-layout="mobiglas"] .mg-clock-digital,
+[data-layout="mobiglas"] .reticle-svg-telemetry,
+[data-layout="mobiglas"] .arc-text-laser-name,
+[data-layout="mobiglas"] .mg-sub-item,
+[data-layout="mobiglas"] .label-val,
+[data-layout="mobiglas"] .metric-val {
+  font-family: var(--font-sc-telemetry);
+}
+
+/* Layout Mode: Classic Cockpit MFD active */
+body[data-layout="classic"],
+html[data-layout="classic"] body {
+  padding-bottom: 20px;
+}
+
+[data-layout="classic"] .hud-header {
+  display: flex !important;
+}
+
+[data-layout="classic"] .mobiglas-system-header {
+  display: none !important;
+}
+
+[data-layout="classic"] .mobiglas-scan-reticle {
+  display: none !important;
+}
+
+[data-layout="classic"] .arc-fracture-gauge-wrapper {
+  display: none !important;
+}
+
+[data-layout="classic"] .mobiglas-dock {
+  display: none !important;
+}
+
+/* ==========================================================================
+   1. MOBIGLAS SYSTEM STATUS HEADER
+   ========================================================================== */
+.mobiglas-system-header {
+  display: none; /* Controlled by data-layout */
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(180deg, rgba(8, 18, 36, 0.94) 0%, rgba(3, 8, 18, 0.96) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  border-radius: 8px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(0, 240, 255, 0.3);
+  position: relative;
+  z-index: 100;
+}
+
+.mobiglas-system-header::before,
+.mobiglas-system-header::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+}
+.mobiglas-system-header::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--accent-cyan);
+  border-left: 2px solid var(--accent-cyan);
+}
+.mobiglas-system-header::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--accent-cyan);
+  border-right: 2px solid var(--accent-cyan);
+}
+
+.mg-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 220px;
+}
+
+.mg-sys-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mg-sys-prefix {
+  font-family: var(--font-sc-telemetry);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.12);
+  padding: 2px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+}
+
+.mg-sys-val {
+  font-family: var(--font-mobiglas);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.mg-sys-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sc-telemetry);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.mg-status-online {
+  color: var(--accent-emerald);
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.mg-sub-sep {
+  opacity: 0.35;
+}
+
+/* Center Live Lore Clock (2954 UTC) */
+.mg-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mg-lore-clock-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 14px;
+  background: rgba(0, 240, 255, 0.05);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 6px;
+  box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.08);
+}
+
+.mg-clock-tag {
+  font-family: var(--font-sc-telemetry);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--accent-cyan);
+  opacity: 0.85;
+}
+
+.mg-clock-digital {
+  font-family: var(--font-sc-telemetry);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+}
+
+.mg-active-ship-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mobiglas);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-amber);
+  letter-spacing: 0.5px;
+}
+
+.mg-ship-indicator {
+  font-size: 0.65rem;
+  color: var(--accent-emerald);
+  animation: pulseIndicator 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseIndicator {
+  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 2px var(--accent-emerald)); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Right Header Controls */
+.mg-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mg-balance-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 4px 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 6px;
+}
+
+.mg-balance-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--accent-amber);
+}
+
+.mg-balance-val {
+  font-family: var(--font-sc-telemetry);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mg-layout-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid var(--accent-cyan);
+  border-radius: 6px;
+  color: var(--accent-cyan);
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mg-layout-toggle-btn:hover {
+  background: var(--accent-cyan);
+  color: #030712;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.7);
+  transform: translateY(-1px);
+}
+
+.mg-quick-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.mg-icon-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-mobiglas);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mg-icon-btn:hover {
+  border-color: var(--accent-cyan);
+  color: #fff;
+  background: rgba(0, 240, 255, 0.15);
+}
+
+/* ==========================================================================
+   2. HOLOGRAPHIC 3D ROCK SCANNER RETICLE
+   ========================================================================== */
+.mobiglas-scan-reticle {
+  display: none; /* Controlled by data-layout */
+  background: radial-gradient(circle at center, rgba(8, 24, 48, 0.75) 0%, rgba(4, 12, 24, 0.9) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 25px rgba(0, 240, 255, 0.08);
+}
+
+.reticle-hud-brackets .corner-tl,
+.reticle-hud-brackets .corner-tr,
+.reticle-hud-brackets .corner-bl,
+.reticle-hud-brackets .corner-br {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+}
+.reticle-hud-brackets .corner-tl { top: 4px; left: 4px; border-top: 2px solid var(--accent-cyan); border-left: 2px solid var(--accent-cyan); }
+.reticle-hud-brackets .corner-tr { top: 4px; right: 4px; border-top: 2px solid var(--accent-cyan); border-right: 2px solid var(--accent-cyan); }
+.reticle-hud-brackets .corner-bl { bottom: 4px; left: 4px; border-bottom: 2px solid var(--accent-cyan); border-left: 2px solid var(--accent-cyan); }
+.reticle-hud-brackets .corner-br { bottom: 4px; right: 4px; border-bottom: 2px solid var(--accent-cyan); border-right: 2px solid var(--accent-cyan); }
+
+.reticle-top-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-sc-telemetry);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+.reticle-scan-lock {
+  color: var(--accent-emerald);
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  animation: scanLockPulse 2.4s infinite ease-in-out;
+}
+
+@keyframes scanLockPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.reticle-archetype-tag {
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  color: var(--accent-cyan);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+}
+
+.reticle-center-viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.reticle-svg {
+  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.25));
+}
+
+.reticle-ring-dashed {
+  animation: spinReticle 30s linear infinite;
+  transform-origin: 130px 85px;
+}
+
+@keyframes spinReticle {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.reticle-rock-facet,
+.reticle-rock-wire {
+  animation: holoRockFloat 4s ease-in-out infinite;
+  transform-origin: 130px 85px;
+}
+
+@keyframes holoRockFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* ==========================================================================
+   3. CURVED ARC FRACTURE GAUGE (STAR CITIZEN TELEMETRY)
+   ========================================================================== */
+.arc-fracture-gauge-wrapper {
+  display: none; /* Controlled by data-layout */
+  margin: 6px 0 10px 0;
+  text-align: center;
+  position: relative;
+  background: radial-gradient(circle at 50% 70%, rgba(8, 22, 42, 0.8) 0%, rgba(4, 10, 20, 0.95) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px 4px 10px;
+  box-shadow: inset 0 0 30px rgba(0, 240, 255, 0.08);
+}
+
+.arc-fracture-svg {
+  max-width: 380px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.arc-track-bg {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.arc-track-ticks {
+  stroke: rgba(0, 240, 255, 0.18);
+}
+
+.arc-safe-zone {
+  stroke: rgba(16, 185, 129, 0.45);
+  transition: all 0.35s ease;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+}
+
+.arc-danger-zone {
+  stroke: rgba(244, 63, 94, 0.5);
+  transition: all 0.35s ease;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.6));
+}
+
+.arc-power-fill {
+  transition: stroke-dashoffset 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.8));
+}
+
+.arc-text-power-pct {
+  font-family: var(--font-mobiglas);
+  text-shadow: 0 0 14px rgba(0, 240, 255, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.arc-text-power-sub {
+  font-family: var(--font-data);
+}
+
+.arc-text-laser-name {
+  font-family: var(--font-sc-telemetry);
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   4. MOBIGLAS BOTTOM APP LAUNCHER DOCK
+   ========================================================================== */
+.mobiglas-dock {
+  display: none; /* Controlled by data-layout */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 12px env(safe-area-inset-bottom, 10px);
+  background: linear-gradient(180deg, rgba(4, 10, 22, 0.92) 0%, rgba(2, 6, 14, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 -8px 35px rgba(0, 0, 0, 0.85), 0 0 25px rgba(0, 240, 255, 0.18);
+}
+
+.dock-backdrop-glow {
+  position: absolute;
+  top: -1px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00f0ff, transparent);
+  opacity: 0.85;
+  filter: blur(1px);
+}
+
+.dock-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 960px;
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 4px;
+}
+.dock-container::-webkit-scrollbar {
+  display: none;
+}
+
+.dock-item {
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 58px;
+  color: var(--text-muted);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dock-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 240, 255, 0.35);
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.14) 0%, rgba(6, 18, 38, 0.6) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+}
+
+.dock-circle svg {
+  stroke: #38bdf8;
+  transition: stroke 0.2s ease, filter 0.2s ease;
+}
+
+.dock-label {
+  font-family: var(--font-mobiglas);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+/* Dock Interactive states */
+.dock-item:hover .dock-circle,
+.dock-item.active .dock-circle {
+  border-color: #00f0ff;
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.35) 0%, rgba(0, 240, 255, 0.12) 100%);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.7), inset 0 0 8px rgba(0, 240, 255, 0.4);
+  transform: translateY(-3px) scale(1.08);
+}
+
+.dock-item:hover svg,
+.dock-item.active svg {
+  stroke: #00f0ff;
+  filter: drop-shadow(0 0 5px #00f0ff);
+}
+
+.dock-item:hover .dock-label,
+.dock-item.active .dock-label {
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+}
+
+/* Layout switcher dock item */
+.dock-circle-layout {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(6, 18, 38, 0.6) 100%);
+}
+.dock-circle-layout svg {
+  stroke: var(--accent-amber);
+}
+.dock-item-layout:hover .dock-circle-layout {
+  border-color: #f59e0b;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.7);
+}
+.dock-item-layout:hover .dock-label {
+  color: #f59e0b;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+/* Badge for refinery jobs in dock */
+.dock-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--accent-amber);
+  color: #030712;
+  font-family: var(--font-sc-telemetry);
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px var(--accent-amber);
+  padding: 0 4px;
+}
+
+/* Responsive mobiGlas adaptations */
+@media (max-width: 768px) {
+  .mobiglas-system-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+  .mg-header-left {
+    min-width: 180px;
+  }
+  .mg-clock-digital {
+    font-size: 1rem;
+  }
+  .dock-container {
+    gap: 8px;
+  }
+  .dock-item {
+    min-width: 48px;
+    padding: 2px 4px;
+  }
+  .dock-circle {
+    width: 38px;
+    height: 38px;
+  }
+  .dock-circle svg {
+    width: 18px;
+    height: 18px;
+  }
+  .dock-label {
+    font-size: 0.55rem;
+  }
 }
 
 /* Scrollbars (W3C CSS Scrollbars Module Level 1 + WebKit fallback) */

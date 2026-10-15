@@ -103,6 +103,25 @@ export const I18N = {
     themeAegis: "Aegis (Émeraude)",
     themeRsi: "RSI (Glace)",
 
+    // mobiGlas 4.0 Interface & Dock
+    mgSystemName: "STANTON // SECTEUR MINIER ORBITAL",
+    mgComms: "COMMS :",
+    mgCallsign: "INDICATIF :",
+    layoutToggleToClassic: "MFD COCKPIT",
+    layoutToggleToMobiglas: "mobiGlas",
+    titleToggleLayout: "Basculer entre mobiGlas et Cockpit MFD classique",
+    dockScanner: "SCANNER",
+    dockLoadout: "LOADOUT",
+    dockRefinery: "RAFFINAGE",
+    dockStarmap: "STARMAP",
+    dockRadar: "RADAR RS",
+    dockLedger: "JOURNAL",
+    dockCrew: "ÉQUIPAGE",
+    dockGuide: "GUIDE",
+    dockLayout: "COCKPIT",
+    toastLayoutSwitchedToMobiglas: "Interface mobiGlas 4.0 activée (Hologramme)",
+    toastLayoutSwitchedToClassic: "Interface Cockpit MFD classique activée",
+
     // Left Panel - Rock Scan
     scanData: "DONNÉES DU SCAN",
     quickTactile: "SAISIE RAPIDE TACTILE",
@@ -537,6 +556,25 @@ export const I18N = {
     themeDrake: "Drake (Amber)",
     themeAegis: "Aegis (Emerald)",
     themeRsi: "RSI (Ice)",
+
+    // mobiGlas 4.0 Interface & Dock
+    mgSystemName: "STANTON // ORBITAL MINING SECTOR",
+    mgComms: "COMMS:",
+    mgCallsign: "CALLSIGN:",
+    layoutToggleToClassic: "MFD COCKPIT",
+    layoutToggleToMobiglas: "mobiGlas",
+    titleToggleLayout: "Toggle between mobiGlas and Classic Cockpit MFD",
+    dockScanner: "SCANNER",
+    dockLoadout: "LOADOUT",
+    dockRefinery: "REFINERY",
+    dockStarmap: "STARMAP",
+    dockRadar: "RADAR RS",
+    dockLedger: "LEDGER",
+    dockCrew: "CREW",
+    dockGuide: "GUIDE",
+    dockLayout: "COCKPIT",
+    toastLayoutSwitchedToMobiglas: "mobiGlas 4.0 interface enabled (Hologram)",
+    toastLayoutSwitchedToClassic: "Classic Cockpit MFD interface enabled",
 
     // Left Panel - Rock Scan
     scanData: "ROCK SCAN DATA",
