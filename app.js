@@ -141,12 +141,27 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.6.3',
+    version: 'v1.6.4',
     isCurrent: true,
-    title_fr: 'Refonte du Manuel & Guide Prise en Main (4.10)',
-    title_en: 'Operating Manual & Walkthrough Guide Overhaul (4.10)',
+    title_fr: 'Correctif Critique Calcul Réactif & Synthèse Vocale',
+    title_en: 'Critical Fix: Reactive Calculation & Voice Synthesis',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'fixed',
+        text_fr: '<strong>Mise à Jour Instantanée des Minerais</strong> : Correction d\'une méthode manquante dans le module vocal (speakTarget/stop) qui interrompait le script lors de la sélection d\'un minerai. Le calcul dynamique de résistance, instabilité et puissance s\'applique désormais instantanément.',
+        text_en: '<strong>Instant Calculation on Mineral Selection</strong>: Fixed a missing method in voice synthesis module (speakTarget/stop) that threw an exception upon mineral selection. Dynamic rock properties and laser calculations now immediately apply.'
+      }
+    ]
+  },
+  {
+    version: 'v1.6.3',
+    isCurrent: false,
+    title_fr: 'Refonte du Manuel & Guide Prise en Main (4.10)',
+    title_en: 'Operating Manual & Walkthrough Guide Overhaul (4.10)',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'improved',
@@ -573,6 +588,22 @@ class CockpitVoice {
       this.synth.speak(utterance);
     } catch (e) {
       console.warn('TTS error:', e);
+    }
+  }
+
+  speakTarget(minName, orePct, scuEst) {
+    const textFr = `Cible ${minName}, pureté ${Math.round(orePct)} pour cent, estimation ${scuEst} SCU.`;
+    const textEn = `Target ${minName}, purity ${Math.round(orePct)} percent, estimated ${scuEst} SCU.`;
+    this.speak(textFr, textEn);
+  }
+
+  stop() {
+    if (this.synth) {
+      try {
+        this.synth.cancel();
+      } catch (e) {
+        console.warn('TTS stop error:', e);
+      }
     }
   }
 }
@@ -1003,9 +1034,13 @@ function selectMineral(min) {
     c.classList.toggle('selected', c.dataset.id === min.id);
   });
 
-  if (state.voiceTTSEnabled) {
-    const minName = getLocalized(min, 'name');
-    cockpitVoice.speakTarget(minName, state.orePercentage, Math.max(0.1, Math.round(state.rockMass * (state.orePercentage / 100) / ((min.density || 15) * 85) * 10) / 10));
+  if (state.voiceTTSEnabled && typeof cockpitVoice !== 'undefined' && cockpitVoice.speakTarget) {
+    try {
+      const minName = getLocalized(min, 'name');
+      cockpitVoice.speakTarget(minName, state.orePercentage, Math.max(0.1, Math.round(state.rockMass * (state.orePercentage / 100) / ((min.density || 15) * 85) * 10) / 10));
+    } catch (e) {
+      console.warn('Voice target speech error:', e);
+    }
   }
 
   // Auto-calculer dès la sélection du minerai

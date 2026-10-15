@@ -8,6 +8,12 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [1.6.4] - 2026-10-15 - *Correctif Critique Calcul Réactif & Synthèse Vocale*
+
+#### 🐛 Corrigé (Fixed)
+- **Recalcul Automatique sur Sélection de Minerai** : Résolution d'une exception `TypeError: cockpitVoice.speakTarget is not a function` qui bloquait l'exécution du script lors du clic sur un minerai dans la grille. Les méthodes `speakTarget()` et `stop()` ont été intégrées dans `CockpitVoice` et sécurisées par `try/catch`.
+- **Mise à Jour Instantanée de la Fracturation** : La résistance, l'instabilité et la faisabilité laser sont désormais recalculées de manière fluide et immédiate dès la sélection de n'importe quel minerai.
+
 ### [1.6.3] - 2026-10-15 - *Refonte du Manuel & Guide Prise en Main (Alpha 4.10)*
 
 #### 📖 Documentation & Ergonomie (Manual & Guide Overhaul)
@@ -199,6 +205,12 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [1.6.4] - 2026-10-15 - *Critical Fix: Reactive Calculation & Voice Synthesis*
+
+#### 🐛 Fixed
+- **Instant Reactive Recalculation on Mineral Selection**: Fixed an unhandled `TypeError: cockpitVoice.speakTarget is not a function` exception that halted script execution whenever a mineral card was clicked. Implemented `speakTarget()` and `stop()` in `CockpitVoice` and safeguarded invocations with `try/catch`.
+- **Live Laser & Rock Property Sync**: Dynamic rock resistance, instability, and laser wattage saturation now update smoothly and immediately upon selecting any mineral.
 
 ### [1.6.3] - 2026-10-15 - *Operating Manual & Walkthrough Guide Overhaul (Alpha 4.10)*
 

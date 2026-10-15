@@ -114,7 +114,7 @@
         </svg>
       </div>
       <div>
-        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.6.3</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.6.4</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
         <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
       </div>
     </div>
@@ -1711,14 +1711,32 @@
 
       <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
 
-        <!-- VERSION 1.6.3 -->
+        <!-- VERSION 1.6.4 -->
         <div class="changelog-card current-version">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill current">v1.6.3</span>
-              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Refonte du Manuel & Guide Prise en Main (4.10)</strong>
+              <span class="version-tag-pill current">v1.6.4</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Correctif Critique Calcul Réactif & Synthèse Vocale</strong>
             </div>
             <span class="changelog-date">Dernière version (Alpha 4.10)</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag fixed" data-i18n="tagFixed">CORRIGÉ</span>
+              <span><strong>Mise à Jour Instantanée des Minerais</strong> : Correction d'une exception dans le module vocal qui bloquait le recalcul automatique lors du clic sur un minerai dans la grille. Le calcul dynamique de résistance, instabilité et puissance laser s'exécute désormais instantanément.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- VERSION 1.6.3 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill">v1.6.3</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Refonte du Manuel & Guide Prise en Main (4.10)</strong>
+            </div>
+            <span class="changelog-date">Version précédente (Alpha 4.10)</span>
           </div>
 
           <ul class="changelog-list">
@@ -2109,17 +2127,17 @@
       <span>•</span>
       <span class="footer-link" id="btnOpenDonateFooter" style="color:#fbbf24; font-weight:700;" data-i18n="support">💛 Soutenir</span>
       <span>•</span>
-      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.6.3)</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.6.4)</span>
       <span>•</span>
       <span class="footer-link" id="btnInstallPWA" data-i18n="installPWA">📱 Installer sur écran d'accueil</span>
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.6.3)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.6.4)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.6.3 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.6.4 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
-  <script type="module" src="app.js?v=1.6.3"></script>
+  <script type="module" src="app.js?v=1.6.4"></script>
 </body>
 </html>
