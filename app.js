@@ -942,6 +942,14 @@ const DOM = {
   btnCloseChangelog: document.getElementById('btnCloseChangelog'),
   changelogScroller: document.getElementById('changelogScroller'),
 
+  // Roadmap Modal
+  btnOpenRoadmapFooter: document.getElementById('btnOpenRoadmapFooter'),
+  btnOpenRoadmapFromChangelog: document.getElementById('btnOpenRoadmapFromChangelog'),
+  btnOpenRoadmapFromCrew: document.getElementById('btnOpenRoadmapFromCrew'),
+  roadmapModal: document.getElementById('roadmapModal'),
+  btnCloseRoadmap: document.getElementById('btnCloseRoadmap'),
+  roadmapScroller: document.getElementById('roadmapScroller'),
+
   btnInstallPWA: document.getElementById('btnInstallPWA'),
   btnResetSession: document.getElementById('btnResetSession'),
   btnForceRefresh: document.getElementById('btnForceRefresh'),
@@ -4021,6 +4029,29 @@ function bindEventListeners() {
   }
   if (DOM.btnCloseChangelog) {
     DOM.btnCloseChangelog.addEventListener('click', () => closeModal(DOM.changelogModal));
+  }
+
+  // Roadmap Modal
+  const handleOpenRoadmap = () => {
+    sfx.playBeep(650, 'sine', 0.04);
+    triggerHaptic(12);
+    openModal(DOM.roadmapModal);
+  };
+  if (DOM.btnOpenRoadmapFooter) DOM.btnOpenRoadmapFooter.addEventListener('click', handleOpenRoadmap);
+  if (DOM.btnOpenRoadmapFromChangelog) {
+    DOM.btnOpenRoadmapFromChangelog.addEventListener('click', () => {
+      closeModal(DOM.changelogModal);
+      handleOpenRoadmap();
+    });
+  }
+  if (DOM.btnOpenRoadmapFromCrew) {
+    DOM.btnOpenRoadmapFromCrew.addEventListener('click', () => {
+      closeModal(DOM.crewModal);
+      handleOpenRoadmap();
+    });
+  }
+  if (DOM.btnCloseRoadmap) {
+    DOM.btnCloseRoadmap.addEventListener('click', () => closeModal(DOM.roadmapModal));
   }
 
   // Session Reset & Cache Flush buttons

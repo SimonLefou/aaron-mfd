@@ -74,8 +74,15 @@ Pour distribuer un fichier `.apk` téléchargeable aux joueurs de votre corpo ou
 
 ---
 
+## 🗺️ Feuille de Route, Logistique Fret & Commerce
+
+Consultez le document dédié [**ROADMAP.md**](./ROADMAP.md) pour découvrir les futurs jalons d'évolution du logiciel : interconnexion P2P d'escadre (*AARON FLEET-NET*), synchronisation automatique des configurations de vaisseaux, diffusion de scans rocheux en direct, logistique de fret par vaisseaux spécialisés (transbordement en vol) et bourse commerciale des matériaux (arbitrage brut/raffiné et ventes TDD).
+
+---
+
 ## ☕ Soutien & Dons
 
 Un bouton discret **"Soutenir"** permet aux joueurs reconnaissants d'offrir un café sur Ko-fi ou Buy Me A Coffee pour financer votre temps passé.
 
 *Ce projet n'est pas affilié à Cloud Imperium Games ni à Roberts Space Industries.*
+

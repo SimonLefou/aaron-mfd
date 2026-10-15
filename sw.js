@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './i18n.js',
   './mining-data.js',
   './manifest.json',
+  './ROADMAP.md',
   './assets/icon-192.png',
   './assets/icon-512.png'
 ];

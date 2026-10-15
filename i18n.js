@@ -431,12 +431,22 @@ export const I18N = {
     titleToggleTurret: "Cliquer pour replier/déplier la tourelle",
 
     // Changelog
-    changelogLink: "📜 Notes de version (v1.5)",
+    changelogLink: "📜 Notes de version (v1.6.4)",
     changelogTitle: "NOTES DE VERSION (CHANGELOG)",
     changelogSubtitle: "Historique des ajouts, améliorations et correctifs",
     tagNew: "NOUVEAU",
     tagImproved: "OPTIMISÉ",
     tagFix: "CORRECTIF",
+
+    // Roadmap
+    roadmapLink: "🗺️ Feuille de route",
+    roadmapTitle: "FEUILLE DE ROUTE OFFICIELLE (ROADMAP)",
+    roadmapSubtitle: "Système d'exploitation tactique, logistique & flotte multijoueur (Star Citizen 4.0+)",
+    roadmapViewBtn: "🗺️ Feuille de route ➔",
+    fleetRoadmapBtn: "🗺️ Feuille de Route Flotte",
+    roadmapTagPlanned: "PRÉVU",
+    roadmapTagFuture: "FUTUR",
+    roadmapOpenRawBtn: "📄 Consulter ROADMAP.md brut",
 
     // Guide & Onboarding Modal
     guideBtn: "Guide",
@@ -953,12 +963,22 @@ export const I18N = {
     titleToggleTurret: "Click to collapse/expand turret",
 
     // Changelog
-    changelogLink: "📜 Release Notes (v1.5)",
+    changelogLink: "📜 Release Notes (v1.6.4)",
     changelogTitle: "RELEASE NOTES (CHANGELOG)",
     changelogSubtitle: "Complete history of additions, improvements and bug fixes",
     tagNew: "NEW",
     tagImproved: "IMPROVED",
     tagFix: "FIX",
+
+    // Roadmap
+    roadmapLink: "🗺️ Roadmap",
+    roadmapTitle: "OFFICIAL ROADMAP (AARON FLEET-NET)",
+    roadmapSubtitle: "Tactical OS, Logistics, Commodity Trading & Fleet Interlink (Star Citizen 4.0+)",
+    roadmapViewBtn: "🗺️ View Roadmap ➔",
+    fleetRoadmapBtn: "🗺️ Fleet Roadmap",
+    roadmapTagPlanned: "PLANNED",
+    roadmapTagFuture: "FUTURE",
+    roadmapOpenRawBtn: "📄 View Raw ROADMAP.md",
 
     // Guide & Onboarding Modal
     guideBtn: "Guide",

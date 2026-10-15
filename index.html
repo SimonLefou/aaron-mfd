@@ -944,8 +944,11 @@
         <button class="btn-close-modal" id="btnCloseCrew">&times;</button>
       </div>
 
-      <div style="font-size:0.83rem; color:var(--text-muted); margin-bottom:14px; line-height:1.4;" data-i18n="squadModalDesc">
-        Coordonnez plusieurs vaisseaux miniers ou de transport : cumulez les puissances de fracture, réduisez conjointement la résistance rocheuse et répartissez équitablement les gains.
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px; flex-wrap:wrap;">
+        <div style="font-size:0.83rem; color:var(--text-muted); line-height:1.4; flex:1; min-width:220px;" data-i18n="squadModalDesc">
+          Coordonnez plusieurs vaisseaux miniers ou de transport : cumulez les puissances de fracture, réduisez conjointement la résistance rocheuse et répartissez équitablement les gains.
+        </div>
+        <button type="button" class="chip-btn" id="btnOpenRoadmapFromCrew" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.72rem; padding:4px 8px; font-weight:700; white-space:nowrap;" data-i18n="fleetRoadmapBtn">🗺️ Feuille de Route Flotte</button>
       </div>
 
       <!-- FLEET TELEMETRY HEADER TILES -->
@@ -1705,8 +1708,11 @@
         <button class="btn-close-modal" id="btnCloseChangelog">&times;</button>
       </div>
 
-      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;" data-i18n="changelogSubtitle">
-        Historique des ajouts, améliorations et correctifs
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px; flex-wrap:wrap;">
+        <div style="font-size:0.85rem; color:var(--text-muted);" data-i18n="changelogSubtitle">
+          Historique des ajouts, améliorations et correctifs
+        </div>
+        <button type="button" class="chip-btn" id="btnOpenRoadmapFromChangelog" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.75rem; padding:4px 10px; font-weight:700; white-space:nowrap;" data-i18n="roadmapViewBtn">🗺️ Feuille de route ➔</button>
       </div>
 
       <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
@@ -1991,6 +1997,229 @@
     </div>
   </div>
 
+  <!-- MODAL: ROADMAP / FEUILLE DE ROUTE -->
+  <div class="modal-overlay" id="roadmapModal">
+    <div class="modal-content" style="max-width:760px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-cyan); margin:0;" data-i18n="roadmapTitle">FEUILLE DE ROUTE OFFICIELLE (ROADMAP)</h2>
+        </div>
+        <button class="btn-close-modal" id="btnCloseRoadmap">&times;</button>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px; flex-wrap:wrap;">
+        <div style="font-size:0.83rem; color:var(--text-muted); line-height:1.4;" data-i18n="roadmapSubtitle">
+          Système d'exploitation tactique, logistique & flotte multijoueur (Star Citizen 4.0+)
+        </div>
+        <a href="ROADMAP.md" target="_blank" class="chip-btn" style="border-color:rgba(0,240,255,0.4); color:var(--accent-cyan); font-size:0.75rem; padding:4px 10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" data-i18n="roadmapOpenRawBtn">📄 Consulter ROADMAP.md brut</a>
+      </div>
+
+      <div class="changelog-scroller" id="roadmapScroller" style="max-height:500px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; padding-right:4px;">
+
+        <!-- BANNER ARCHITECTURE P2P -->
+        <div style="background:rgba(0,240,255,0.04); border:1px solid rgba(0,240,255,0.3); border-radius:8px; padding:12px 14px; font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">
+          <strong style="color:var(--accent-cyan); font-family:var(--font-hud); display:block; margin-bottom:4px;">📡 ARCHITECTURE 100% SANS SERVEUR PAYANT (SERVERLESS P2P)</strong>
+          Interconnexion directe par WebRTC DataChannels sans compte ni inscription obligatoire. Vos tablettes, smartphones et PC se synchronisent en direct avec un temps de réponse &lt; 150 ms tout en restant 100% fonctionnels hors-ligne en solo.
+        </div>
+
+        <!-- JALON 1 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(0,240,255,0.15); border-color:var(--accent-cyan); color:var(--accent-cyan);">JALON 1 • v1.7.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Couche Réseau P2P & Codes d'Escadre (AARON FLEET-NET)</strong>
+            </div>
+            <span class="changelog-date" style="color:var(--accent-cyan);">PROCHAIN JALON</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">RÉSEAU</span>
+              <span><strong>Salons d'Escadre Instantanés</strong> : Génération de codes courts (ex: <code>WING-4982</code>) et partage de lien direct (<code>?fleet=WING-4982</code>) pour connecter tablettes et téléphones en 1 clic.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">HUD</span>
+              <span><strong>Télémétrie de Liaison</strong> : Indicateur de latence (Ping en direct en ms), voyant de comms chiffrées et compteur d'équipiers en ligne.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 2 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(0,240,255,0.15); border-color:var(--accent-cyan); color:var(--accent-cyan);">JALON 2 • v1.7.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Synchronisation Temps Réel des Vaisseaux & Configurations</strong>
+            </div>
+            <span class="changelog-date" style="color:var(--accent-cyan);">PROCHAIN JALON</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">AUTO-SYNC</span>
+              <span><strong>Diffusion Automatique des Loadouts</strong> : Tout changement de vaisseau (Prospector, MOLE, Arrastra, Orion, ROC, C2), laser ou tourelles est diffusé instantanément à toute la flotte.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">CALCUL</span>
+              <span><strong>Calculateur de Puissance Combinée</strong> : Agrégation automatique des Watts de fracture cumulés et calcul de la réduction conjointe de résistance rocheuse.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 3 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(168,85,247,0.15); border-color:#c084fc; color:#c084fc;">JALON 3 • v1.8.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Télémétrie de Scan Partagée & Scanner OCR Instantané</strong>
+            </div>
+            <span class="changelog-date" style="color:#c084fc;">PRÉVU v1.8.0</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">SCAN DIRECT</span>
+              <span><strong>Diffusion Immédiate du Scan</strong> : Dès qu'un mineur ou éclaireur scanne un astéroïde, tous les MFD connectés reçoivent la masse, les minerais, la résistance et le verdict en direct avec annonce vocale cockpit.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">OCR CAMÉRA</span>
+              <span><strong>Reconnaissance Optique de Réticule</strong> : Scannez votre écran de jeu avec la caméra de votre smartphone ou glissez une capture (F12) pour remplir tout le MFD en 0,3 seconde sans rien taper.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 4 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(239,68,68,0.15); border-color:#f87171; color:#f87171;">JALON 4 • v1.8.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Coordination Tactique de Tir & Alerte Sentinelle d'Escorte</strong>
+            </div>
+            <span class="changelog-date" style="color:#f87171;">PRÉVU v1.8.0</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">TACTIQUE</span>
+              <span><strong>Conseiller de Tir Conjoint</strong> : Séquençage des tirs (affaiblissement de résistance au Lancet, puis déclenchement de la puissance brute Helix).</span>
+            </li>
+            <li>
+              <span class="badge-tag new">SÉCURITÉ</span>
+              <span><strong>Bouton d'Alerte Rouge (RED ALERT)</strong> : Alerte sonore d'attaque pirate envoyée en 1 tap aux chasseurs de protection d'escorte avec vecteur de saut d'urgence.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 5 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(245,158,11,0.15); border-color:var(--accent-amber); color:var(--accent-amber);">JALON 5 • v2.0.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Transport Spécialisé & Transbordement de Sacs en Vol</strong>
+            </div>
+            <span class="changelog-date" style="color:var(--accent-amber);">PRÉVU v2.0.0</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">CARGO</span>
+              <span><strong>Transbordement Ship-to-Ship (Saddlebags)</strong> : Largage des sacs miniers du Prospector/MOLE au rayon tracteur vers les cargos C2, Taurus, RAFT, MAX et Hull. Signal <code>PICKUP_REQUEST</code> en 1 tap sans retour station.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">SOUTE SCU</span>
+              <span><strong>Grille de Soute Magnétique</strong> : Visualisation du chargement par conteneurs normalisés (1 à 32 SCU) et chronomètres de décomposition des matières volatiles.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 6 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(16,185,129,0.15); border-color:var(--accent-emerald); color:var(--accent-emerald);">JALON 6 • v2.0.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Bourse Commerciale des Matériaux & Optimisation Ventes TDD</strong>
+            </div>
+            <span class="changelog-date" style="color:var(--accent-emerald);">PRÉVU v2.0.0</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">BOURSE</span>
+              <span><strong>Arbitrage Économique Brut vs Raffiné</strong> : Calcul automatique du gain net déduit des frais de raffinage, carburant et manutention avec cours d'achat des TDD de Stanton et Pyro.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">COMMERCE</span>
+              <span><strong>Calculateur de Routes Commerciales</strong> : Recommandation de la destination la plus lucrative et ventilation des gains multi-métiers (mineurs, transporteur, escorte).</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 7 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(56,189,248,0.15); border-color:#38bdf8; color:#38bdf8;">JALON 7 • v2.5.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Gestionnaire d'Ordres de Raffinage & Notifications Push Déportées</strong>
+            </div>
+            <span class="changelog-date" style="color:#38bdf8;">PRÉVU v2.5.0</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">RAFFINAGE</span>
+              <span><strong>Suivi Multi-Commandes</strong> : Enregistrement de vos ordres (Dinyx, Ferron, etc.) avec compte à rebours, rendement estimé et inventaire des lots en stock dans les stations.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">PUSH</span>
+              <span><strong>Notifications Web Push</strong> : Alerte automatique sur smartphone ou PC (même navigateur fermé) quand votre cargaison raffinée est prête à être récupérée.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 8 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(251,191,36,0.15); border-color:#fbbf24; color:#fbbf24;">JALON 8 • v2.5.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Carnet de Coordonnées GPS & Balises de Gisements (Stanton & Pyro)</strong>
+            </div>
+            <span class="changelog-date" style="color:#fbbf24;">PRÉVU v2.5.0</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">GPS</span>
+              <span><strong>Triangulation Orbitale OM</strong> : Enregistrez et retrouvez vos filons riches d'astéroïdes après un déchargement grâce aux balises orbitales OM-1 à OM-6.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">PYRO</span>
+              <span><strong>Cartographie des Secteurs Pyro</strong> : Intégration des ceintures d'astéroïdes et lunes de Pyro (Monox, Terminus, Bloom) avec leurs caractéristiques géologiques et dangers solaires.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- JALON 9 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill" style="background:rgba(99,102,241,0.15); border-color:#818cf8; color:#818cf8;">JALON 9 • v3.0.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Écosystème Corporation & Matériel Dédié (Discord & Stream Deck)</strong>
+            </div>
+            <span class="changelog-date" style="color:#818cf8;">PRÉVU v3.0.0</span>
+          </div>
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new">DISCORD</span>
+              <span><strong>Webhooks Automatiques Corpo</strong> : Publication automatique d'un rapport de mission officiel illustré dans le salon Discord de votre guilde (volumes extraits, recettes et parts de paie).</span>
+            </li>
+            <li>
+              <span class="badge-tag new">HARDWARE</span>
+              <span><strong>Profils Stream Deck & Raccourcis HOTAS</strong> : Touches physiques pour déclencher le chrono 15 min Quantainium, incrémenter les SCU ou diffuser un scan en 1 clic.</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION -->
   <div id="toastNotice" class="toast-notice"></div>
 
@@ -2128,6 +2357,8 @@
       <span class="footer-link" id="btnOpenDonateFooter" style="color:#fbbf24; font-weight:700;" data-i18n="support">💛 Soutenir</span>
       <span>•</span>
       <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.6.4)</span>
+      <span>•</span>
+      <span class="footer-link" id="btnOpenRoadmapFooter" style="color:var(--accent-cyan); font-weight:700;" data-i18n="roadmapLink">🗺️ Feuille de route</span>
       <span>•</span>
       <span class="footer-link" id="btnInstallPWA" data-i18n="installPWA">📱 Installer sur écran d'accueil</span>
       <span>•</span>
