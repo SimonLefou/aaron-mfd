@@ -1,5 +1,5 @@
-// Service Worker for AARON MFD - 100% Offline Capability (v1.4 Alpha 4.10)
-const CACHE_NAME = 'aaron-mfd-v10-alpha410';
+// Service Worker for AARON MFD - 100% Offline Capability (v1.5 Alpha 4.10)
+const CACHE_NAME = 'aaron-mfd-v11-alpha410';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

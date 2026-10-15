@@ -2486,6 +2486,27 @@ function applySquadTemplate(key) {
   calculateCrewSplit();
 }
 
+function openSquadModal() {
+  sfx.playBeep(600, 'sine', 0.04);
+  triggerHaptic(12);
+  try {
+    renderSquadWingmen();
+  } catch (err) {
+    console.warn('[AARON MFD] renderSquadWingmen error:', err);
+  }
+  try {
+    calculateAll();
+  } catch (err) {
+    console.warn('[AARON MFD] calculateAll error:', err);
+  }
+  try {
+    calculateCrewSplit();
+  } catch (err) {
+    console.warn('[AARON MFD] calculateCrewSplit error:', err);
+  }
+  openModal(DOM.crewModal);
+}
+
 function calculateCrewSplit() {
   const t = I18N[state.currentLang] || I18N.fr;
   const locale = getLocale();
@@ -3006,20 +3027,20 @@ function bindEventListeners() {
   });
   DOM.btnCloseDonate.addEventListener('click', () => closeModal(DOM.donateModal));
 
-  // Crew split modal
-  // Squad & Fleet Mining Modal
-  const onOpenSquadModal = () => {
-    sfx.playBeep(600, 'sine', 0.04);
-    renderSquadWingmen();
-    calculateAll();
-    calculateCrewSplit();
-    openModal(DOM.crewModal);
-  };
-
-  if (DOM.btnOpenCrew) DOM.btnOpenCrew.addEventListener('click', onOpenSquadModal);
-  if (DOM.btnMgSquadModal) DOM.btnMgSquadModal.addEventListener('click', onOpenSquadModal);
-  if (DOM.btnQuickOpenSquad) DOM.btnQuickOpenSquad.addEventListener('click', onOpenSquadModal);
+  // Crew split modal & Squad Mining Modal
+  if (DOM.btnOpenCrew) DOM.btnOpenCrew.addEventListener('click', openSquadModal);
+  if (DOM.btnMgSquadModal) DOM.btnMgSquadModal.addEventListener('click', openSquadModal);
+  if (DOM.btnQuickOpenSquad) DOM.btnQuickOpenSquad.addEventListener('click', openSquadModal);
   if (DOM.btnCloseCrew) DOM.btnCloseCrew.addEventListener('click', () => closeModal(DOM.crewModal));
+
+  // Dismiss any open modal by clicking its background overlay
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeModal(overlay);
+      }
+    });
+  });
 
   if (DOM.btnAddSquadMember) {
     DOM.btnAddSquadMember.addEventListener('click', () => addSquadMember());
@@ -3705,37 +3726,58 @@ function bindEventListeners() {
   }
   if (DOM.dockBtnLoadout) {
     DOM.dockBtnLoadout.addEventListener('click', () => {
-      if (DOM.btnOpenLoadout) DOM.btnOpenLoadout.click();
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(10);
+      populateLoadoutSelects();
+      openModal(DOM.loadoutModal);
     });
   }
   if (DOM.dockBtnRefinery) {
     DOM.dockBtnRefinery.addEventListener('click', () => {
-      if (DOM.btnOpenRefinery) DOM.btnOpenRefinery.click();
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(10);
+      populateRefineryModalSelects();
+      openModal(DOM.refineryModal);
     });
   }
   if (DOM.dockBtnStarmap) {
     DOM.dockBtnStarmap.addEventListener('click', () => {
-      if (DOM.btnOpenHalo) DOM.btnOpenHalo.click();
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(10);
+      openModal(DOM.haloModal);
     });
   }
   if (DOM.dockBtnRadar) {
     DOM.dockBtnRadar.addEventListener('click', () => {
-      if (DOM.btnOpenRadarDecoder) DOM.btnOpenRadarDecoder.click();
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(12);
+      openModal(DOM.radarDecoderModal);
+      if (DOM.radarRsInput) {
+        DOM.radarRsInput.focus();
+        if (DOM.radarRsInput.value) {
+          decodeRadarRS(parseFloat(DOM.radarRsInput.value));
+        }
+      }
     });
   }
   if (DOM.dockBtnLedger) {
     DOM.dockBtnLedger.addEventListener('click', () => {
-      if (DOM.btnOpenLedger) DOM.btnOpenLedger.click();
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(10);
+      updateLedgerDisplay();
+      openModal(DOM.ledgerModal);
     });
   }
   if (DOM.dockBtnCrew) {
     DOM.dockBtnCrew.addEventListener('click', () => {
-      if (DOM.btnOpenCrew) DOM.btnOpenCrew.click();
+      openSquadModal();
     });
   }
   if (DOM.dockBtnGuide) {
     DOM.dockBtnGuide.addEventListener('click', () => {
-      if (DOM.btnOpenGuide) DOM.btnOpenGuide.click();
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(10);
+      openModal(DOM.guideModal);
     });
   }
 }
@@ -3836,11 +3878,19 @@ function setInstability(val) {
 }
 
 function openModal(modal) {
+  if (!modal) return;
   modal.classList.add('open');
+  modal.style.display = 'flex';
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
 }
 
 function closeModal(modal) {
+  if (!modal) return;
   modal.classList.remove('open');
+  modal.style.display = 'none';
+  modal.style.opacity = '0';
+  modal.style.pointerEvents = 'none';
 }
 
 // ==========================================

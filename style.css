@@ -2152,16 +2152,19 @@ html[data-layout="classic"] body {
   inset: 0;
   background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(10px);
-  z-index: 999;
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10005 !important;
   align-items: center;
   justify-content: center;
   padding: 16px;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.25s ease;
 }
 .modal-overlay.open {
-  display: flex;
-  opacity: 1;
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .modal-content {
@@ -2240,7 +2243,7 @@ html[data-layout="classic"] body {
   padding: 12px 24px;
   border-radius: 30px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(16, 185, 129, 0.4);
-  z-index: 9999;
+  z-index: 10010;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   pointer-events: none;
 }

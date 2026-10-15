@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="style.css?v=1.4">
+  <link rel="stylesheet" href="style.css?v=1.5">
 </head>
 <body data-layout="mobiglas">
 
@@ -69,7 +69,7 @@
       </div>
 
       <!-- Squad / Fleet modal trigger in mobiGlas mode -->
-      <button class="mg-squad-btn" id="btnMgSquadModal" data-i18n-title="titleSquadModal" title="Gestion de flotte & escouade multi-vaisseaux">
+      <button type="button" class="mg-squad-btn" id="btnMgSquadModal" data-i18n-title="titleSquadModal" title="Gestion de flotte & escouade multi-vaisseaux">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
           <circle cx="9" cy="7" r="4"></circle>
@@ -1950,8 +1950,8 @@
         <span class="dock-label" data-i18n="dockLedger">JOURNAL</span>
       </button>
 
-      <!-- 7. Multi-Crew App -->
-      <button class="dock-item" id="dockBtnCrew" data-dock-target="crew" title="Équipage Multi-Crew">
+      <!-- 7. Multi-Crew & Fleet App -->
+      <button class="dock-item" id="dockBtnCrew" data-dock-target="crew" data-i18n-title="dockCrewTitle" title="Flotte & Équipage Multi-Vaisseaux">
         <div class="dock-circle">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -1959,7 +1959,7 @@
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
           </svg>
         </div>
-        <span class="dock-label" data-i18n="dockCrew">ÉQUIPAGE</span>
+        <span class="dock-label" data-i18n="dockCrew">FLOTTE</span>
       </button>
 
       <!-- 8. User Guide App -->
@@ -1999,11 +1999,11 @@
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.4)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.5)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.4 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.5 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
-  <script type="module" src="app.js?v=1.4"></script>
+  <script type="module" src="app.js?v=1.5"></script>
 </body>
 </html>
