@@ -35,8 +35,30 @@
 }
 
 /* ==========================================================================
-   COCKPIT THEMES (MISC, DRAKE, AEGIS, RSI)
+   COCKPIT & MOBIGLAS THEMES (MOBIGLAS, MISC, DRAKE, AEGIS, RSI)
    ========================================================================== */
+
+/* MOBIGLAS HOLOGRAPHIC (Star Citizen Alpha 4.0+ Wrist HUD) */
+[data-theme="mobiglas"] {
+  --bg-space: #030712;
+  --bg-panel: rgba(6, 15, 30, 0.78);
+  --bg-panel-elevated: rgba(10, 24, 46, 0.9);
+  --bg-card: rgba(8, 20, 38, 0.72);
+  
+  --border-cyan: rgba(0, 240, 255, 0.42);
+  --border-cyan-bright: #00f0ff;
+  --cyan-glow: rgba(0, 240, 255, 0.38);
+  
+  --text-main: #f0fdf4;
+  --text-muted: #7dd3fc;
+  --text-cyan: #38bdf8;
+  
+  --accent-cyan: #00f0ff;
+  --accent-amber: #f59e0b;
+  --accent-emerald: #10b981;
+  --accent-rose: #f43f5e;
+  --accent-purple: #c084fc;
+}
 
 /* DRAKE AMBER (Industrial Caterpillar / Vulture / Cutlass) */
 [data-theme="drake"] {
@@ -116,6 +138,127 @@ body::after {
   pointer-events: none;
   z-index: 9998;
   opacity: 0.6;
+}
+
+/* ==========================================================================
+   MOBIGLAS HOLOGRAPHIC SPECIFIC STYLES (HEX MESH, CORNER BRACKETS, TELEMETRY)
+   ========================================================================== */
+
+/* mobiGlas Hexagonal Holographic Space Backdrop */
+[data-theme="mobiglas"] body {
+  background-color: #030712;
+  background-image: 
+    radial-gradient(circle at 50% 5%, rgba(0, 240, 255, 0.14), transparent 55%),
+    radial-gradient(circle at 90% 90%, rgba(56, 189, 248, 0.08), transparent 45%),
+    radial-gradient(circle at 10% 80%, rgba(192, 132, 252, 0.06), transparent 40%),
+    /* Holographic Hex Mesh */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48.5' viewBox='0 0 28 48.5'%3E%3Cpolygon points='14,0 28,8.08 28,24.25 14,32.33 0,24.25 0,8.08' fill='none' stroke='rgba(0,240,255,0.05)' stroke-width='1'/%3E%3Cpolygon points='14,24.25 28,32.33 28,48.5 14,56.58 0,48.5 0,32.33' fill='none' stroke='rgba(0,240,255,0.05)' stroke-width='1'/%3E%3C/svg%3E"),
+    linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 56px 97px, 48px 48px, 48px 48px;
+}
+
+/* mobiGlas Holographic Corner Brackets */
+[data-theme="mobiglas"] .mfd-panel,
+[data-theme="mobiglas"] .modal-content {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 240, 255, 0.08);
+}
+
+[data-theme="mobiglas"] .mfd-panel::before,
+[data-theme="mobiglas"] .modal-content::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid var(--accent-cyan);
+  border-left: 2px solid var(--accent-cyan);
+  border-top-left-radius: 6px;
+  box-shadow: -2px -2px 10px var(--cyan-glow);
+  pointer-events: none;
+}
+
+[data-theme="mobiglas"] .mfd-panel::after,
+[data-theme="mobiglas"] .modal-content::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 16px;
+  height: 16px;
+  border-bottom: 2px solid var(--accent-cyan);
+  border-right: 2px solid var(--accent-cyan);
+  border-bottom-right-radius: 6px;
+  box-shadow: 2px 2px 10px var(--cyan-glow);
+  pointer-events: none;
+}
+
+/* mobiGlas Top Header floating dock */
+[data-theme="mobiglas"] .hud-header {
+  background: rgba(6, 15, 30, 0.78);
+  border: 1px solid rgba(0, 240, 255, 0.42);
+  box-shadow: 0 4px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 240, 255, 0.12);
+}
+
+/* mobiGlas Verdict & Metric Cards */
+[data-theme="mobiglas"] .verdict-box {
+  background: linear-gradient(135deg, rgba(6, 18, 38, 0.85) 0%, rgba(10, 28, 56, 0.9) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.16), inset 0 0 15px rgba(0, 240, 255, 0.08);
+  backdrop-filter: blur(14px);
+  position: relative;
+}
+
+[data-theme="mobiglas"] .metric-card {
+  background: rgba(8, 20, 38, 0.72);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(0, 240, 255, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+/* mobiGlas Segmented Telemetry Power Gauge */
+[data-theme="mobiglas"] .power-bar-wrapper {
+  background: rgba(4, 10, 22, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+  padding: 2px;
+}
+
+[data-theme="mobiglas"] .power-bar-fill {
+  background: repeating-linear-gradient(
+    90deg,
+    #00f0ff 0px,
+    #00f0ff 7px,
+    rgba(3, 7, 18, 0.85) 7px,
+    rgba(3, 7, 18, 0.85) 10px
+  ) !important;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.7);
+}
+
+[data-theme="mobiglas"] .power-bar-fill[style*="linear-gradient(90deg, rgb(16, 185, 129)"] {
+  background: repeating-linear-gradient(
+    90deg,
+    #10b981 0px,
+    #10b981 7px,
+    rgba(3, 7, 18, 0.85) 7px,
+    rgba(3, 7, 18, 0.85) 10px
+  ) !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.7) !important;
+}
+
+[data-theme="mobiglas"] .power-bar-fill[style*="linear-gradient(90deg, rgb(245, 158, 11)"] {
+  background: repeating-linear-gradient(
+    90deg,
+    #f59e0b 0px,
+    #f59e0b 7px,
+    rgba(3, 7, 18, 0.85) 7px,
+    rgba(3, 7, 18, 0.85) 10px
+  ) !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.7) !important;
 }
 
 /* Scrollbars (W3C CSS Scrollbars Module Level 1 + WebKit fallback) */

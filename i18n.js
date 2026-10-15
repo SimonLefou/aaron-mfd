@@ -97,6 +97,7 @@ export const I18N = {
     radarTips: "Astuce : Les astéroïdes dans Star Citizen utilisent des signatures multiplicatrices (x1, x2, x4, x8) de la signature 1x de base.",
 
     // Themes
+    themeMobiglas: "mobiGlas (Hologramme)",
     themeMisc: "MISC (Cyan)",
     themeDrake: "Drake (Ambre)",
     themeAegis: "Aegis (Émeraude)",
@@ -531,6 +532,7 @@ export const I18N = {
     radarTips: "Pro Tip: Asteroids in Star Citizen scale base 1x RS signatures by cluster multipliers (1x, 2x, 4x, 8x).",
 
     // Themes
+    themeMobiglas: "mobiGlas (Hologram)",
     themeMisc: "MISC (Cyan)",
     themeDrake: "Drake (Amber)",
     themeAegis: "Aegis (Emerald)",

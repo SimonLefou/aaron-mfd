@@ -6,7 +6,7 @@ import { I18N } from './i18n.js';
 // ==========================================
 const state = {
   currentLang: localStorage.getItem('aaron_mfd_lang') || 'fr',
-  currentTheme: localStorage.getItem('aaron_mfd_theme') || 'misc',
+  currentTheme: localStorage.getItem('aaron_mfd_theme') || 'mobiglas',
   wakeLock: null,
 
   selectedShip: MINING_DATA.ships[0], // MISC Prospector
@@ -2002,6 +2002,7 @@ function setLanguage(lang) {
   if (DOM.themeSelect) {
     const themeOpts = DOM.themeSelect.querySelectorAll('option');
     themeOpts.forEach(opt => {
+      if (opt.value === 'mobiglas') opt.textContent = t.themeMobiglas;
       if (opt.value === 'misc') opt.textContent = t.themeMisc;
       if (opt.value === 'drake') opt.textContent = t.themeDrake;
       if (opt.value === 'aegis') opt.textContent = t.themeAegis;
