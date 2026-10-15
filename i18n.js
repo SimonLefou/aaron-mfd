@@ -405,7 +405,7 @@ export const I18N = {
     titleToggleTurret: "Cliquer pour replier/déplier la tourelle",
 
     // Changelog
-    changelogLink: "📜 Notes de version (v1.3)",
+    changelogLink: "📜 Notes de version (v1.5)",
     changelogTitle: "NOTES DE VERSION (CHANGELOG)",
     changelogSubtitle: "Historique des ajouts, améliorations et correctifs",
     tagNew: "NOUVEAU",
@@ -481,9 +481,9 @@ export const I18N = {
     // Footer
     installPWA: "📱 Installer sur écran d'accueil",
     reset: "🔄 Réinitialiser",
-    forceUpdateBtn: "⚡ Vider le Cache (v1.4)",
-    toastCacheCleared: "🔄 Cache PWA réinitialisé vers la version v1.4 (Star Citizen 4.10) !",
-    footerDisclaimer: "AARON MFD v1.4 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne"
+    forceUpdateBtn: "⚡ Vider le Cache (v1.5)",
+    toastCacheCleared: "🔄 Cache PWA réinitialisé vers la version v1.5 (Star Citizen 4.10) !",
+    footerDisclaimer: "AARON MFD v1.5 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne"
   },
 
   en: {
@@ -891,7 +891,7 @@ export const I18N = {
     titleToggleTurret: "Click to collapse/expand turret",
 
     // Changelog
-    changelogLink: "📜 Release Notes (v1.3)",
+    changelogLink: "📜 Release Notes (v1.5)",
     changelogTitle: "RELEASE NOTES (CHANGELOG)",
     changelogSubtitle: "Complete history of additions, improvements and bug fixes",
     tagNew: "NEW",
@@ -967,8 +967,8 @@ export const I18N = {
     // Footer
     installPWA: "📱 Install on Home Screen",
     reset: "🔄 Reset Session",
-    forceUpdateBtn: "⚡ Clear Cache (v1.4)",
-    toastCacheCleared: "🔄 PWA Cache reset to version v1.4 (Star Citizen 4.10)!",
-    footerDisclaimer: "AARON MFD v1.4 (Star Citizen Alpha 4.10) • Community tool not affiliated with Cloud Imperium Games • Works 100% offline"
+    forceUpdateBtn: "⚡ Clear Cache (v1.5)",
+    toastCacheCleared: "🔄 PWA Cache reset to version v1.5 (Star Citizen 4.10)!",
+    footerDisclaimer: "AARON MFD v1.5 (Star Citizen Alpha 4.10) • Community tool not affiliated with Cloud Imperium Games • Works 100% offline"
   }
 };

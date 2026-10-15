@@ -110,12 +110,47 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.4',
+    version: 'v1.5',
     isCurrent: true,
-    title_fr: 'Star Citizen Alpha 4.10 Mining Overhaul (Archétypes, Multi-Minerais, Sacoches & Radar 2.0)',
-    title_en: 'Star Citizen Alpha 4.10 Mining Overhaul (Archetypes, Multi-Ore, Saddlebags & Radar 2.0)',
+    title_fr: 'Refonte mobiGlas 4.0 Authentique & Coordination de Flotte Multi-Vaisseaux',
+    title_en: 'Authentic mobiGlas 4.0 Layout & Multi-Ship Fleet Coordination',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Présentation Holographique mobiGlas 4.0</strong> : Refonte visuelle inspirée de l\'interface holographique de Star Citizen (grille hexagonale, cornières néon, scanlines CRT et bandeau supérieur avec statut système, comms et indicatif).',
+        text_en: '<strong>mobiGlas 4.0 Holographic Layout</strong>: Complete visual redesign inspired by authentic Star Citizen mobiGlas holography (hex mesh, glowing brackets, CRT scanlines, and top status bar with system node, comms, and callsign).'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Dock d\'Applications Rapide</strong> : Barre d\'accès rapide inférieure avec 9 applications instantanées (Scanner, Analyse, Loadout, Raffinage, Starmap, Radar RS, Journal, Flotte et bascule Cockpit).',
+        text_en: '<strong>Bottom App Launcher Dock</strong>: Quick-access launcher bar with 9 apps (Scanner, Analysis, Loadout, Refinery, Starmap, RS Radar, Ledger, Fleet, and Cockpit switch).'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Coordination d\'Escouade & Flotte Multi-Vaisseaux</strong> : Gérez une escadre complète (Prospector, MOLE, ROC, C2 Hercules, etc.) avec cumul automatique des tirs laser, réduction conjointe de la résistance et répartition équitable des profits.',
+        text_en: '<strong>Multiplayer Fleet & Squad Mining</strong>: Coordinate a full wing (Prospector, MOLE, ROC, C2 Hercules, etc.) with joint laser beam power stacking, shared rock resistance reduction, and net profit split per player.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Bascule Instantanée Cockpit MFD & mobiGlas</strong> : Passez en un clic de la vue Cockpit classique à la vue mobiGlas avec mémorisation automatique du choix dans le profil local.',
+        text_en: '<strong>Instant Layout Toggle</strong>: Switch seamlessly between Classic Cockpit MFD and mobiGlas layout with automatic persistence in local storage.'
+      },
+      {
+        tag: 'improved',
+        text_fr: '<strong>Gestionnaire de Modales Haut Débit & Déblocage Dock</strong> : Accès direct garanti à toutes les modales (Flotte, Journal, Radar) et fermeture intuitive par clic sur l\'arrière-plan flouté.',
+        text_en: '<strong>High-Speed Modal Engine & Dock Fix</strong>: Guaranteed direct triggering of all dock modals (Fleet, Ledger, Radar) with overlay backdrop click-to-close.'
+      }
+    ]
+  },
+  {
+    version: 'v1.4',
+    isCurrent: false,
+    title_fr: 'Star Citizen Alpha 4.10 Mining Overhaul (Archétypes, Multi-Minerais, Sacoches & Radar 2.0)',
+    title_en: 'Star Citizen Alpha 4.10 Mining Overhaul (Archetypes, Multi-Ore, Saddlebags & Radar 2.0)',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'new',
@@ -2749,6 +2784,9 @@ function setLanguage(lang) {
     DOM.btnGuideLangFr.classList.toggle('active', lang === 'fr');
     DOM.btnGuideLangEn.classList.toggle('active', lang === 'en');
   }
+
+  // 10. Update Changelog entries in current language
+  renderChangelog();
 }
 
 function updateToggleAllButtonText() {
@@ -3484,12 +3522,14 @@ function bindEventListeners() {
   if (DOM.btnVersionBadge) {
     DOM.btnVersionBadge.addEventListener('click', () => {
       sfx.playBeep(650, 'sine', 0.04);
+      renderChangelog();
       openModal(DOM.changelogModal);
     });
   }
   if (DOM.btnOpenChangelog) {
     DOM.btnOpenChangelog.addEventListener('click', () => {
       sfx.playBeep(650, 'sine', 0.04);
+      renderChangelog();
       openModal(DOM.changelogModal);
     });
   }
@@ -4980,7 +5020,7 @@ function registerServiceWorker() {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
         .then(reg => {
-          console.log('[AARON MFD] ServiceWorker actif (v1.3):', reg.scope);
+          console.log('[AARON MFD] ServiceWorker actif (v1.5):', reg.scope);
 
           // Force update check
           reg.update().catch(() => {});
@@ -4990,9 +5030,9 @@ function registerServiceWorker() {
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[AARON MFD] Nouvelle version v1.3 disponible en cache.');
+                  console.log('[AARON MFD] Nouvelle version v1.5 disponible en cache.');
                   const t = I18N[state.currentLang] || I18N.fr;
-                  showToast(t.toastCacheCleared || 'Mise à jour v1.3 disponible !');
+                  showToast(t.toastCacheCleared || 'Mise à jour v1.5 disponible !');
                 }
               });
             }
@@ -5018,7 +5058,7 @@ function forceRefreshCache() {
   const t = I18N[state.currentLang] || I18N.fr;
   sfx.playSuccess();
   triggerHaptic(25);
-  showToast(t.toastCacheCleared || 'Cache vidé ! Rechargement v1.3...');
+  showToast(t.toastCacheCleared || 'Cache vidé ! Rechargement v1.5...');
 
   const cleanCaches = 'caches' in window
     ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
