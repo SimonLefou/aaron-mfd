@@ -141,12 +141,27 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.6.0',
+    version: 'v1.6.1',
     isCurrent: true,
-    title_fr: 'Gestionnaire de Profils & Sauvegardes d\'Équipement Personnalisées',
-    title_en: 'Loadout Profiles Manager & Custom Saved Configurations',
+    title_fr: 'Épuration du Volet Données du Scan',
+    title_en: 'Rock Scan Data Clean-up',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'improved',
+        text_fr: '<strong>Nettoyage du Volet Données du Scan</strong> : Retrait du sélecteur rapide de tête laser redondant dans le panneau de roche, l\'équipement complet étant centralisé dans la modale Loadout et le gestionnaire de profils.',
+        text_en: '<strong>Rock Scan Panel Clean-up</strong>: Removed redundant mining head selector from rock scan data panel, keeping equipment management centralized in Loadout modal and profiles manager.'
+      }
+    ]
+  },
+  {
+    version: 'v1.6.0',
+    isCurrent: false,
+    title_fr: 'Gestionnaire de Profils & Sauvegardes d\'Équipement Personnalisées',
+    title_en: 'Loadout Profiles Manager & Custom Saved Configurations',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'new',
@@ -542,8 +557,6 @@ const DOM = {
   mgShipSelect: document.getElementById('mgShipSelect'),
   loadoutShipSelect: document.getElementById('loadoutShipSelect'),
   mgShipBadge: document.getElementById('mgShipBadge'),
-  mainLaserSelect: document.getElementById('mainLaserSelect'),
-  btnQuickOpenLoadout: document.getElementById('btnQuickOpenLoadout'),
   laserSectionLabel: document.getElementById('laserSectionLabel'),
   btnOpenLoadout: document.getElementById('btnOpenLoadout'),
   loadoutSummary: document.getElementById('loadoutSummary'),
@@ -2045,7 +2058,6 @@ function renderShipTurretsConfig() {
 
       if (idx === 0) {
         state.selectedLaser = newL;
-        if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = newL.id;
       }
 
       renderLaserStatsStrip(statsStrip, newL);
@@ -2128,24 +2140,12 @@ function updateLaserOptions() {
   // Compatible lasers for active ship size
   const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
 
-  // Populate Panel 1 main laser select
-  if (DOM.mainLaserSelect) {
-    DOM.mainLaserSelect.innerHTML = '';
-    compatibleLasers.forEach(laser => {
-      const slotText = laser.slots !== undefined ? ` • ${laser.slots} slot(s)` : '';
-      const opt = new Option(`${laser.name} (S${laser.size}${slotText})`, laser.id);
-      DOM.mainLaserSelect.appendChild(opt);
-    });
-  }
-
   // Synchronize primary turret
   const turrets = getShipTurretConfigs(ship.id);
   const primaryLaser = compatibleLasers.find(l => l.id === turrets[0].laserId) || compatibleLasers[0] || MINING_DATA.lasers[0];
   state.selectedLaser = primaryLaser;
   turrets[0].laserId = primaryLaser.id;
   state.selectedModules = turrets[0].moduleIds;
-
-  if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = state.selectedLaser.id;
 
   if (DOM.laserSectionLabel) {
     DOM.laserSectionLabel.textContent = isMultiTurret
@@ -3660,7 +3660,6 @@ function bindEventListeners() {
       const primaryLaser = MINING_DATA.lasers.find(l => l.id === turrets[0].laserId) || state.selectedLaser;
       state.selectedLaser = primaryLaser;
       state.selectedModules = [...turrets[0].moduleIds];
-      if (DOM.mainLaserSelect) DOM.mainLaserSelect.value = primaryLaser.id;
     }
 
     if (DOM.gadgetSelect) {
@@ -3673,46 +3672,7 @@ function bindEventListeners() {
     calculateAll();
   });
 
-  // Laser select changes (Panel 1 mainLaserSelect)
-  const onMainLaserChange = (e) => {
-    sfx.playBeep(600, 'sine', 0.04);
-    triggerHaptic(12);
-    const l = MINING_DATA.lasers.find(x => x.id === e.target.value);
-    if (!l) return;
-    state.selectedLaser = l;
-    if (DOM.mainLaserSelect && DOM.mainLaserSelect.value !== l.id) DOM.mainLaserSelect.value = l.id;
 
-    const turrets = getShipTurretConfigs(state.selectedShip.id);
-    if (turrets.length > 0) {
-      turrets[0].laserId = l.id;
-    }
-
-    // If modal is rendered, update turret 0 select & stats
-    const t0Select = document.getElementById('turretLaser_0');
-    if (t0Select && t0Select.value !== l.id) {
-      t0Select.value = l.id;
-      const stats0 = document.getElementById('turretStats_0');
-      if (stats0) renderLaserStatsStrip(stats0, l);
-      const slots0 = document.getElementById('turretSlots_0');
-      if (slots0) renderLaserModuleSlots(slots0, l.slots ?? 0, turrets[0].moduleIds, 'turret_0');
-      updateTurretHeaderSummary(0);
-    }
-
-    updateLoadoutButtonSummary();
-    calculateAll();
-    saveLoadout();
-  };
-
-  if (DOM.mainLaserSelect) DOM.mainLaserSelect.addEventListener('change', onMainLaserChange);
-
-  if (DOM.btnQuickOpenLoadout) {
-    DOM.btnQuickOpenLoadout.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(15);
-      openModal(DOM.loadoutModal);
-      updateLaserOptions();
-    });
-  }
 
   // Language switch
   if (DOM.btnLangToggle) {

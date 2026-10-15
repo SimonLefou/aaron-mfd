@@ -8,6 +8,14 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [1.6.1] - 2026-10-15 - *Épuration du Volet Données du Scan*
+
+#### 🗑️ Supprimé (Removed)
+- **Sélecteur Redondant de Laser dans le Volet Scan** : Retrait du sélecteur de tête laser (`#mainLaserSelect`) et du bouton d'accès rapide dans le panneau « Données du scan », la gestion des têtes laser et tourelles étant centralisée dans la modale d'équipement de bord.
+
+#### 🛠️ Modifié (Changed)
+- **Nettoyage du Code & Synchronisation d'État** : Allègement de `app.js`, suppression des sélecteurs et écouteurs obsolètes, et actualisation du cache Service Worker PWA (`aaron-mfd-v1.6.1`).
+
 ### [1.6.0] - 2026-10-15 - *Gestionnaire de Profils & Sauvegardes d'Équipement Personnalisées*
 
 #### ✨ Ajouté (Added)
@@ -178,6 +186,14 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [1.6.1] - 2026-10-15 - *Rock Scan Panel Clean-up*
+
+#### 🗑️ Removed
+- **Redundant Laser Selector in Scan Panel**: Removed redundant active laser dropdown (`#mainLaserSelect`) and shortcut button from the "Rock Scan Data" panel. Laser and turret configuration is centrally managed through the dedicated Ship Loadout modal and turret cards.
+
+#### 🛠️ Changed
+- **Code & DOM Streamlining**: Cleaned up legacy selectors and event listeners in `app.js`, bumped SemVer patch version, and updated PWA Service Worker cache (`aaron-mfd-v1.6.1`).
 
 ### [1.6.0] - 2026-10-15 - *Loadout Profiles Manager & Custom Saved Configurations*
 
