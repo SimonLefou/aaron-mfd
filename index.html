@@ -689,58 +689,85 @@
 
       <!-- ARGO MOLE 3-TURRETS SECTION -->
       <div id="moleTurretsSection" style="display:none;">
-        <div style="font-size:0.8rem; color:var(--accent-amber); margin-bottom:12px; font-family:var(--font-hud); display:flex; align-items:center; gap:6px;" data-i18n="moleTurretsConfig">
-          <span>⚙</span> CONFIGURATION DES 3 TOURELLES SIZE 2
+        <div style="font-size:0.8rem; color:var(--accent-amber); margin-bottom:12px; font-family:var(--font-hud); display:flex; justify-content:space-between; align-items:center;" data-i18n-title="moleTurretsConfig">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span>⚙</span> <span data-i18n="moleTurretsConfig">CONFIGURATION DES 3 TOURELLES SIZE 2</span>
+          </div>
+          <button type="button" class="btn-turret-toggle-all" id="btnToggleAllTurrets" data-i18n="collapseAllTurrets">Tout replier</button>
         </div>
 
         <!-- Turret 1 -->
-        <div class="turret-config-card turret-1-card">
-          <div class="turret-config-header">
-            <span class="turret-badge-tag t1-badge">⌖ T1</span>
-            <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); font-weight:700;" data-i18n="moleTurret1">
-              TOURELLE 1 (CENTRALE)
-            </span>
+        <div class="turret-config-card turret-1-card" id="moleTurret1Card">
+          <div class="turret-config-header" data-toggle-turret="1" data-i18n-title="titleToggleTurret" title="Cliquer pour replier/déplier la tourelle">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="turret-badge-tag t1-badge">⌖ T1</span>
+              <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); font-weight:700;" data-i18n="moleTurret1">
+                TOURELLE 1 (CENTRALE)
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="turret-header-summary" id="moleTurret1Summary">Lancet MH2</span>
+              <span class="turret-collapse-chevron">▼</span>
+            </div>
           </div>
-          <select id="moleLaser1" class="hud-select-full" style="margin-bottom:6px;">
-            <!-- Size 2 lasers -->
-          </select>
-          <div id="moleLaser1StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
-          <div id="moleTurret1SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
-            <!-- Dynamically populated based on laser slots -->
+          <div class="turret-config-body" id="moleTurret1Body">
+            <select id="moleLaser1" class="hud-select-full" style="margin-bottom:6px;">
+              <!-- Size 2 lasers -->
+            </select>
+            <div id="moleLaser1StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
+            <div id="moleTurret1SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
+              <!-- Dynamically populated based on laser slots -->
+            </div>
           </div>
         </div>
 
         <!-- Turret 2 -->
-        <div class="turret-config-card turret-2-card">
-          <div class="turret-config-header">
-            <span class="turret-badge-tag t2-badge">◄ T2</span>
-            <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-amber); font-weight:700;" data-i18n="moleTurret2">
-              TOURELLE 2 (GAUCHE)
-            </span>
+        <div class="turret-config-card turret-2-card" id="moleTurret2Card">
+          <div class="turret-config-header" data-toggle-turret="2" data-i18n-title="titleToggleTurret" title="Cliquer pour replier/déplier la tourelle">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="turret-badge-tag t2-badge">◄ T2</span>
+              <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-amber); font-weight:700;" data-i18n="moleTurret2">
+                TOURELLE 2 (GAUCHE)
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="turret-header-summary" id="moleTurret2Summary">Helix II</span>
+              <span class="turret-collapse-chevron">▼</span>
+            </div>
           </div>
-          <select id="moleLaser2" class="hud-select-full" style="margin-bottom:6px;">
-            <!-- Size 2 lasers -->
-          </select>
-          <div id="moleLaser2StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
-          <div id="moleTurret2SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
-            <!-- Dynamically populated based on laser slots -->
+          <div class="turret-config-body" id="moleTurret2Body">
+            <select id="moleLaser2" class="hud-select-full" style="margin-bottom:6px;">
+              <!-- Size 2 lasers -->
+            </select>
+            <div id="moleLaser2StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
+            <div id="moleTurret2SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
+              <!-- Dynamically populated based on laser slots -->
+            </div>
           </div>
         </div>
 
         <!-- Turret 3 -->
-        <div class="turret-config-card turret-3-card">
-          <div class="turret-config-header">
-            <span class="turret-badge-tag t3-badge">► T3</span>
-            <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-purple); font-weight:700;" data-i18n="moleTurret3">
-              TOURELLE 3 (DROITE)
-            </span>
+        <div class="turret-config-card turret-3-card" id="moleTurret3Card">
+          <div class="turret-config-header" data-toggle-turret="3" data-i18n-title="titleToggleTurret" title="Cliquer pour replier/déplier la tourelle">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="turret-badge-tag t3-badge">► T3</span>
+              <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-purple); font-weight:700;" data-i18n="moleTurret3">
+                TOURELLE 3 (DROITE)
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="turret-header-summary" id="moleTurret3Summary">Helix II</span>
+              <span class="turret-collapse-chevron">▼</span>
+            </div>
           </div>
-          <select id="moleLaser3" class="hud-select-full" style="margin-bottom:6px;">
-            <!-- Size 2 lasers -->
-          </select>
-          <div id="moleLaser3StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
-          <div id="moleTurret3SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
-            <!-- Dynamically populated based on laser slots -->
+          <div class="turret-config-body" id="moleTurret3Body">
+            <select id="moleLaser3" class="hud-select-full" style="margin-bottom:6px;">
+              <!-- Size 2 lasers -->
+            </select>
+            <div id="moleLaser3StatsStrip" class="laser-stats-strip" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;"></div>
+            <div id="moleTurret3SlotsContainer" style="display:flex; flex-direction:column; gap:6px;">
+              <!-- Dynamically populated based on laser slots -->
+            </div>
           </div>
         </div>
       </div>

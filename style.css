@@ -2112,8 +2112,8 @@ body::after {
   border: 1px solid rgba(0, 240, 255, 0.2);
   padding: 10px 12px;
   border-radius: 8px;
-  margin-bottom: 12px;
-  transition: all 0.2s ease;
+  margin-bottom: 10px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .turret-config-card.turret-1-card {
   border-color: rgba(0, 240, 255, 0.35);
@@ -2127,12 +2127,68 @@ body::after {
   border-color: rgba(168, 85, 247, 0.35);
   background: linear-gradient(180deg, rgba(168, 85, 247, 0.04) 0%, rgba(13, 21, 34, 0.5) 100%);
 }
+.turret-config-card.collapsed {
+  padding-bottom: 10px;
+  opacity: 0.92;
+}
 
 .turret-config-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 3px 0;
+  transition: all 0.2s ease;
+}
+.turret-config-header:hover {
+  filter: brightness(1.25);
+}
+
+.turret-collapse-chevron {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-block;
+}
+.turret-config-card.collapsed .turret-collapse-chevron {
+  transform: rotate(-90deg);
+}
+
+.turret-header-summary {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.turret-config-body {
+  margin-top: 10px;
+  transition: all 0.25s ease;
+}
+.turret-config-card.collapsed .turret-config-body {
+  display: none;
+}
+
+.btn-turret-toggle-all {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-turret-toggle-all:hover {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
 }
 
 .turret-badge-tag {

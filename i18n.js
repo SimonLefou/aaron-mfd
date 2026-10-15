@@ -348,6 +348,9 @@ export const I18N = {
     moduleTypeActive: "ACTIF",
     moduleTypePassive: "PASSIF",
     moduleTypeEmpty: "VIDE",
+    collapseAllTurrets: "Tout replier",
+    expandAllTurrets: "Tout déplier",
+    titleToggleTurret: "Cliquer pour replier/déplier la tourelle",
 
     // Changelog
     changelogLink: "📜 Notes de version (v1.3)",
@@ -779,6 +782,9 @@ export const I18N = {
     moduleTypeActive: "ACTIVE",
     moduleTypePassive: "PASSIVE",
     moduleTypeEmpty: "EMPTY",
+    collapseAllTurrets: "Collapse All",
+    expandAllTurrets: "Expand All",
+    titleToggleTurret: "Click to collapse/expand turret",
 
     // Changelog
     changelogLink: "📜 Release Notes (v1.3)",

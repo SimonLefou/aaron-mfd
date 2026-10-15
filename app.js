@@ -602,6 +602,13 @@ const DOM = {
   moleLaser1StatsStrip: document.getElementById('moleLaser1StatsStrip'),
   moleLaser2StatsStrip: document.getElementById('moleLaser2StatsStrip'),
   moleLaser3StatsStrip: document.getElementById('moleLaser3StatsStrip'),
+  moleTurret1Card: document.getElementById('moleTurret1Card'),
+  moleTurret2Card: document.getElementById('moleTurret2Card'),
+  moleTurret3Card: document.getElementById('moleTurret3Card'),
+  moleTurret1Summary: document.getElementById('moleTurret1Summary'),
+  moleTurret2Summary: document.getElementById('moleTurret2Summary'),
+  moleTurret3Summary: document.getElementById('moleTurret3Summary'),
+  btnToggleAllTurrets: document.getElementById('btnToggleAllTurrets'),
   singleLaserSlotsContainer: document.getElementById('singleLaserSlotsContainer'),
   moleTurret1SlotsContainer: document.getElementById('moleTurret1SlotsContainer'),
   moleTurret2SlotsContainer: document.getElementById('moleTurret2SlotsContainer'),
@@ -1390,6 +1397,11 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
       effectDesc.className = `module-effect-desc ${selected.type === 'active' ? 'active-effect' : (selected.type === 'passive' ? 'passive-effect' : '')}`;
       effectDesc.innerHTML = `<span>${newIcon}</span> <span>${newDesc || (state.currentLang === 'fr' ? 'Emplacement vide' : 'Empty slot')}</span>`;
 
+      if (prefix.startsWith('mole_t')) {
+        const tNum = parseInt(prefix.slice(6), 10);
+        if (tNum) updateMoleTurretHeaderSummary(tNum);
+      }
+
       updateLoadoutButtonSummary();
       calculateAll();
       saveLoadout();
@@ -1400,6 +1412,18 @@ function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix 
     card.appendChild(effectDesc);
     container.appendChild(card);
   }
+}
+
+// Helper: Update concise summary pill in collapsible turret header
+function updateMoleTurretHeaderSummary(turretNum) {
+  const tKey = `turret${turretNum}`;
+  const cfg = state.moleTurrets ? state.moleTurrets[tKey] : null;
+  const summaryEl = DOM[`moleTurret${turretNum}Summary`];
+  if (!cfg || !summaryEl) return;
+  const laser = MINING_DATA.lasers.find(l => l.id === cfg.laserId) || MINING_DATA.lasers[4];
+  const slotCount = laser.slots ?? 2;
+  const activeModsCount = (cfg.moduleIds || []).slice(0, slotCount).filter(m => m !== 'none').length;
+  summaryEl.textContent = `${laser.name} (${activeModsCount}/${slotCount} mods)`;
 }
 
 // Populate Loadout modal selects
@@ -1442,6 +1466,7 @@ function populateMoleSelects() {
     const currentLaser = MINING_DATA.lasers.find(l => l.id === item.cfg.laserId) || size2Lasers[0];
     renderLaserStatsStrip(item.statsStrip, currentLaser);
     renderLaserModuleSlots(item.container, currentLaser.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
+    updateMoleTurretHeaderSummary(idx + 1);
 
     item.sel.onchange = (e) => {
       sfx.playBeep(600, 'sine', 0.04);
@@ -1449,6 +1474,7 @@ function populateMoleSelects() {
       const newL = MINING_DATA.lasers.find(l => l.id === e.target.value) || size2Lasers[0];
       renderLaserStatsStrip(item.statsStrip, newL);
       renderLaserModuleSlots(item.container, newL.slots ?? 2, item.cfg.moduleIds, `mole_t${idx + 1}`);
+      updateMoleTurretHeaderSummary(idx + 1);
       calculateAll();
       saveLoadout();
     };
@@ -2004,12 +2030,21 @@ function setLanguage(lang) {
   calculateCrewSplit();
   updateRocCluster();
   renderChangelog();
+  updateToggleAllButtonText();
 
   // 9. Update Guide Modal language buttons
   if (DOM.btnGuideLangFr && DOM.btnGuideLangEn) {
     DOM.btnGuideLangFr.classList.toggle('active', lang === 'fr');
     DOM.btnGuideLangEn.classList.toggle('active', lang === 'en');
   }
+}
+
+function updateToggleAllButtonText() {
+  if (!DOM.btnToggleAllTurrets) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  const cards = [DOM.moleTurret1Card, DOM.moleTurret2Card, DOM.moleTurret3Card].filter(Boolean);
+  const allCollapsed = cards.length > 0 && cards.every(c => c.classList.contains('collapsed'));
+  DOM.btnToggleAllTurrets.textContent = allCollapsed ? (t.expandAllTurrets || 'Tout déplier') : (t.collapseAllTurrets || 'Tout replier');
 }
 
 function populateHaloAndStations() {
@@ -2427,6 +2462,34 @@ function bindEventListeners() {
       calculateAll();
     });
   });
+
+  // MOLE Collapsible turrets in loadout
+  document.querySelectorAll('[data-toggle-turret]').forEach(header => {
+    header.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.03);
+      triggerHaptic(12);
+      const tNum = header.dataset.toggleTurret;
+      const card = document.getElementById(`moleTurret${tNum}Card`);
+      if (card) {
+        card.classList.toggle('collapsed');
+      }
+      updateToggleAllButtonText();
+    });
+  });
+
+  if (DOM.btnToggleAllTurrets) {
+    DOM.btnToggleAllTurrets.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(15);
+      const cards = [DOM.moleTurret1Card, DOM.moleTurret2Card, DOM.moleTurret3Card].filter(Boolean);
+      const allCollapsed = cards.length > 0 && cards.every(c => c.classList.contains('collapsed'));
+      cards.forEach(c => {
+        if (allCollapsed) c.classList.remove('collapsed');
+        else c.classList.add('collapsed');
+      });
+      updateToggleAllButtonText();
+    });
+  }
 
   // Save Loadout modal
   DOM.btnSaveLoadout.addEventListener('click', () => {
