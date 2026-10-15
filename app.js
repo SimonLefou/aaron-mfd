@@ -139,23 +139,13 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.5',
+    version: 'v1.5.0',
     isCurrent: true,
-    title_fr: 'Refonte mobiGlas 4.0 Authentique & Coordination de Flotte Multi-Vaisseaux',
-    title_en: 'Authentic mobiGlas 4.0 Layout & Multi-Ship Fleet Coordination',
+    title_fr: 'Refonte mobiGlas 4.0, Coordination de Flotte & Tourelles Unifiées',
+    title_en: 'mobiGlas 4.0 Layout, Fleet Coordination & Unified Turrets',
     date_fr: 'Dernière version (Alpha 4.10)',
     date_en: 'Latest Version (Alpha 4.10)',
     items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Présentation Holographique mobiGlas 4.0</strong> : Refonte visuelle inspirée de l\'interface holographique de Star Citizen (grille hexagonale, cornières néon, scanlines CRT et bandeau supérieur avec statut système, comms et indicatif).',
-        text_en: '<strong>mobiGlas 4.0 Holographic Layout</strong>: Complete visual redesign inspired by authentic Star Citizen mobiGlas holography (hex mesh, glowing brackets, CRT scanlines, and top status bar with system node, comms, and callsign).'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Dock d\'Applications Rapide</strong> : Barre d\'accès rapide inférieure avec 9 applications instantanées (Scanner, Analyse, Loadout, Raffinage, Starmap, Radar RS, Journal, Flotte et bascule Cockpit).',
-        text_en: '<strong>Bottom App Launcher Dock</strong>: Quick-access launcher bar with 9 apps (Scanner, Analysis, Loadout, Refinery, Starmap, RS Radar, Ledger, Fleet, and Cockpit switch).'
-      },
       {
         tag: 'new',
         text_fr: '<strong>Coordination d\'Escouade & Flotte Multi-Vaisseaux</strong> : Gérez une escadre complète (Prospector, MOLE, ROC, C2 Hercules, etc.) avec cumul automatique des tirs laser, réduction conjointe de la résistance et répartition équitable des profits.',
@@ -163,13 +153,23 @@ const CHANGELOG_DATA = [
       },
       {
         tag: 'new',
-        text_fr: '<strong>Bascule Instantanée Cockpit MFD & mobiGlas</strong> : Passez en un clic de la vue Cockpit classique à la vue mobiGlas avec mémorisation automatique du choix dans le profil local.',
-        text_en: '<strong>Instant Layout Toggle</strong>: Switch seamlessly between Classic Cockpit MFD and mobiGlas layout with automatic persistence in local storage.'
+        text_fr: '<strong>Intégration RSI Arrastra & RSI Orion</strong> : Support des 3 tourelles Size 3 de l\'Arrastra (576 SCU) et des 2 tourelles lourdes de l\'Orion (2 880 SCU) avec 6 têtes laser Size 3 authentiques.',
+        text_en: '<strong>RSI Arrastra & RSI Orion Integration</strong>: Full support for Arrastra 3x Size 3 remote turrets (576 SCU) and Orion 2x heavy turrets (2,880 SCU) with 6 authentic Size 3 laser heads.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Présentation Holographique mobiGlas 4.0 & Dock</strong> : Interface holographique inspirée du mobiGlas Star Citizen et dock d\'applications rapide avec accès instantané aux 9 outils.',
+        text_en: '<strong>mobiGlas 4.0 Holographic Layout & Dock</strong>: Complete visual redesign inspired by authentic Star Citizen mobiGlas holography and 9-app quick launcher dock.'
       },
       {
         tag: 'improved',
-        text_fr: '<strong>Gestionnaire de Modales Haut Débit & Déblocage Dock</strong> : Accès direct garanti à toutes les modales (Flotte, Journal, Radar) et fermeture intuitive par clic sur l\'arrière-plan flouté.',
-        text_en: '<strong>High-Speed Modal Engine & Dock Fix</strong>: Guaranteed direct triggering of all dock modals (Fleet, Ledger, Radar) with overlay backdrop click-to-close.'
+        text_fr: '<strong>Architecture Unifiée des Tourelles</strong> : Élimination du doublon de la première tourelle et bloc de configuration pliable unifié (1 à 3 tourelles) avec slots de modules dynamiques pour tous les vaisseaux.',
+        text_en: '<strong>Unified Dynamic Turrets Architecture</strong>: Removed Turret 1 duplicate and established unified collapsible turret card blocks (1 to 3 turrets) with dynamic module slots for all ships.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Bouton Soutenir Dédié</strong> : Remplacement des boutons de bascule en faveur du bouton « Soutenir » dans le bandeau supérieur, le dock et le pied de page.',
+        text_en: '<strong>Dedicated Support Buttons</strong>: Replaced legacy layout switches with direct Community Support triggers in top header, dock, and footer.'
       }
     ]
   },

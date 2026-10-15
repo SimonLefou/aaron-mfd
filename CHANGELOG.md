@@ -8,7 +8,38 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
-### [v1.2] - 2026-10-14 - *Tactical Overhaul & 6 Mining Tools*
+### [1.5.0] - 2026-10-15 - *Refonte mobiGlas 4.0, Coordination de Flotte & Tourelles Unifiées*
+
+#### ✨ Ajouté (Added)
+- **Coordination de Flotte & Escouade Multi-Joueurs** : Gestion d'une escadre complète (Prospector, MOLE, ROC, C2 Hercules, etc.) avec cumul des tirs laser, réduction conjointe de la résistance et répartition automatique des gains nets par joueur.
+- **Support Vaisseaux Lourds RSI Arrastra & RSI Orion** : Prise en charge des 3 tourelles Size 3 de l'Arrastra (576 SCU) et des 2 tourelles lourdes de l'Orion (2 880 SCU).
+- **6 Nouvelles Têtes de Minage Size 3** : Ajout des lasers *Arbor MH3*, *Lancet MH3*, *Helix III*, *Impact III*, *Hofstede-S3*, *Klein-S3* avec leurs caractéristiques officielles.
+- **Présentation Holographique mobiGlas 4.0** : Interface holographique inspirée du mobiGlas Star Citizen avec grille hexagonale, cornières néon, scanlines CRT et bandeau supérieur de statut système.
+- **Dock Rapide d'Applications** : Barre de lancement inférieure avec accès instantané aux 9 outils tactiques.
+- **Bouton de Soutien Communautaire** : Boutons dédiés « Soutenir » dans le bandeau supérieur, le dock et le pied de page (Ko-fi / Buy Me A Coffee).
+
+#### 🛠️ Modifié (Changed)
+- **Architecture Unifiée des Cartes de Tourelles** : Remplacement de l'ancien panneau fixe par une génération dynamique de cartes pliables avec badges visuels et gestionnaire de modules pour tous les vaisseaux.
+- **Conformité SemVer** : Migration formelle du schéma de versionnement vers le standard Semantic Versioning (v1.5.0).
+- **Invalidation Automatique du Cache PWA** : Actualisation du Service Worker vers `aaron-mfd-v1.5.0`.
+
+#### 🐛 Corrigé (Fixed)
+- **Doublon de la Tourelle 1** : Élimination définitive de l'affichage en double de la tourelle principale dans la modale d'équipement.
+- **Gestionnaire de Modales Haut Débit** : Rétablissement de l'ouverture garantie de toutes les modales du dock et fermeture fluide par clic sur l'arrière-plan flouté.
+
+#### 🗑️ Supprimé (Removed)
+- **Boutons de Bascule Cockpit MFD** : Suppression des anciens boutons au profit du design holographique unifié et de l'accès direct aux fonctions de soutien.
+
+### [1.4.0] - 2026-10-15 - *Star Citizen Alpha 4.10 Mining Overhaul*
+
+#### ✨ Ajouté (Added)
+- **9 Archétypes Géologiques Officiels** : Basalte, Granite, Obsidienne, Magmatique, Felsique, Gneiss, Quartzite, Schiste, Atacamite avec calibration en 1 clic.
+- **Décodeur Radar Ping RS 2.0** : Outil d'identification longue portée pour scanner les astéroïdes distants.
+- **Sacoches Amovibles (Saddlebags 4.10)** : Suivi des conteneurs détachés au rayon tracteur pour Prospector et MOLE.
+- **Synthèse Vocale Cockpit (TTS)** : Annonces vocales de bord réalistes et 100% hors-ligne.
+- **Support Greycat ROC-DS** : Véhicule minier terrestre biplace avec soute augmentée de 1.2 SCU.
+
+### [1.2.0] - 2026-10-14 - *Tactical Overhaul & 6 Mining Tools*
 
 #### 🌿 Simulateur d'Arbre de Fracturation (Break Tree / Sous-Roches)
 - **Nouveau** : Modélisation physique de la fracture d'un rocher parent en 3 sous-blocs avec conservation exacte de la masse totale.
@@ -134,7 +165,38 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
 
-### [v1.2] - 2026-10-14 - *Tactical Overhaul & 6 Mining Tools*
+### [1.5.0] - 2026-10-15 - *mobiGlas 4.0 Layout, Fleet Coordination & Unified Turrets*
+
+#### ✨ Added
+- **Multiplayer Fleet & Squad Mining Coordination**: Complete wing management (Prospector, MOLE, ROC, C2 Hercules, etc.) with joint laser beam power stacking, shared rock resistance reduction, and net profit split per player.
+- **RSI Arrastra & RSI Orion Heavy Ships**: Full support for Arrastra 3x Size 3 remote turrets (576 SCU) and Orion 2x heavy turrets (2,880 SCU).
+- **6 Authentic Size 3 Mining Lasers**: Added *Arbor MH3*, *Lancet MH3*, *Helix III*, *Impact III*, *Hofstede-S3*, *Klein-S3* with official power and mod properties.
+- **mobiGlas 4.0 Holographic Layout**: Star Citizen inspired holographic UI with hex mesh, glowing neon brackets, CRT scanlines, and top status bar.
+- **Bottom App Launcher Dock**: Quick-access launcher bar with 9 apps.
+- **Dedicated Community Support Buttons**: Quick support buttons in top header, dock, and footer (Ko-fi / Buy Me A Coffee).
+
+#### 🛠️ Changed
+- **Unified Dynamic Turrets Architecture**: Dynamically generated collapsible turret cards with visual badges and module slots for all ships.
+- **SemVer Compliance**: Full migration to Semantic Versioning standard (v1.5.0).
+- **PWA Cache Invalidation**: Updated Service Worker cache to `aaron-mfd-v1.5.0`.
+
+#### 🐛 Fixed
+- **Turret 1 Duplicate**: Fixed redundant primary turret display in loadout modal.
+- **High-Speed Modal Triggering**: Direct guaranteed opening of all dock modals with backdrop click-to-close.
+
+#### 🗑️ Removed
+- **Legacy Cockpit Layout Switches**: Cleaned up in favor of unified mobiGlas design and direct support links.
+
+### [1.4.0] - 2026-10-15 - *Star Citizen Alpha 4.10 Mining Overhaul*
+
+#### ✨ Added
+- **9 Official Geological Archetypes**: Basalt, Granite, Obsidian, Igneous, Felsic, Gneiss, Quartzite, Shale, Atacamite.
+- **Radar Ping RS 2.0 Signature Decoder**: Long-range asteroid scanner tool.
+- **Detachable Saddlebags (Alpha 4.10)**: Tractor-beamed container tracker for Prospector and MOLE.
+- **Cockpit Voice Assistant (TTS)**: Offline synthesized voice alerts.
+- **Greycat ROC-DS Support**: Dual-seat mining rover with 1.2 SCU hopper.
+
+### [1.2.0] - 2026-10-14 - *Tactical Overhaul & 6 Mining Tools*
 
 #### 🌿 Sub-Chunk Fracture Simulator (Break Tree)
 - **New**: Real-time physical fracture simulation splitting parent rocks into 3 sub-chunks while strictly conserving total rock mass.
