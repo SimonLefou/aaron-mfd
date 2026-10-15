@@ -297,11 +297,41 @@
     </div>
   </section>
 
+  <!-- MOBILE / TABLET DUAL-VIEW TAB SWITCHER (<= 980px) -->
+  <div class="mobile-view-tabs" id="mobileViewTabs">
+    <button class="mobile-view-tab active" id="tabBtnScanner" data-view="scanner">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <circle cx="12" cy="12" r="4"></circle>
+      </svg>
+      <span data-i18n="tabScanner">🎯 SCANNER & SAISIE</span>
+    </button>
+    <button class="mobile-view-tab" id="tabBtnAnalysis" data-view="analysis">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+      </svg>
+      <span data-i18n="tabAnalysis">⚡ ANALYSE & PROFIT</span>
+      <span class="mobile-tab-badge" id="mobileTabVerdictBadge">💎 147k</span>
+    </button>
+  </div>
+
+  <!-- MOBILE LIVE MINI-HUD SUMMARY BAR (Direct live profit preview on mobile) -->
+  <div class="mobile-live-summary-bar" id="mobileLiveSummaryBar" data-i18n-title="titleMobileSummaryBar" title="Toucher pour voir l'analyse tactique et la rentabilité">
+    <div class="ml-summary-left">
+      <span class="ml-summary-badge" id="mlSummaryBadge">💎 EXCELLENT</span>
+      <span class="ml-summary-val" id="mlSummaryPrice">~147 500 aUEC</span>
+    </div>
+    <div class="ml-summary-right">
+      <span class="ml-summary-laser" id="mlSummaryLaser">⚡ 82% OPT</span>
+      <span class="ml-summary-action" data-i18n="viewAnalysisBtn">VOIR →</span>
+    </div>
+  </div>
+
   <!-- MAIN HUD INTERFACE -->
-  <main class="main-grid">
+  <main class="main-grid" id="mainGrid" data-mobile-view="scanner">
 
     <!-- LEFT PANEL: ROCK SCAN & TACTILE DATA ENTRY -->
-    <section class="mfd-panel">
+    <section class="mfd-panel" id="panelScanData">
       <div class="panel-header">
         <div class="panel-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -548,7 +578,7 @@
     </section>
 
     <!-- RIGHT PANEL: VERDICT, PROFIT & SESSION HOLD -->
-    <section class="mfd-panel">
+    <section class="mfd-panel" id="panelTacticalAnalysis">
       <div class="panel-header">
         <div class="panel-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1712,6 +1742,17 @@
           </svg>
         </div>
         <span class="dock-label" data-i18n="dockScanner">SCANNER</span>
+      </button>
+
+      <!-- Analysis App (Instant mobile switch to Analysis & Profit) -->
+      <button class="dock-item" id="dockBtnAnalysis" data-dock-target="analysis" title="Analyse Tactique & Rentabilité">
+        <div class="dock-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span class="dock-badge" id="dockVerdictBadge" style="display:none;">💎</span>
+        </div>
+        <span class="dock-label" data-i18n="dockAnalysis">ANALYSE</span>
       </button>
 
       <!-- 2. Ship / Loadout App -->

@@ -119,6 +119,11 @@ export const I18N = {
     dockCrew: "ÉQUIPAGE",
     dockGuide: "GUIDE",
     dockLayout: "COCKPIT",
+    dockAnalysis: "ANALYSE",
+    tabScanner: "🎯 SCANNER & SAISIE",
+    tabAnalysis: "⚡ ANALYSE & PROFIT",
+    viewAnalysisBtn: "VOIR L'ANALYSE →",
+    titleMobileSummaryBar: "Toucher pour voir l'analyse tactique et la rentabilité",
     toastLayoutSwitchedToMobiglas: "Interface mobiGlas 4.0 activée (Hologramme)",
     toastLayoutSwitchedToClassic: "Interface Cockpit MFD classique activée",
 
@@ -573,6 +578,11 @@ export const I18N = {
     dockCrew: "CREW",
     dockGuide: "GUIDE",
     dockLayout: "COCKPIT",
+    dockAnalysis: "ANALYSIS",
+    tabScanner: "🎯 ROCK SCAN",
+    tabAnalysis: "⚡ PROFIT & ANALYSIS",
+    viewAnalysisBtn: "VIEW ANALYSIS →",
+    titleMobileSummaryBar: "Tap to view tactical analysis and profit",
     toastLayoutSwitchedToMobiglas: "mobiGlas 4.0 interface enabled (Hologram)",
     toastLayoutSwitchedToClassic: "Classic Cockpit MFD interface enabled",
 

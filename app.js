@@ -8,6 +8,7 @@ const state = {
   currentLang: localStorage.getItem('aaron_mfd_lang') || 'fr',
   currentTheme: localStorage.getItem('aaron_mfd_theme') || 'mobiglas',
   layoutMode: localStorage.getItem('aaron_mfd_layout_mode') || 'mobiglas',
+  mobileView: 'scanner',
   wakeLock: null,
 
   selectedShip: MINING_DATA.ships[0], // MISC Prospector
@@ -465,6 +466,8 @@ const DOM = {
   // mobiGlas Bottom App Launcher Dock
   mobiglasDock: document.getElementById('mobiglasDock'),
   dockBtnScanner: document.getElementById('dockBtnScanner'),
+  dockBtnAnalysis: document.getElementById('dockBtnAnalysis'),
+  dockVerdictBadge: document.getElementById('dockVerdictBadge'),
   dockBtnLoadout: document.getElementById('dockBtnLoadout'),
   dockBtnRefinery: document.getElementById('dockBtnRefinery'),
   dockRefineryBadge: document.getElementById('dockRefineryBadge'),
@@ -474,6 +477,19 @@ const DOM = {
   dockBtnCrew: document.getElementById('dockBtnCrew'),
   dockBtnGuide: document.getElementById('dockBtnGuide'),
   dockBtnLayout: document.getElementById('dockBtnLayout'),
+
+  // Mobile / Tablet Tabbed Navigation & Live Mini-HUD
+  mobileViewTabs: document.getElementById('mobileViewTabs'),
+  tabBtnScanner: document.getElementById('tabBtnScanner'),
+  tabBtnAnalysis: document.getElementById('tabBtnAnalysis'),
+  mobileTabVerdictBadge: document.getElementById('mobileTabVerdictBadge'),
+  mobileLiveSummaryBar: document.getElementById('mobileLiveSummaryBar'),
+  mlSummaryBadge: document.getElementById('mlSummaryBadge'),
+  mlSummaryPrice: document.getElementById('mlSummaryPrice'),
+  mlSummaryLaser: document.getElementById('mlSummaryLaser'),
+  mainGrid: document.getElementById('mainGrid'),
+  panelScanData: document.getElementById('panelScanData'),
+  panelTacticalAnalysis: document.getElementById('panelTacticalAnalysis'),
 
   // Cockpit Voice (TTS) & Radar Decoder Triggers
   btnVoiceTTS: document.getElementById('btnVoiceTTS'),
@@ -731,6 +747,7 @@ const DOM = {
 function init() {
   setTheme(state.currentTheme);
   setLayoutMode(state.layoutMode, false);
+  setMobileView(state.mobileView || 'scanner');
   updateLoreClock();
   setInterval(updateLoreClock, 1000);
   bindEventListeners();
@@ -1392,6 +1409,80 @@ function updateMobiglasHeader(ship, pureSCU, refinedPrice) {
   }
 }
 
+// ==========================================
+// MOBILE & TABLET DUAL-VIEW & LIVE MINI-HUD
+// ==========================================
+
+function setMobileView(view) {
+  state.mobileView = view;
+  if (DOM.mainGrid) {
+    DOM.mainGrid.setAttribute('data-mobile-view', view);
+  }
+  if (DOM.tabBtnScanner && DOM.tabBtnAnalysis) {
+    DOM.tabBtnScanner.classList.toggle('active', view === 'scanner');
+    DOM.tabBtnAnalysis.classList.toggle('active', view === 'analysis');
+  }
+  if (DOM.dockBtnScanner && DOM.dockBtnAnalysis) {
+    DOM.dockBtnScanner.classList.toggle('active', view === 'scanner');
+    DOM.dockBtnAnalysis.classList.toggle('active', view === 'analysis');
+  }
+  if (DOM.mobileLiveSummaryBar) {
+    DOM.mobileLiveSummaryBar.style.display = view === 'scanner' ? 'flex' : 'none';
+  }
+  sfx.playBeep(650, 'sine', 0.03);
+  triggerHaptic(12);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateMobileLiveSummary(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
+  const locale = getLocale();
+  const kPrice = refinedPrice >= 1000 ? `${Math.round(refinedPrice / 1000)}k` : `${refinedPrice}`;
+
+  // Determine badge icon & color
+  let icon = '💎';
+  let badgeText = 'EXCELLENT';
+  if (mineral.id === 'quantainium') {
+    if (orePct >= 20 && powerRatio >= 0.88) { icon = '💎'; badgeText = 'QUANT PEAK'; }
+    else if (orePct >= 10) { icon = '💎'; badgeText = 'QUANT BON'; }
+    else { icon = '⚠️'; badgeText = 'QUANT FAIBLE'; }
+  } else if (mineral.id === 'bexalite' || mineral.id === 'taranite') {
+    icon = '🔥';
+    badgeText = orePct >= 15 ? 'HAUT RENDEMENT' : 'MOYEN';
+  } else if (mineral.id === 'hadanite' || mineral.id === 'dolivine' || mineral.id === 'aphorite') {
+    icon = '🌸';
+    badgeText = 'GEMMES ROC';
+  } else {
+    icon = '⚡';
+    badgeText = orePct >= 25 ? 'RENTABLE' : 'FAIBLE';
+  }
+
+  // 1. Mobile tab badge
+  if (DOM.mobileTabVerdictBadge) {
+    DOM.mobileTabVerdictBadge.textContent = `${icon} ~${kPrice}`;
+  }
+
+  // 2. Dock verdict badge
+  if (DOM.dockVerdictBadge) {
+    DOM.dockVerdictBadge.style.display = 'flex';
+    DOM.dockVerdictBadge.textContent = icon;
+  }
+
+  // 3. Mobile Live Summary Bar
+  if (DOM.mlSummaryBadge) {
+    DOM.mlSummaryBadge.textContent = `${icon} ${badgeText}`;
+  }
+  if (DOM.mlSummaryPrice) {
+    DOM.mlSummaryPrice.textContent = `~${refinedPrice.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.mlSummaryLaser) {
+    const pct = Math.round(powerRatio * 100);
+    const laserTag = powerRatio >= 1.15 ? 'OPT' : (powerRatio >= 0.88 ? 'OK' : 'DUR');
+    DOM.mlSummaryLaser.textContent = `⚡ ${pct}% ${laserTag}`;
+    DOM.mlSummaryLaser.style.color = powerRatio >= 1.15 ? 'var(--accent-emerald)' : (powerRatio >= 0.88 ? 'var(--accent-amber)' : 'var(--accent-rose)');
+    DOM.mlSummaryLaser.style.borderColor = powerRatio >= 1.15 ? 'rgba(16, 185, 129, 0.4)' : (powerRatio >= 0.88 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(244, 63, 94, 0.4)');
+  }
+}
+
 // Populate Refinery dropdown
 function populateRefinerySelect() {
   const currentVal = DOM.refinerySelect.value || state.selectedRefinery.id;
@@ -1894,9 +1985,10 @@ function calculateAll() {
   // 8. ROC Gem Cluster Calculator
   updateRocCluster();
 
-  // 9. mobiGlas 4.0 Telemetry & Arc Gauge
+  // 9. mobiGlas 4.0 Telemetry, Arc Gauge & Mobile Live Summary
   updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, activeLaserDescList.join(' + '));
   updateMobiglasHeader(ship, pureSCU, refinedPrice);
+  updateMobileLiveSummary(mineral, orePct, pureSCU, refinedPrice, powerRatio);
 }
 
 function determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
@@ -3152,12 +3244,40 @@ function bindEventListeners() {
     });
   }
 
+  // Mobile & Tablet View Tabs and Live Mini-HUD
+  if (DOM.tabBtnScanner) {
+    DOM.tabBtnScanner.addEventListener('click', () => setMobileView('scanner'));
+  }
+  if (DOM.tabBtnAnalysis) {
+    DOM.tabBtnAnalysis.addEventListener('click', () => setMobileView('analysis'));
+  }
+  if (DOM.mobileLiveSummaryBar) {
+    DOM.mobileLiveSummaryBar.addEventListener('click', () => setMobileView('analysis'));
+  }
+
   // mobiGlas 4.0: Bottom App Launcher Dock Handlers
   if (DOM.dockBtnScanner) {
     DOM.dockBtnScanner.addEventListener('click', () => {
-      sfx.playBeep(700, 'sine', 0.03);
-      triggerHaptic(10);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.innerWidth <= 980) {
+        setMobileView('scanner');
+      } else {
+        sfx.playBeep(700, 'sine', 0.03);
+        triggerHaptic(10);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  }
+  if (DOM.dockBtnAnalysis) {
+    DOM.dockBtnAnalysis.addEventListener('click', () => {
+      if (window.innerWidth <= 980) {
+        setMobileView('analysis');
+      } else {
+        sfx.playBeep(700, 'sine', 0.03);
+        triggerHaptic(10);
+        if (DOM.panelTacticalAnalysis) {
+          DOM.panelTacticalAnalysis.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
     });
   }
   if (DOM.dockBtnLoadout) {
