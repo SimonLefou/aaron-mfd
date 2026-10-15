@@ -75,7 +75,20 @@ const state = {
   haloCurrentDist: 15.0,
 
   // Mineral system filter (all, stanton, pyro, nyx)
-  mineralSystemFilter: 'all'
+  mineralSystemFilter: 'all',
+
+  // Rock Archetype (4.10)
+  selectedArchetype: (MINING_DATA.rockArchetypes && MINING_DATA.rockArchetypes[0]) || null,
+
+  // Multi-Ore Composition (4.10)
+  secondaryMineral: null,
+  secondaryPercentage: 15.0,
+
+  // Physicalized Saddlebags
+  detachedSaddlebags: [],
+
+  // Cockpit Voice Assistant (TTS)
+  voiceTTSEnabled: localStorage.getItem('aaron_mfd_voice_tts') !== 'false'
 };
 
 // ==========================================
@@ -83,8 +96,53 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.3',
+    version: 'v1.4',
     isCurrent: true,
+    title_fr: 'Star Citizen Alpha 4.10 Mining Overhaul (Archétypes, Multi-Minerais, Sacoches & Radar 2.0)',
+    title_en: 'Star Citizen Alpha 4.10 Mining Overhaul (Archetypes, Multi-Ore, Saddlebags & Radar 2.0)',
+    date_fr: 'Dernière version (Alpha 4.10)',
+    date_en: 'Latest Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Archétypes Géologiques (9 Familles)</strong> : Intégration des roches officielles (Basalte, Granite, Obsidienne, Magmatique, Felsique, Gneiss, Quartzite, Schiste, Atacamite) avec résistance et densité de base.',
+        text_en: '<strong>Geological Archetypes (9 Families)</strong>: Integration of official rock archetypes (Basalt, Granite, Obsidian, Igneous, Felsic, Gneiss, Quartzite, Shale, Atacamite) with baseline resistance and density.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Scan Multi-Minerais & Gravier Inerte</strong> : Saisie simultanée de 2 minerais avec calcul automatique du pourcentage de matériaux inertes stériles.',
+        text_en: '<strong>Multi-Ore Scan & Inert Waste Gauge</strong>: Simultaneous primary and secondary ore inputs with automatic inert waste calculation.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Décodeur Radar Ping RS 2.0</strong> : Identificateur longue portée pour scanner les astéroïdes (TAB) avant même de s\'approcher à 500 mètres.',
+        text_en: '<strong>Radar Ping RS 2.0 Decoder</strong>: Long-range ping signature identifier to detect distant asteroid content without flying close.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Sacoches Amovibles (Saddlebags 4.10)</strong> : Suivi des sacs détachés au rayon tracteur pour Prospector (4x 8 SCU) et MOLE (8x 12 SCU) pour les transporteurs alliés.',
+        text_en: '<strong>Detachable Saddlebags (4.10)</strong>: Track tractor-beamed pods for Prospector (4x 8 SCU) and MOLE (8x 12 SCU) to coordinate with allied cargo ships.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Voix Cockpit Synthétisée (TTS)</strong> : Annonces vocales immersives (alertes laser, Quantainium chargé, fin de raffinage) 100% hors-ligne.',
+        text_en: '<strong>Cockpit Voice Assistant (TTS)</strong>: Immersive offline cockpit audio announcements (laser alerts, Quantainium countdown, refinery completions).'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Greycat ROC-DS</strong> : Support du véhicule minier biplace avec soute augmentée de 1.2 SCU (1 200 gemmes).',
+        text_en: '<strong>Greycat ROC-DS</strong>: Support for the dual-seat ground vehicle with expanded 1.2 SCU (1,200 gems) hopper.'
+      },
+      {
+        tag: 'improved',
+        text_fr: '<strong>Calcul Dynamique Résistance / Instabilité</strong> : Les propriétés physiques de la roche sont déduites automatiquement de la composition minérale et de l\'archétype.',
+        text_en: '<strong>Dynamic Resistance & Instability Engine</strong>: Physical rock properties scale dynamically from the ore composition and geological archetype.'
+      }
+    ]
+  },
+  {
+    version: 'v1.3',
+    isCurrent: false,
     title_fr: 'Expansion Multi-Systèmes (Pyro 4.0, Nyx & Stanton) & 6 Nouveaux Minerais',
     title_en: 'Multi-System Expansion (Pyro 4.0, Nyx & Stanton) & 6 New Ores',
     date_fr: 'Dernière version (14 Oct 2026)',
@@ -323,6 +381,40 @@ class SoundFX {
 const sfx = new SoundFX();
 
 // ==========================================
+// COCKPIT VOICE ASSISTANT (TTS 4.10)
+// ==========================================
+class CockpitVoice {
+  constructor() {
+    this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+    this.lastSpokenText = '';
+    this.lastSpokenTime = 0;
+  }
+
+  speak(textFr, textEn) {
+    if (!state.voiceTTSEnabled || !this.synth) return;
+    const now = Date.now();
+    const text = state.currentLang === 'en' ? textEn : textFr;
+    if (!text) return;
+    if (this.lastSpokenText === text && now - this.lastSpokenTime < 7000) return;
+    this.lastSpokenText = text;
+    this.lastSpokenTime = now;
+
+    try {
+      this.synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = state.currentLang === 'en' ? 'en-US' : 'fr-FR';
+      utterance.rate = 1.05;
+      utterance.pitch = 0.95;
+      this.synth.speak(utterance);
+    } catch (e) {
+      console.warn('TTS error:', e);
+    }
+  }
+}
+
+const cockpitVoice = new CockpitVoice();
+
+// ==========================================
 // DOM ELEMENTS
 // ==========================================
 const DOM = {
@@ -336,6 +428,16 @@ const DOM = {
   btnAudioToggle: document.getElementById('btnAudioToggle'),
   btnOpenDonate: document.getElementById('btnOpenDonate'),
 
+  // Cockpit Voice (TTS) & Radar Decoder Triggers
+  btnVoiceTTS: document.getElementById('btnVoiceTTS'),
+  voiceTTSLabel: document.getElementById('voiceTTSLabel'),
+  btnOpenRadarDecoder: document.getElementById('btnOpenRadarDecoder'),
+  radarDecoderModal: document.getElementById('radarDecoderModal'),
+  btnCloseRadarDecoder: document.getElementById('btnCloseRadarDecoder'),
+  radarRsInput: document.getElementById('radarRsInput'),
+  btnExecRadarDecode: document.getElementById('btnExecRadarDecode'),
+  radarMatchesContainer: document.getElementById('radarMatchesContainer'),
+
   // Mass & Numpad & Steppers
   massLabel: document.getElementById('massLabel'),
   massDigitalDisplay: document.getElementById('massDigitalDisplay'),
@@ -344,12 +446,44 @@ const DOM = {
   btnToggleNumpad: document.getElementById('btnToggleNumpad'),
   numpadContainer: document.getElementById('numpadContainer'),
 
+  // Rock Archetype (4.10)
+  selectedArchetypeLabel: document.getElementById('selectedArchetypeLabel'),
+  archetypeScroller: document.getElementById('archetypeScroller'),
+  archetypeDescText: document.getElementById('archetypeDescText'),
+  archetypeStatsText: document.getElementById('archetypeStatsText'),
+  btnAutoCalcProps: document.getElementById('btnAutoCalcProps'),
+
   // Minerals & Percentage
   selectedMineralLabel: document.getElementById('selectedMineralLabel'),
   oreGrid: document.getElementById('oreGrid'),
   pctLabel: document.getElementById('pctLabel'),
   pctSlider: document.getElementById('pctSlider'),
   pctDisplay: document.getElementById('pctDisplay'),
+
+  // Secondary Ore & Inerts (4.10)
+  selectedSecondaryLabel: document.getElementById('selectedSecondaryLabel'),
+  secondaryOreSelect: document.getElementById('secondaryOreSelect'),
+  btnClearSecondaryOre: document.getElementById('btnClearSecondaryOre'),
+  secondaryOreControls: document.getElementById('secondaryOreControls'),
+  secondaryPctLabel: document.getElementById('secondaryPctLabel'),
+  secondaryPctSlider: document.getElementById('secondaryPctSlider'),
+  secondaryPctDisplay: document.getElementById('secondaryPctDisplay'),
+  inertPctLabel: document.getElementById('inertPctLabel'),
+  compBarPrimary: document.getElementById('compBarPrimary'),
+  compBarSecondary: document.getElementById('compBarSecondary'),
+  compBarInert: document.getElementById('compBarInert'),
+  compLegendPrimary: document.getElementById('compLegendPrimary'),
+  compLegendSecondary: document.getElementById('compLegendSecondary'),
+  compLegendInert: document.getElementById('compLegendInert'),
+
+  // Saddlebags (Physicalized Cargo)
+  saddlebagsControlBox: document.getElementById('saddlebagsControlBox'),
+  saddlebagsCountBadge: document.getElementById('saddlebagsCountBadge'),
+  saddlebagsSlotsVisual: document.getElementById('saddlebagsSlotsVisual'),
+  btnDetachOneBag: document.getElementById('btnDetachOneBag'),
+  btnDropAllBags: document.getElementById('btnDropAllBags'),
+  detachedBagsNotice: document.getElementById('detachedBagsNotice'),
+  detachedBagsText: document.getElementById('detachedBagsText'),
 
   // Resistance & Instability
   resistanceLabel: document.getElementById('resistanceLabel'),
@@ -602,7 +736,446 @@ function selectMineral(min) {
     c.classList.toggle('selected', c.dataset.id === min.id);
   });
 
+  if (state.voiceTTSEnabled) {
+    const minName = getLocalized(min, 'name');
+    cockpitVoice.speakTarget(minName, state.orePercentage, Math.max(0.1, Math.round(state.rockMass * (state.orePercentage / 100) / ((min.density || 15) * 85) * 10) / 10));
+  }
+
   calculateAll();
+}
+
+// ==========================================
+// FEATURE: ROCK ARCHETYPES (4.10)
+// ==========================================
+function populateArchetypes() {
+  if (!DOM.archetypeScroller || !MINING_DATA.rockArchetypes) return;
+  DOM.archetypeScroller.innerHTML = '';
+
+  MINING_DATA.rockArchetypes.forEach(arch => {
+    const btn = document.createElement('button');
+    const isActive = state.selectedArchetype && state.selectedArchetype.id === arch.id;
+    btn.className = `archetype-chip ${isActive ? 'active' : ''}`;
+    btn.dataset.id = arch.id;
+    btn.innerHTML = `<span style="color:${arch.color};">●</span> ${getLocalized(arch, 'name')}`;
+
+    btn.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(10);
+      selectArchetype(arch, true);
+    });
+
+    DOM.archetypeScroller.appendChild(btn);
+  });
+
+  updateArchetypeDisplay();
+}
+
+function selectArchetype(arch, autoCalc = false) {
+  state.selectedArchetype = arch;
+  document.querySelectorAll('.archetype-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === arch.id);
+  });
+  updateArchetypeDisplay();
+  if (autoCalc) {
+    applyDynamicRockProperties();
+  } else {
+    calculateAll();
+  }
+}
+
+function updateArchetypeDisplay() {
+  const arch = state.selectedArchetype;
+  if (!arch) return;
+  if (DOM.selectedArchetypeLabel) {
+    DOM.selectedArchetypeLabel.textContent = getLocalized(arch, 'name');
+    DOM.selectedArchetypeLabel.style.color = arch.color || 'var(--accent-cyan)';
+  }
+  if (DOM.archetypeDescText) {
+    DOM.archetypeDescText.textContent = getLocalized(arch, 'desc');
+  }
+  if (DOM.archetypeStatsText) {
+    const locale = getLocale();
+    DOM.archetypeStatsText.textContent = `Densité: ${arch.density} • Résistance: ${arch.baseResistance}% • Instabilité: ${arch.baseInstability}% • RS: ${arch.rsBase.toLocaleString(locale)}`;
+  }
+}
+
+// Dynamically compute resistance & instability from archetype + minerals
+function applyDynamicRockProperties() {
+  const arch = state.selectedArchetype || (MINING_DATA.rockArchetypes && MINING_DATA.rockArchetypes[0]);
+  if (!arch) return;
+
+  let baseRes = arch.baseResistance;
+  let baseInst = arch.baseInstability;
+
+  // Primary mineral modifier
+  const pMin = state.selectedMineral;
+  const pPct = state.orePercentage;
+  let instDelta = 0;
+  let resDelta = 0;
+
+  if (pMin) {
+    if (pMin.id === 'quantainium') {
+      instDelta += (pPct / 100) * 60;
+      resDelta += (pPct / 100) * 15;
+    } else if (pMin.id === 'stileron') {
+      instDelta += (pPct / 100) * 45;
+      resDelta += (pPct / 100) * 35;
+    } else if (pMin.id === 'riccite') {
+      instDelta += (pPct / 100) * 25;
+      resDelta += (pPct / 100) * 30;
+    } else if (pMin.id === 'bexalite') {
+      instDelta += (pPct / 100) * 25;
+      resDelta += (pPct / 100) * 20;
+    } else if (pMin.id === 'taranite') {
+      instDelta += (pPct / 100) * 15;
+      resDelta += (pPct / 100) * 15;
+    }
+  }
+
+  // Secondary mineral modifier
+  const sMin = state.secondaryMineral;
+  const sPct = sMin ? state.secondaryPercentage : 0;
+  if (sMin) {
+    if (sMin.id === 'quantainium') {
+      instDelta += (sPct / 100) * 60;
+      resDelta += (sPct / 100) * 15;
+    } else if (sMin.id === 'stileron') {
+      instDelta += (sPct / 100) * 45;
+      resDelta += (sPct / 100) * 35;
+    } else if (sMin.id === 'riccite') {
+      instDelta += (sPct / 100) * 25;
+      resDelta += (sPct / 100) * 30;
+    } else if (sMin.id === 'bexalite') {
+      instDelta += (sPct / 100) * 25;
+      resDelta += (sPct / 100) * 20;
+    }
+  }
+
+  state.resistance = Math.min(95, Math.max(5, Math.round(baseRes + resDelta)));
+  state.instability = Math.min(100, Math.max(0, Math.round(baseInst + instDelta)));
+
+  DOM.resistanceSlider.value = state.resistance;
+  DOM.resistanceLabel.textContent = `${state.resistance} %`;
+  DOM.instabilitySlider.value = state.instability;
+  DOM.instabilityLabel.textContent = `${state.instability} %`;
+
+  calculateAll();
+}
+
+// ==========================================
+// FEATURE: SECONDARY ORE & COMPOSITION (4.10)
+// ==========================================
+function populateSecondaryOreSelect() {
+  if (!DOM.secondaryOreSelect) return;
+  const currentVal = state.secondaryMineral ? state.secondaryMineral.id : 'none';
+  DOM.secondaryOreSelect.innerHTML = '';
+
+  const noneOpt = document.createElement('option');
+  noneOpt.value = 'none';
+  const t = I18N[state.currentLang] || I18N.fr;
+  noneOpt.textContent = t.noSecondaryMineral || 'Aucun minerai secondaire';
+  DOM.secondaryOreSelect.appendChild(noneOpt);
+
+  MINING_DATA.minerals.forEach(min => {
+    if (state.selectedShip.laserSize > 0 && (min.id === 'hadanite' || min.id === 'dolivine' || min.id === 'aphorite')) return;
+    const opt = document.createElement('option');
+    opt.value = min.id;
+    opt.textContent = `${min.symbol} • ${getLocalized(min, 'name')}`;
+    DOM.secondaryOreSelect.appendChild(opt);
+  });
+
+  DOM.secondaryOreSelect.value = currentVal;
+  updateSecondaryOreUI();
+}
+
+function updateSecondaryOreUI() {
+  const isSelected = !!state.secondaryMineral;
+  if (DOM.secondaryOreControls) {
+    DOM.secondaryOreControls.style.display = isSelected ? 'block' : 'none';
+  }
+  if (DOM.selectedSecondaryLabel) {
+    if (isSelected) {
+      DOM.selectedSecondaryLabel.textContent = `${getLocalized(state.secondaryMineral, 'name')} (${state.secondaryPercentage.toFixed(1)}%)`;
+      DOM.selectedSecondaryLabel.style.color = state.secondaryMineral.color;
+    } else {
+      const t = I18N[state.currentLang] || I18N.fr;
+      DOM.selectedSecondaryLabel.textContent = t.noSecondaryMineral || 'Aucun';
+      DOM.selectedSecondaryLabel.style.color = 'var(--text-muted)';
+    }
+  }
+}
+
+// ==========================================
+// FEATURE: SADDLEBAGS PHYSICALIZED (4.10)
+// ==========================================
+function updateSaddlebagsUI() {
+  const ship = state.selectedShip;
+  if (!DOM.saddlebagsControlBox) return;
+
+  if (!ship.detachableBags) {
+    DOM.saddlebagsControlBox.style.display = 'none';
+    return;
+  }
+
+  DOM.saddlebagsControlBox.style.display = 'block';
+  const totalBags = ship.saddlebags;
+  const bagSCU = ship.saddlebagSCU;
+  const currentHoldSCU = state.holdSCU;
+  const fullBagsCount = Math.min(totalBags, Math.floor(currentHoldSCU / bagSCU));
+  
+  if (DOM.saddlebagsCountBadge) {
+    DOM.saddlebagsCountBadge.textContent = `${totalBags} / ${totalBags} Montées (${fullBagsCount} pleine(s))`;
+  }
+
+  if (DOM.saddlebagsSlotsVisual) {
+    DOM.saddlebagsSlotsVisual.innerHTML = '';
+    for (let i = 1; i <= totalBags; i++) {
+      const slot = document.createElement('span');
+      const isFilled = i <= fullBagsCount;
+      slot.className = `saddlebag-slot-pill ${isFilled ? 'detached' : 'mounted'}`;
+      slot.innerHTML = `Sac #${i}: ${isFilled ? `Plein (${bagSCU} SCU)` : 'Vide'}`;
+      DOM.saddlebagsSlotsVisual.appendChild(slot);
+    }
+  }
+
+  if (DOM.btnDetachOneBag) {
+    DOM.btnDetachOneBag.textContent = `📦 Détacher 1 sac plein (${bagSCU} SCU)`;
+    DOM.btnDetachOneBag.disabled = fullBagsCount === 0;
+    DOM.btnDetachOneBag.style.opacity = fullBagsCount > 0 ? '1' : '0.5';
+  }
+
+  if (DOM.detachedBagsText) {
+    const detachedCount = state.detachedSaddlebags.length;
+    const detachedTotalSCU = state.detachedSaddlebags.reduce((acc, b) => acc + b.scu, 0);
+    const t = I18N[state.currentLang] || I18N.fr;
+    if (detachedCount > 0) {
+      DOM.detachedBagsText.innerHTML = `<strong style="color:var(--accent-amber);">🚨 ${detachedCount} sac(s) largué(s) (${detachedTotalSCU.toFixed(1)} SCU)</strong> en flottaison. ${t.tractorRecommendation || 'Nécessite rayon tracteur & transporteur (C1, Taurus, Freelancer).'}`;
+    } else {
+      DOM.detachedBagsText.textContent = t.noDetachedBags || "Aucun sac largué dans l'espace.";
+    }
+  }
+}
+
+function detachSaddlebag() {
+  const ship = state.selectedShip;
+  if (!ship.detachableBags) return;
+  const bagSCU = ship.saddlebagSCU;
+  if (state.holdSCU < bagSCU) {
+    showToast(state.currentLang === 'en' ? 'Hold volume insufficient to fill 1 full bag!' : 'Volume en soute insuffisant pour remplir 1 sac complet !');
+    return;
+  }
+
+  state.holdSCU = Math.max(0, Math.round((state.holdSCU - bagSCU) * 10) / 10);
+  state.detachedSaddlebags.push({
+    id: Date.now(),
+    shipId: ship.id,
+    time: new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' }),
+    scu: bagSCU,
+    mineral: state.selectedMineral.id
+  });
+
+  sfx.playWarning();
+  triggerHaptic(40);
+  cockpitVoice.speak(
+    "Sacoche de minage détachée au rayon tracteur. En attente de transport.",
+    "Mining saddlebag detached. Floating in space awaiting cargo hauler."
+  );
+
+  updateHoldDisplay();
+  saveSession();
+  showToast(state.currentLang === 'en' ? `Saddlebag (${bagSCU} SCU) detached and floating in space!` : `Sacoche (${bagSCU} SCU) détachée en flottaison dans l'espace !`);
+}
+
+function dropAllSaddlebags() {
+  const ship = state.selectedShip;
+  if (!ship.detachableBags) return;
+  const bagSCU = ship.saddlebagSCU;
+  const fullBags = Math.floor(state.holdSCU / bagSCU);
+  if (fullBags === 0) {
+    showToast(state.currentLang === 'en' ? 'No full saddlebags to detach!' : 'Aucun sac plein à détacher !');
+    return;
+  }
+
+  for (let i = 0; i < fullBags; i++) {
+    state.detachedSaddlebags.push({
+      id: Date.now() + i,
+      shipId: ship.id,
+      time: new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' }),
+      scu: bagSCU,
+      mineral: state.selectedMineral.id
+    });
+  }
+
+  state.holdSCU = Math.max(0, Math.round((state.holdSCU - (fullBags * bagSCU)) * 10) / 10);
+  sfx.playCritical();
+  triggerHaptic(60);
+  cockpitVoice.speak(
+    "Tous les sacs de minage pleins ont été largués dans l'espace.",
+    "All full saddlebags jettisoned into space."
+  );
+
+  updateHoldDisplay();
+  saveSession();
+  showToast(state.currentLang === 'en' ? `${fullBags} saddlebag(s) jettisoned!` : `${fullBags} sac(s) largué(s) dans l'espace !`);
+}
+
+// ==========================================
+// FEATURE: RADAR PING RS 2.0 DECODER (4.10)
+// ==========================================
+function decodeRadarRS(targetRS) {
+  if (!targetRS || isNaN(targetRS) || targetRS <= 0) return [];
+  const results = [];
+  const multipliers = [1, 2, 4, 8, 16];
+
+  MINING_DATA.minerals.forEach(min => {
+    if (!min.rsBase || min.rsBase <= 0) return;
+    multipliers.forEach(mult => {
+      const expectedRS = min.rsBase * mult;
+      const diff = Math.abs(targetRS - expectedRS);
+      const tolerance = expectedRS * 0.08;
+      if (diff <= tolerance) {
+        const accuracy = Math.max(60, Math.round(100 - (diff / expectedRS) * 100));
+        results.push({
+          type: 'mineral',
+          item: min,
+          multiplier: mult,
+          expectedRS: expectedRS,
+          accuracy: accuracy,
+          estimatedMass: mult === 1 ? '2 500 - 6 000' : mult === 2 ? '6 000 - 14 000' : mult === 4 ? '14 000 - 30 000' : '30 000+',
+          archetypeGuess: getArchetypeForMineral(min)
+        });
+      }
+    });
+  });
+
+  if (MINING_DATA.rockArchetypes) {
+    MINING_DATA.rockArchetypes.forEach(arch => {
+      if (!arch.rsBase) return;
+      multipliers.forEach(mult => {
+        const expectedRS = arch.rsBase * mult;
+        const diff = Math.abs(targetRS - expectedRS);
+        const tolerance = expectedRS * 0.07;
+        if (diff <= tolerance) {
+          const accuracy = Math.max(60, Math.round(100 - (diff / expectedRS) * 100));
+          results.push({
+            type: 'archetype',
+            item: arch,
+            multiplier: mult,
+            expectedRS: expectedRS,
+            accuracy: accuracy,
+            estimatedMass: mult === 1 ? '2 500 - 6 000' : mult === 2 ? '6 000 - 14 000' : mult === 4 ? '14 000 - 30 000' : '30 000+',
+            archetypeGuess: arch
+          });
+        }
+      });
+    });
+  }
+
+  results.sort((a, b) => b.accuracy - a.accuracy);
+  return results;
+}
+
+function getArchetypeForMineral(min) {
+  if (!MINING_DATA.rockArchetypes) return null;
+  if (min.id === 'quantainium' || min.id === 'stileron') {
+    return MINING_DATA.rockArchetypes.find(a => a.id === 'obsidian') || MINING_DATA.rockArchetypes[0];
+  }
+  if (min.id === 'bexalite') {
+    return MINING_DATA.rockArchetypes.find(a => a.id === 'basalt') || MINING_DATA.rockArchetypes[0];
+  }
+  if (min.id === 'riccite') {
+    return MINING_DATA.rockArchetypes.find(a => a.id === 'atacamite') || MINING_DATA.rockArchetypes[0];
+  }
+  return MINING_DATA.rockArchetypes.find(a => a.id === 'granite') || MINING_DATA.rockArchetypes[0];
+}
+
+function renderRadarDecoderResults(results) {
+  if (!DOM.radarMatchesContainer) return;
+  DOM.radarMatchesContainer.innerHTML = '';
+  const locale = getLocale();
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (results.length === 0) {
+    DOM.radarMatchesContainer.innerHTML = `
+      <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+        ${t.radarNoMatch || "Aucune signature correspondante trouvée. Essayez une valeur proche ou multiple de 1x/2x/4x."}
+      </div>
+    `;
+    return;
+  }
+
+  results.slice(0, 6).forEach((res, idx) => {
+    const card = document.createElement('div');
+    const isMineral = res.type === 'mineral';
+    const isHighPrio = isMineral && (res.item.id === 'quantainium' || res.item.id === 'stileron' || res.item.id === 'riccite' || res.item.id === 'bexalite');
+    card.className = `radar-match-card ${isHighPrio ? 'high-prio' : ''}`;
+
+    const titleName = getLocalized(res.item, 'name');
+    const symbol = res.item.symbol || 'RS';
+    const color = res.item.color || 'var(--accent-cyan)';
+    const archetypeName = res.archetypeGuess ? getLocalized(res.archetypeGuess, 'name') : '';
+
+    card.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:34px; height:34px; border-radius:6px; background:${color}22; border:1px solid ${color}; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; color:${color}; font-size:0.85rem;">
+          ${symbol}
+        </div>
+        <div>
+          <div style="font-family:var(--font-hud); font-size:0.9rem; color:#fff; display:flex; align-items:center; gap:6px;">
+            <strong>${titleName}</strong>
+            <span style="font-size:0.7rem; background:rgba(0,240,255,0.15); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:1px 5px; border-radius:3px; font-family:var(--font-mono);">x${res.multiplier}</span>
+            <span style="font-size:0.7rem; color:var(--accent-emerald); font-weight:700;">${res.accuracy}% probabilité</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+            Masse estimée: ~${res.estimatedMass} kg • ${archetypeName ? `Archétype: ${archetypeName}` : ''}
+          </div>
+        </div>
+      </div>
+      <button class="chip-btn" data-load-radar="${idx}" style="border-color:${color}; color:${color}; font-size:0.75rem; padding:6px 12px; white-space:nowrap;">
+        ${t.radarLoadBtn || "CHARGER DANS LE SCANNER"}
+      </button>
+    `;
+
+    const btnLoad = card.querySelector(`[data-load-radar="${idx}"]`);
+    if (btnLoad) {
+      btnLoad.addEventListener('click', () => {
+        sfx.playSuccess();
+        triggerHaptic(20);
+        if (isMineral) {
+          selectMineral(res.item);
+          if (res.archetypeGuess) selectArchetype(res.archetypeGuess, true);
+        } else {
+          selectArchetype(res.item, true);
+        }
+        if (res.multiplier === 1) state.rockMass = 4800;
+        else if (res.multiplier === 2) state.rockMass = 9500;
+        else if (res.multiplier === 4) state.rockMass = 19500;
+        else state.rockMass = 32000;
+        DOM.massDigitalDisplay.textContent = state.rockMass;
+        DOM.massLabel.textContent = `${state.rockMass.toLocaleString(getLocale())} kg`;
+
+        closeModal(DOM.radarDecoderModal);
+        calculateAll();
+        showToast(state.currentLang === 'en' ? `Target ${titleName} (x${res.multiplier}) loaded into scanner!` : `Cible ${titleName} (x${res.multiplier}) chargée dans le scanner !`);
+      });
+    }
+
+    DOM.radarMatchesContainer.appendChild(card);
+  });
+}
+
+function updateVoiceTTSUI() {
+  if (!DOM.btnVoiceTTS || !DOM.voiceTTSLabel) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (state.voiceTTSEnabled) {
+    DOM.voiceTTSLabel.textContent = t.cockpitVoiceOn || 'Voix ON';
+    DOM.btnVoiceTTS.style.borderColor = 'var(--accent-cyan)';
+    DOM.btnVoiceTTS.style.color = 'var(--accent-cyan)';
+  } else {
+    DOM.voiceTTSLabel.textContent = t.cockpitVoiceOff || 'Voix OFF';
+    DOM.btnVoiceTTS.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+    DOM.btnVoiceTTS.style.color = 'var(--text-muted)';
+  }
 }
 
 // Populate Refinery dropdown
@@ -749,24 +1322,65 @@ function calculateAll() {
   const locale = getLocale();
   const t = I18N[state.currentLang] || I18N.fr;
 
-  // 1. Calculate SCU of Pure Ore
-  const oreMass = mass * (orePct / 100);
-  const densityDivisor = (mineral.density || 15) * 85; 
-  let pureSCU = oreMass / densityDivisor;
-  
-  // Hand/ROC gems specific adjustment
+  // 1. Calculate SCU of Pure Ore (Multi-Ore 4.10)
+  const oreMass1 = mass * (orePct / 100);
+  const densityDivisor1 = (mineral.density || 15) * 85; 
+  let pureSCU1 = oreMass1 / densityDivisor1;
   if (mineral.id === 'hadanite' || mineral.id === 'dolivine' || mineral.id === 'aphorite') {
-    pureSCU = (mass * (orePct / 100)) / 1000;
+    pureSCU1 = (mass * (orePct / 100)) / 1000;
   }
 
-  pureSCU = Math.max(0.1, Math.round(pureSCU * 10) / 10);
+  let pureSCU2 = 0;
+  let rawPrice2 = 0;
+  let refinedPrice2 = 0;
+  const sMin = state.secondaryMineral;
+  const sPct = sMin ? state.secondaryPercentage : 0;
+
+  if (sMin) {
+    const oreMass2 = mass * (sPct / 100);
+    const densityDivisor2 = (sMin.density || 15) * 85;
+    pureSCU2 = oreMass2 / densityDivisor2;
+    if (sMin.id === 'hadanite' || sMin.id === 'dolivine' || sMin.id === 'aphorite') {
+      pureSCU2 = (mass * (sPct / 100)) / 1000;
+    }
+    rawPrice2 = Math.round(pureSCU2 * 100 * sMin.rawPrice);
+    const refinedYield2 = pureSCU2 * refinery.yieldRate;
+    const refineCost2 = Math.round(pureSCU2 * 100 * refinery.costFactor * 12);
+    refinedPrice2 = Math.max(0, Math.round((refinedYield2 * 100 * sMin.refinedPrice) - refineCost2));
+  }
+
+  let pureSCU = Math.max(0.1, Math.round((pureSCU1 + pureSCU2) * 10) / 10);
   const cargoPct = Math.round((pureSCU / ship.scu) * 100);
 
-  // 2. Pricing
-  const rawPrice = Math.round(pureSCU * 100 * mineral.rawPrice);
-  const refinedYield = pureSCU * refinery.yieldRate;
-  const refineCost = Math.round(pureSCU * 100 * refinery.costFactor * 12);
-  const refinedPrice = Math.max(0, Math.round((refinedYield * 100 * mineral.refinedPrice) - refineCost));
+  // 2. Pricing (Combined)
+  const rawPrice1 = Math.round(pureSCU1 * 100 * mineral.rawPrice);
+  const rawPrice = rawPrice1 + rawPrice2;
+
+  const refinedYield1 = pureSCU1 * refinery.yieldRate;
+  const refineCost1 = Math.round(pureSCU1 * 100 * refinery.costFactor * 12);
+  const refinedPrice1 = Math.max(0, Math.round((refinedYield1 * 100 * mineral.refinedPrice) - refineCost1));
+  const refinedPrice = refinedPrice1 + refinedPrice2;
+
+  // Composition and Inerts gauge
+  const inertPct = Math.max(0, Math.round((100 - orePct - sPct) * 10) / 10);
+  if (DOM.inertPctLabel) DOM.inertPctLabel.textContent = `${inertPct.toFixed(1)} %`;
+  if (DOM.compBarPrimary) DOM.compBarPrimary.style.width = `${Math.min(100, orePct)}%`;
+  if (DOM.compBarSecondary) {
+    DOM.compBarSecondary.style.width = `${Math.min(100, sPct)}%`;
+    DOM.compBarSecondary.style.background = sMin ? sMin.color : 'transparent';
+  }
+  if (DOM.compBarInert) DOM.compBarInert.style.width = `${Math.min(100, inertPct)}%`;
+  if (DOM.compLegendPrimary) DOM.compLegendPrimary.textContent = `● ${mineral.symbol}: ${orePct.toFixed(1)}%`;
+  if (DOM.compLegendSecondary) {
+    if (sMin) {
+      DOM.compLegendSecondary.style.display = 'inline';
+      DOM.compLegendSecondary.textContent = `● ${sMin.symbol}: ${sPct.toFixed(1)}%`;
+      DOM.compLegendSecondary.style.color = sMin.color;
+    } else {
+      DOM.compLegendSecondary.style.display = 'none';
+    }
+  }
+  if (DOM.compLegendInert) DOM.compLegendInert.textContent = `● Inertes: ${inertPct.toFixed(1)}%`;
 
   // 3. Laser Fracture Feasibility (Single Laser vs Multi-Turret MOLE)
   let totalLaserPower = 0;
@@ -1153,6 +1767,8 @@ function setLanguage(lang) {
 
   // 8. Re-render dynamic components with new language
   populateOreGrid();
+  populateArchetypes();
+  populateSecondaryOreSelect();
   populateRefinerySelect();
   populateLoadoutSelects();
   populateHaloAndStations();
@@ -1163,6 +1779,8 @@ function setLanguage(lang) {
   updateLedgerDisplay();
   updateLaserOptions();
   updateLoadoutButtonSummary();
+  updateSaddlebagsUI();
+  updateVoiceTTSUI();
   calculateAll();
   updateHoldDisplay();
   calculateCrewSplit();
@@ -1352,6 +1970,8 @@ function bindEventListeners() {
     sfx.playBeep(600, 'sine', 0.05);
     state.selectedShip = MINING_DATA.ships.find(s => s.id === e.target.value) || MINING_DATA.ships[0];
     updateLaserOptions();
+    populateSecondaryOreSelect();
+    updateSaddlebagsUI();
     updateHoldDisplay();
     calculateAll();
   });
@@ -1870,6 +2490,128 @@ function bindEventListeners() {
       forceRefreshCache();
     });
   }
+
+  // Alpha 4.10: Dynamic Archetype Auto-Calc Button
+  if (DOM.btnAutoCalcProps) {
+    DOM.btnAutoCalcProps.addEventListener('click', () => {
+      sfx.playSuccess();
+      triggerHaptic(15);
+      applyDynamicRockProperties();
+      const t = I18N[state.currentLang] || I18N.fr;
+      showToast(t.toastAutoCalcRockProps || (state.currentLang === 'en' ? 'Rock properties recalculated from geological composition!' : 'Propriétés de la roche recalculées selon la géologie !'));
+    });
+  }
+
+  // Alpha 4.10: Secondary Ore & Composition controls
+  if (DOM.secondaryOreSelect) {
+    DOM.secondaryOreSelect.addEventListener('change', (e) => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(10);
+      const val = e.target.value;
+      state.secondaryMineral = val === 'none' ? null : MINING_DATA.minerals.find(m => m.id === val);
+      updateSecondaryOreUI();
+      calculateAll();
+    });
+  }
+
+  if (DOM.btnClearSecondaryOre) {
+    DOM.btnClearSecondaryOre.addEventListener('click', () => {
+      sfx.playBeep(450, 'sine', 0.04);
+      triggerHaptic(10);
+      state.secondaryMineral = null;
+      if (DOM.secondaryOreSelect) DOM.secondaryOreSelect.value = 'none';
+      updateSecondaryOreUI();
+      calculateAll();
+    });
+  }
+
+  if (DOM.secondaryPctSlider) {
+    DOM.secondaryPctSlider.addEventListener('input', (e) => {
+      state.secondaryPercentage = parseFloat(e.target.value);
+      if (DOM.secondaryPctLabel) DOM.secondaryPctLabel.textContent = `${state.secondaryPercentage.toFixed(1)} %`;
+      if (DOM.secondaryPctDisplay) DOM.secondaryPctDisplay.textContent = `${state.secondaryPercentage.toFixed(0)}%`;
+      calculateAll();
+    });
+  }
+
+  // Alpha 4.10: Saddlebags Detach & Tractor beam manager
+  if (DOM.btnDetachOneBag) {
+    DOM.btnDetachOneBag.addEventListener('click', () => {
+      detachSaddlebag();
+    });
+  }
+  if (DOM.btnDropAllBags) {
+    DOM.btnDropAllBags.addEventListener('click', () => {
+      dropAllSaddlebags();
+    });
+  }
+
+  // Alpha 4.10: Long-range Radar Ping RS 2.0 Signature Decoder Modal
+  if (DOM.btnOpenRadarDecoder) {
+    DOM.btnOpenRadarDecoder.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(15);
+      openModal(DOM.radarDecoderModal);
+      if (DOM.radarRsInput) {
+        DOM.radarRsInput.focus();
+        if (DOM.radarRsInput.value) {
+          decodeRadarRS(parseFloat(DOM.radarRsInput.value));
+        }
+      }
+    });
+  }
+
+  if (DOM.btnCloseRadarDecoder) {
+    DOM.btnCloseRadarDecoder.addEventListener('click', () => closeModal(DOM.radarDecoderModal));
+  }
+
+  if (DOM.btnExecRadarDecode) {
+    DOM.btnExecRadarDecode.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(12);
+      const val = parseFloat(DOM.radarRsInput.value);
+      if (val) decodeRadarRS(val);
+    });
+  }
+
+  if (DOM.radarRsInput) {
+    DOM.radarRsInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = parseFloat(DOM.radarRsInput.value);
+        if (val) decodeRadarRS(val);
+      }
+    });
+  }
+
+  // RS Presets in Radar Modal
+  document.querySelectorAll('[data-preset-rs]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(10);
+      const rsVal = parseFloat(chip.dataset.presetRs);
+      if (DOM.radarRsInput) DOM.radarRsInput.value = rsVal;
+      decodeRadarRS(rsVal);
+    });
+  });
+
+  // Alpha 4.10: Cockpit Voice Assistant (TTS)
+  if (DOM.btnVoiceTTS) {
+    DOM.btnVoiceTTS.addEventListener('click', () => {
+      triggerHaptic(20);
+      state.voiceTTSEnabled = !state.voiceTTSEnabled;
+      updateVoiceTTSUI();
+      const t = I18N[state.currentLang] || I18N.fr;
+      if (state.voiceTTSEnabled) {
+        sfx.playSuccess();
+        cockpitVoice.speak(state.currentLang === 'en' ? 'Cockpit audio synthesis active. System online.' : 'Synthèse vocale de cockpit activée. Systèmes en ligne.');
+        showToast(t.cockpitVoiceOn || 'Voix cockpit activée');
+      } else {
+        sfx.playBeep(350, 'square', 0.06);
+        cockpitVoice.stop();
+        showToast(t.cockpitVoiceOff || 'Voix cockpit désactivée');
+      }
+    });
+  }
 }
 
 function renderChangelog() {
@@ -2067,6 +2809,9 @@ function updateHoldDisplay() {
 
     DOM.sessionLogList.appendChild(el);
   });
+
+  // Keep saddlebags physicalized status in sync (Alpha 4.10)
+  updateSaddlebagsUI();
 }
 
 function removeLogEntry(id) {
@@ -2085,6 +2830,7 @@ function clearHold() {
   state.sessionLog = [];
   saveSession();
   updateHoldDisplay();
+  updateSaddlebagsUI();
   stopQuantainiumTimer();
 }
 

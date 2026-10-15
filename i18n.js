@@ -42,6 +42,59 @@ export const I18N = {
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",
+    shipRocDs: "Greycat ROC-DS (1.2 SCU)",
+
+    // Star Citizen 4.10 & Cockpit Voice
+    cockpitVoiceOn: "Voix ON",
+    cockpitVoiceOff: "Voix OFF",
+    titleVoiceTTS: "Activer/désactiver la voix de bord du cockpit (TTS)",
+    gameVersionBadge: "Alpha 4.10",
+
+    // Rock Archetypes
+    rockArchetypeLabel: "ARCHÉTYPE GÉOLOGIQUE DE LA ROCHE",
+    rockArchetypeDesc: "Définit la densité, la résistance de base et le comportement géologique de la roche.",
+    btnAutoCalcProps: "Auto-calculer (Archétype + Minerais)",
+    archetypeBasalt: "Basalte (Dense)",
+    archetypeGranite: "Granite (Stable)",
+    archetypeObsidian: "Obsidienne (Ultra-dur)",
+    archetypeIgneous: "Magmatique (Dur)",
+    archetypeFelsic: "Felsique (Facile)",
+    archetypeGneiss: "Gneiss (Équilibré)",
+    archetypeQuartzite: "Quartzite (Tenace)",
+    archetypeShale: "Schiste (Friable)",
+    archetypeAtacamite: "Atacamite (Conducteur)",
+
+    // Multi-Ore Composition
+    compositionTitle: "COMPOSITION MULTI-MINERAIS (4.10)",
+    primaryMineral: "MINERAI PRIMAIRE",
+    secondaryMineral: "MINERAI SECONDAIRE",
+    noSecondaryMineral: "Aucun minerai secondaire",
+    inertMaterials: "MATÉRIAUX INERTES (GRAVIER STÉRILE)",
+    inertPctNote: "Reste de la roche sans valeur marchande",
+    combinedValueNote: "Cumul minerai 1 + minerai 2 (Inertes déduits)",
+
+    // Saddlebags (Sacs amovibles)
+    saddlebagsTitle: "SACOCHES PHYSICALISÉES (SADDLEBAGS)",
+    saddlebagsMounted: "Sacs montés sur la coque :",
+    detachOneBag: "Détacher 1 sac plein ({scu} SCU)",
+    dropAllBags: "Larguer tous les sacs pleins",
+    detachedBagsStatus: "Fret en flottaison dans l'espace :",
+    tractorRecommendation: "Nécessite rayon tracteur & transporteur (C1, Taurus, Freelancer).",
+    noDetachedBags: "Aucun sac largué dans l'espace.",
+
+    // Radar Ping RS 2.0 Decoder
+    radarDecoderBtn: "Radar RS",
+    titleRadarDecoder: "Décodeur de signature Radar Ping RS 2.0 (Longue portée)",
+    radarDecoderTitle: "DÉCODEUR PING RADAR RS 2.0",
+    radarDecoderSubtitle: "Identifiez les astéroïdes à longue portée (Ping TAB) sans vous approcher",
+    radarInputPlaceholder: "Ex: 3170, 6340, 3185, 3385, 3600...",
+    radarInputLabel: "Signature Radar RS observée sur le HUD :",
+    radarDecodeAction: "DÉCODER LA SIGNATURE",
+    radarMatchResults: "CORRESPONDANCES GÉOLOGIQUES DÉTECTÉES",
+    radarMultiplierNote: "Multiplicateur de taille : x{mult} (Masse estimée : ~{mass} kg)",
+    radarLoadBtn: "CHARGER DANS LE SCANNER",
+    radarNoMatch: "Aucune signature correspondante trouvée. Essayez une valeur proche ou multiple de 1x/2x/4x.",
+    radarTips: "Astuce : Les astéroïdes dans Star Citizen utilisent des signatures multiplicatrices (x1, x2, x4, x8) de la signature 1x de base.",
 
     // Themes
     themeMisc: "MISC (Cyan)",
@@ -367,9 +420,9 @@ export const I18N = {
     // Footer
     installPWA: "📱 Installer sur écran d'accueil",
     reset: "🔄 Réinitialiser",
-    forceUpdateBtn: "⚡ Vider le Cache (v1.3)",
-    toastCacheCleared: "🔄 Cache PWA réinitialisé vers la version v1.3 !",
-    footerDisclaimer: "AARON MFD v1.3 • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne"
+    forceUpdateBtn: "⚡ Vider le Cache (v1.4)",
+    toastCacheCleared: "🔄 Cache PWA réinitialisé vers la version v1.4 (Star Citizen 4.10) !",
+    footerDisclaimer: "AARON MFD v1.4 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne"
   },
 
   en: {
@@ -414,6 +467,59 @@ export const I18N = {
     shipProspector: "MISC Prospector (32 SCU)",
     shipMole: "Argo MOLE (96 SCU)",
     shipRoc: "Greycat ROC (0.8 SCU)",
+    shipRocDs: "Greycat ROC-DS (1.2 SCU)",
+
+    // Star Citizen 4.10 & Cockpit Voice
+    cockpitVoiceOn: "Voice ON",
+    cockpitVoiceOff: "Voice OFF",
+    titleVoiceTTS: "Toggle Cockpit Voice Assistant (TTS)",
+    gameVersionBadge: "Alpha 4.10",
+
+    // Rock Archetypes
+    rockArchetypeLabel: "ROCK GEOLOGICAL ARCHETYPE",
+    rockArchetypeDesc: "Sets baseline density, shell resistance, and physical behavior.",
+    btnAutoCalcProps: "Auto-Calculate (Archetype + Ores)",
+    archetypeBasalt: "Basalt (Dense)",
+    archetypeGranite: "Granite (Stable)",
+    archetypeObsidian: "Obsidian (Ultra-hard)",
+    archetypeIgneous: "Igneous (Hard)",
+    archetypeFelsic: "Felsic (Easy)",
+    archetypeGneiss: "Gneiss (Balanced)",
+    archetypeQuartzite: "Quartzite (Tough)",
+    archetypeShale: "Shale (Brittle)",
+    archetypeAtacamite: "Atacamite (Conductive)",
+
+    // Multi-Ore Composition
+    compositionTitle: "MULTI-ORE COMPOSITION (4.10)",
+    primaryMineral: "PRIMARY ORE",
+    secondaryMineral: "SECONDARY ORE",
+    noSecondaryMineral: "No secondary ore",
+    inertMaterials: "INERT MATERIALS (WASTE ROCK)",
+    inertPctNote: "Remaining rock mass with zero market value",
+    combinedValueNote: "Combined Ore 1 + Ore 2 (Inerts filtered out)",
+
+    // Saddlebags (Detachable Pods)
+    saddlebagsTitle: "PHYSICALIZED SADDLEBAGS",
+    saddlebagsMounted: "Bags mounted on hull:",
+    detachOneBag: "Detach 1 full bag ({scu} SCU)",
+    dropAllBags: "Jettison all full bags",
+    detachedBagsStatus: "Floating cargo containers in space:",
+    tractorRecommendation: "Requires tractor beam & cargo hauler (C1, Taurus, Freelancer).",
+    noDetachedBags: "No saddlebags currently floating in space.",
+
+    // Radar Ping RS 2.0 Decoder
+    radarDecoderBtn: "Radar RS",
+    titleRadarDecoder: "Radar Ping RS 2.0 Signature Decoder (Long-range)",
+    radarDecoderTitle: "RADAR PING RS 2.0 DECODER",
+    radarDecoderSubtitle: "Identify distant asteroids from ping scans without flying within scan range",
+    radarInputPlaceholder: "E.g. 3170, 6340, 3185, 3385, 3600...",
+    radarInputLabel: "Observed Radar RS signature from HUD ping:",
+    radarDecodeAction: "DECODE SIGNATURE",
+    radarMatchResults: "DETECTED GEOLOGICAL MATCHES",
+    radarMultiplierNote: "Asteroid sizing multiplier: x{mult} (Estimated Mass: ~{mass} kg)",
+    radarLoadBtn: "LOAD INTO SCANNER",
+    radarNoMatch: "No matching signature found. Try entering a value close to standard 1x/2x/4x multiples.",
+    radarTips: "Pro Tip: Asteroids in Star Citizen scale base 1x RS signatures by cluster multipliers (1x, 2x, 4x, 8x).",
 
     // Themes
     themeMisc: "MISC (Cyan)",
@@ -739,8 +845,8 @@ export const I18N = {
     // Footer
     installPWA: "📱 Install on Home Screen",
     reset: "🔄 Reset Session",
-    forceUpdateBtn: "⚡ Clear Cache (v1.3)",
-    toastCacheCleared: "🔄 PWA Cache reset to version v1.3!",
-    footerDisclaimer: "AARON MFD v1.3 • Community tool not affiliated with Cloud Imperium Games • Works 100% offline"
+    forceUpdateBtn: "⚡ Clear Cache (v1.4)",
+    toastCacheCleared: "🔄 PWA Cache reset to version v1.4 (Star Citizen 4.10)!",
+    footerDisclaimer: "AARON MFD v1.4 (Star Citizen Alpha 4.10) • Community tool not affiliated with Cloud Imperium Games • Works 100% offline"
   }
 };

@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="AARON MFD">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
 
-  <link rel="stylesheet" href="style.css?v=1.3">
+  <link rel="stylesheet" href="style.css?v=1.4">
 </head>
 <body>
 
@@ -29,7 +29,7 @@
         </svg>
       </div>
       <div>
-        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.3</span></h1>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.4</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
         <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
       </div>
     </div>
@@ -45,6 +45,7 @@
           <option value="prospector" data-i18n="shipProspector">MISC Prospector (32 SCU)</option>
           <option value="mole" data-i18n="shipMole">Argo MOLE (96 SCU)</option>
           <option value="roc" data-i18n="shipRoc">Greycat ROC (0.8 SCU)</option>
+          <option value="roc_ds" data-i18n="shipRocDs">Greycat ROC-DS (1.2 SCU)</option>
         </select>
       </div>
 
@@ -84,6 +85,17 @@
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
         </svg>
         <span data-i18n="haloStations">Halo & Stations</span>
+      </button>
+
+      <!-- Radar Ping RS 2.0 Decoder Trigger -->
+      <button class="btn-icon" id="btnOpenRadarDecoder" data-i18n-title="titleRadarDecoder" title="Décodeur Radar Ping RS 2.0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10"></path>
+          <path d="M12 6a6 6 0 0 1 6 6"></path>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+        <span data-i18n="radarDecoderBtn">Radar RS</span>
       </button>
 
       <!-- Refinery Orders Tracker Button -->
@@ -175,6 +187,16 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
         </svg>
+      </button>
+
+      <!-- Cockpit Voice Assistant (TTS) -->
+      <button class="btn-icon" id="btnVoiceTTS" data-i18n-title="titleVoiceTTS" title="Voix de bord cockpit (TTS)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <span id="voiceTTSLabel" data-i18n="cockpitVoiceOn">Voix ON</span>
       </button>
 
       <!-- Audio Mute/Unmute -->
@@ -277,6 +299,26 @@
         </div>
       </div>
 
+      <!-- ROCK ARCHETYPE SELECTION (4.10) -->
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="rockArchetypeLabel">ARCHÉTYPE GÉOLOGIQUE DE LA ROCHE</span>
+          <span class="label-val" id="selectedArchetypeLabel" style="color:var(--accent-cyan); font-weight:700;">Basalte (Dense)</span>
+        </div>
+        <div class="archetype-scroller" id="archetypeScroller" style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px;">
+          <!-- Populated dynamically via MINING_DATA.rockArchetypes -->
+        </div>
+        <div class="archetype-info-box" id="archetypeInfoBox" style="background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:8px 10px;">
+          <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.4;" id="archetypeDescText">
+            Roche volcanique sombre et dense. Très répandue sur les lunes volcaniques et ceintures denses.
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.72rem; color:var(--accent-cyan); flex-wrap:wrap; gap:6px;">
+            <span id="archetypeStatsText" style="font-family:var(--font-mono);">Densité: 3.0 • Résistance base: 45% • Instabilité base: 35%</span>
+            <button class="chip-btn" id="btnAutoCalcProps" style="padding:3px 8px; font-size:0.7rem; border-color:var(--accent-cyan); color:var(--accent-cyan);" data-i18n="btnAutoCalcProps">Auto-calculer</button>
+          </div>
+        </div>
+      </div>
+
       <!-- MINERAL SELECTION -->
       <div class="input-group">
         <div class="label-row">
@@ -288,7 +330,7 @@
         <div class="system-filter-bar" id="systemFilterBar" style="display:flex; gap:6px; margin-bottom:8px; overflow-x:auto; padding-bottom:2px;">
           <button class="chip-btn active" data-mineral-system="all" data-i18n="filterAll">TOUS LES SYSTÈMES</button>
           <button class="chip-btn" data-mineral-system="stanton" data-i18n="filterStanton">STANTON</button>
-          <button class="chip-btn" data-mineral-system="pyro" style="border-color:rgba(255,68,68,0.4); color:#ff6b6b;" data-i18n="filterPyro">🔥 PYRO (4.0)</button>
+          <button class="chip-btn" data-mineral-system="pyro" style="border-color:rgba(255,68,68,0.4); color:#ff6b6b;" data-i18n="filterPyro">🔥 PYRO (4.10)</button>
           <button class="chip-btn" data-mineral-system="nyx" style="border-color:rgba(129,140,248,0.4); color:#a5b4fc;" data-i18n="filterNyx">🚀 NYX</button>
         </div>
 
@@ -300,7 +342,7 @@
       <!-- ORE PERCENTAGE SLIDER & CHIPS -->
       <div class="input-group">
         <div class="label-row">
-          <span data-i18n="oreContent">TENEUR EN MINERAI</span>
+          <span data-i18n="oreContent">TENEUR EN MINERAI PRIMAIRE</span>
           <span class="label-val" id="pctLabel">32.0 %</span>
         </div>
 
@@ -315,6 +357,50 @@
           <button class="chip-btn" data-set-pct="30">30%</button>
           <button class="chip-btn" data-set-pct="45">45%</button>
           <button class="chip-btn" data-set-pct="100">100%</button>
+        </div>
+      </div>
+
+      <!-- SECONDARY ORE SELECTION & INERTS (4.10) -->
+      <div class="input-group">
+        <div class="label-row">
+          <span data-i18n="secondaryMineral">MINERAI SECONDAIRE</span>
+          <span class="label-val" id="selectedSecondaryLabel">Aucun</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin-bottom:8px;">
+          <select id="secondaryOreSelect" class="hud-select-full">
+            <option value="none" data-i18n="noSecondaryMineral">Aucun minerai secondaire</option>
+            <!-- Populated dynamically via MINING_DATA.minerals -->
+          </select>
+          <button class="chip-btn" id="btnClearSecondaryOre" title="Réinitialiser minerai secondaire" style="padding:6px 10px; font-size:0.75rem;">✕</button>
+        </div>
+
+        <div id="secondaryOreControls" style="display:none; margin-bottom:10px;">
+          <div class="label-row" style="font-size:0.78rem;">
+            <span>Teneur minerai secondaire</span>
+            <span class="label-val" id="secondaryPctLabel">15.0 %</span>
+          </div>
+          <div class="pct-controller">
+            <input type="range" min="0.5" max="60" step="0.5" value="15" class="pct-slider" id="secondaryPctSlider">
+            <span class="pct-val-display" id="secondaryPctDisplay">15%</span>
+          </div>
+        </div>
+
+        <!-- COMPOSITION & INERT GAUGE -->
+        <div class="composition-gauge-box" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:8px 10px;">
+          <div class="label-row" style="margin-bottom:4px; font-size:0.75rem;">
+            <span data-i18n="inertMaterials">MATÉRIAUX INERTES (GRAVIER STÉRILE)</span>
+            <span class="label-val" id="inertPctLabel" style="color:var(--text-muted); font-weight:700;">68.0 %</span>
+          </div>
+          <div class="composition-bar-container" style="display:flex; height:10px; border-radius:5px; overflow:hidden; background:#1e293b; margin-bottom:6px;">
+            <div class="composition-bar-segment" id="compBarPrimary" style="width: 32%; background: var(--accent-purple);" title="Minerai primaire"></div>
+            <div class="composition-bar-segment" id="compBarSecondary" style="width: 0%; background: var(--accent-amber);" title="Minerai secondaire"></div>
+            <div class="composition-bar-segment" id="compBarInert" style="width: 68%; background: #475569;" title="Matériaux inertes"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); flex-wrap:wrap; gap:4px;">
+            <span id="compLegendPrimary" style="color:#c084fc;">● QT: 32%</span>
+            <span id="compLegendSecondary" style="color:#fbbf24; display:none;">● Sec: 0%</span>
+            <span id="compLegendInert" style="color:#94a3b8;">● Inertes: 68%</span>
+          </div>
         </div>
       </div>
 
@@ -530,6 +616,31 @@
             <button id="btnClearHold" class="btn-clear-hold" data-i18n="clearHold">
               Vider la soute
             </button>
+          </div>
+        </div>
+
+        <!-- DETACHABLE SADDLEBAGS SECTION (4.10 physicalized cargo) -->
+        <div class="saddlebags-control-box" id="saddlebagsControlBox" style="display:none; margin-bottom:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:1rem;">🎒</span>
+              <span style="font-family:var(--font-hud); font-size:0.8rem; color:var(--accent-cyan);" data-i18n="saddlebagsTitle">SACOCHES PHYSICALISÉES (SADDLEBAGS)</span>
+            </div>
+            <span id="saddlebagsCountBadge" style="font-family:var(--font-mono); font-size:0.8rem; font-weight:700; color:var(--accent-emerald);">4 / 4 Montées</span>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;" id="saddlebagsSlotsVisual">
+            <!-- Rendered dynamically -->
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <button class="chip-btn" id="btnDetachOneBag" style="border-color:var(--accent-amber); color:var(--accent-amber); font-size:0.75rem; padding:5px 12px;">
+              📦 Détacher 1 sac plein (8 SCU)
+            </button>
+            <button class="chip-btn" id="btnDropAllBags" style="font-size:0.75rem; padding:5px 12px;" data-i18n="dropAllBags">
+              Larguer tous
+            </button>
+          </div>
+          <div id="detachedBagsNotice" style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; line-height:1.4; border-top:1px dashed rgba(255,255,255,0.08); padding-top:6px;">
+            <span id="detachedBagsText">0 sac(s) largué(s) dans l'espace.</span>
           </div>
         </div>
 
@@ -792,7 +903,7 @@
       </div>
     </div>
 
-    <!-- PYRO PANEL (ALPHA 4.0) -->
+    <!-- PYRO PANEL (ALPHA 4.10) -->
     <div id="atlasPanelPyro" style="display:none;">
       <div style="background:rgba(255,68,68,0.06); border:1px solid rgba(255,68,68,0.3); border-radius:8px; padding:12px; margin-bottom:14px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
@@ -819,6 +930,59 @@
       </div>
     </div>
   </div>
+  </div>
+
+  <!-- MODAL: RADAR PING RS 2.0 DECODER -->
+  <div class="modal-overlay" id="radarDecoderModal">
+    <div class="modal-content" style="max-width:640px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10"></path>
+            <path d="M12 6a6 6 0 0 1 6 6"></path>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+          <div>
+            <h2 style="font-family:var(--font-hud); font-size:1.05rem; color:var(--accent-cyan); margin:0;" data-i18n="radarDecoderTitle">DÉCODEUR PING RADAR RS 2.0</h2>
+            <div style="font-size:0.75rem; color:var(--text-muted);" data-i18n="radarDecoderSubtitle">Identifiez les astéroïdes à longue portée (Ping TAB) sans vous approcher</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseRadarDecoder">&times;</button>
+      </div>
+
+      <div style="margin-top:14px; margin-bottom:14px;">
+        <label class="label-row" style="font-size:0.8rem; margin-bottom:6px;" data-i18n="radarInputLabel">
+          Signature Radar RS observée sur le HUD :
+        </label>
+        <div style="display:flex; gap:8px;">
+          <input type="number" id="radarRsInput" class="hud-select-full" style="font-family:var(--font-mono); font-size:1.1rem; padding:8px 12px; font-weight:700; color:var(--accent-cyan);" placeholder="Ex: 3170, 6340, 3185, 3385, 3600..." value="6340">
+          <button class="btn-primary-action" id="btnExecRadarDecode" style="width:auto; padding:8px 18px; white-space:nowrap;" data-i18n="radarDecodeAction">
+            DÉCODER
+          </button>
+        </div>
+
+        <div class="quick-chips-row" style="margin-top:8px;">
+          <button class="chip-btn" data-preset-rs="3170">Quant 1x (3170)</button>
+          <button class="chip-btn" data-preset-rs="6340">Quant 2x (6340)</button>
+          <button class="chip-btn" data-preset-rs="3185">Stileron (3185)</button>
+          <button class="chip-btn" data-preset-rs="3385">Riccite (3385)</button>
+          <button class="chip-btn" data-preset-rs="3600">Bexalite (3600)</button>
+        </div>
+      </div>
+
+      <!-- DECODED RESULTS -->
+      <div style="font-family:var(--font-hud); font-size:0.85rem; color:#fff; margin-bottom:8px;" data-i18n="radarMatchResults">
+        CORRESPONDANCES GÉOLOGIQUES DÉTECTÉES
+      </div>
+      <div id="radarMatchesContainer" style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto;">
+        <!-- Populated dynamically via app.js -->
+      </div>
+
+      <div style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); font-size:0.75rem; color:var(--text-muted); line-height:1.4;" data-i18n="radarTips">
+        Astuce : Les astéroïdes dans Star Citizen utilisent des signatures multiplicatrices (x1, x2, x4, x8) de la signature 1x de base.
+      </div>
+    </div>
   </div>
 
   <!-- MODAL: DONATION / SUPPORT -->
@@ -1210,14 +1374,56 @@
 
       <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
 
-        <!-- VERSION 1.2 -->
+        <!-- VERSION 1.4 -->
         <div class="changelog-card current-version">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill current">v1.2</span>
+              <span class="version-tag-pill current">v1.4</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Star Citizen Alpha 4.10 Mining Overhaul</strong>
+            </div>
+            <span class="changelog-date">Dernière version (Alpha 4.10)</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Archétypes Géologiques de Roches</strong> : Intégration des 9 familles géologiques de Star Citizen (Basalte, Granite, Obsidienne, Magmatique, Felsique, Gneiss, Quartzite, Schiste, Atacamite) avec densité, résistance et instabilité de base.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Scan Multi-Minerais & Jauge d'Inertes</strong> : Prise en charge des compositions mixtes (Minerai Primaire + Secondaire) et calcul automatique du gravier stérile inerte restant.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Décodeur Ping Radar RS 2.0</strong> : Décodeur tactique des signatures radar longue portée (TAB) pour identifier le minerai et la taille de l'astéroïde sans s'approcher.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Sacs Physicalisés (Detachable Saddlebags)</strong> : Compteur de sacoches amovibles larguées pour le Prospector (4x 8 SCU) et le MOLE (8x 12 SCU) avec aide au transport cargo allié.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Voix Cockpit Synthétisée (TTS)</strong> : Annonces vocales de bord réalistes (filon exceptionnel, instabilité Quantainium, alertes laser, fin de raffinage) 100% hors-ligne.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Greycat ROC-DS</strong> : Support du véhicule minier terrestre biplace avec soute augmentée de 1.2 SCU (1 200 gemmes).</span>
+            </li>
+            <li>
+              <span class="badge-tag improved" data-i18n="tagImproved">OPTIMISÉ</span>
+              <span><strong>Calcul Dynamique Résistance & Instabilité</strong> : Calcul automatique pondéré selon l'archétype géologique et les minerais volatils présents.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- VERSION 1.2 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill">v1.2</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Tactical Overhaul & 6 Mining Tools</strong>
             </div>
-            <span class="changelog-date">Dernière version</span>
+            <span class="changelog-date">Mise à jour majeure</span>
           </div>
 
           <ul class="changelog-list">
@@ -1340,17 +1546,17 @@
     <div class="footer-links">
       <span class="footer-link" id="btnOpenGuideFooter" data-i18n="guideLink">📖 Guide & Prise en main</span>
       <span>•</span>
-      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.3)</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.4)</span>
       <span>•</span>
       <span class="footer-link" id="btnInstallPWA" data-i18n="installPWA">📱 Installer sur écran d'accueil</span>
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.3)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.4)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.3 • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.4 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
-  <script type="module" src="app.js?v=1.3"></script>
+  <script type="module" src="app.js?v=1.4"></script>
 </body>
 </html>
