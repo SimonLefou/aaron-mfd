@@ -31,7 +31,9 @@
         <span class="mg-sys-val" data-i18n="mgSystemName">STANTON // SECTEUR MINIER ORBITAL</span>
       </div>
       <div class="mg-sys-sub">
-        <span class="mg-sub-item"><span data-i18n="mgComms">COMMS :</span> <span class="mg-status-online">CONNECTÉ [|||||]</span></span>
+        <span class="mg-sub-item mg-fleet-net-status" id="btnMgFleetNetComms" data-i18n-title="titleSquadModal" title="Liaison P2P d'escadre (Cliquer pour ouvrir)" style="cursor:pointer;">
+          <span data-i18n="mgComms">COMMS :</span> <span class="mg-status-online" id="mgCommsLedText">SOLO [|||||]</span>
+        </span>
         <span class="mg-sub-sep">//</span>
         <span class="mg-sub-item mg-callsign-wrapper" id="btnEditMgCallsign" data-i18n-title="editCallsignTitle" title="Modifier votre indicatif de pilote (Cliquer pour éditer)">
           <span data-i18n="mgCallsign">INDICATIF :</span>
@@ -114,7 +116,7 @@
         </svg>
       </div>
       <div>
-        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.6.4</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.8.0</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
         <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
       </div>
     </div>
@@ -184,6 +186,16 @@
           <circle cx="12" cy="12" r="2"></circle>
         </svg>
         <span data-i18n="radarDecoderBtn">Radar RS</span>
+      </button>
+
+      <!-- Instant OCR & Screen Capture Scanner (Jalon 3) -->
+      <button class="btn-icon" id="btnOpenOcrModal" data-i18n-title="titleOcrModal" title="Scanner OCR Instantané (Caméra / F12 / Presse-papier)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+        <span>OCR</span>
+        <span class="hud-badge" style="background:var(--accent-purple); color:#fff; font-size:0.6rem; padding:1px 4px; border-radius:4px;">F12</span>
       </button>
 
       <!-- Refinery Orders Tracker Button -->
@@ -392,6 +404,44 @@
 
       <!-- SUB-PANE 1: QUICK TACTILE SCAN (Primary Operational Mode) -->
       <div class="scan-subtab-pane active" id="scanSubtabPaneQuick">
+
+        <!-- INCOMING ROCK SCAN ALERT BANNER (Shown when a wingman transmits a rock scan) -->
+        <div class="rock-broadcast-received-banner" id="rockBroadcastReceivedBanner" style="display:none;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="pulse-beacon-icon">📡</span>
+            <div>
+              <div style="font-family:var(--font-hud); font-size:0.75rem; color:var(--accent-cyan); font-weight:700;" id="rockBroadcastTitle">
+                SCAN REÇU D'UN COÉQUIPIER
+              </div>
+              <div style="font-size:0.8rem; color:#fff;" id="rockBroadcastDetails">
+                Quantainium (5 200 kg • 32.0%) — Rés: 40% • Inst: 50
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button type="button" class="chip-btn active" id="btnApplyIncomingRockScan" style="font-size:0.75rem; padding:4px 10px; background:var(--accent-cyan); color:#000; font-weight:700;">⚡ CHARGER</button>
+            <button type="button" class="btn-close-modal" id="btnDismissIncomingRockScan" style="font-size:1.1rem; width:22px; height:22px;">&times;</button>
+          </div>
+        </div>
+
+        <!-- SCAN TELEMETRY & OCR ACTION STRIP (Jalon 3) -->
+        <div class="scan-telemetry-action-strip">
+          <button type="button" class="chip-btn ocr-trigger-btn" id="btnQuickOpenOcr" style="border-color:var(--accent-purple); color:var(--accent-purple); font-weight:700;">
+            <span>📸 SCANNER OCR (F12 / CAMÉRA)</span>
+            <span class="craft-badge" style="font-size:0.62rem; padding:1px 5px; border-color:var(--accent-purple); color:var(--accent-purple);">0.3s</span>
+          </button>
+          <button type="button" class="chip-btn broadcast-scan-btn" id="btnBroadcastCurrentRock" title="Diffuser instantanément ce rocher à toute l'escadre">
+            <span>📡 DIFFUSER À LA FLOTTE</span>
+          </button>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;" title="Diffuser automatiquement le scan à l'escadre lors de chaque modification">
+            <input type="checkbox" id="chkAutoBroadcastScan" style="cursor:pointer;" />
+            <span style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono);" data-i18n="autoBroadcastScanLabel">Auto-diffuser</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:4px; cursor:pointer;" title="Appliquer automatiquement les scans reçus des ailiers">
+            <input type="checkbox" id="chkAutoSyncScan" checked style="cursor:pointer;" />
+            <span style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono);" data-i18n="autoSyncScanLabel">Auto-sync</span>
+          </label>
+        </div>
 
         <!-- FLEET ACTIVE HUD INDICATOR (Shown when wingmen are actively firing) -->
         <div class="squad-active-hud-banner" id="squadActiveHudBanner" style="display:none; justify-content:space-between; align-items:center; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.35); border-radius:6px; padding:6px 12px; margin-bottom:12px; font-size:0.78rem;">
@@ -1020,6 +1070,16 @@
         </div>
       </div>
 
+      <!-- CRAFTING 4.0 WORKSHOP SHORTCUT -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:8px 12px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.3); border-radius:8px;">
+        <div style="font-size:0.8rem; color:var(--accent-purple); font-family:var(--font-hud); font-weight:700;">
+          🛠️ ATELIER CRAFTING 4.0 (TÊTES & GADGETS SUR-MESURE)
+        </div>
+        <button type="button" class="chip-btn" id="btnOpenCraftingFromLoadout" style="border-color:var(--accent-purple); color:var(--accent-purple); font-weight:700; font-size:0.75rem; white-space:nowrap;" data-i18n="craftWorkshopBtn">
+          🛠️ Ouvrir l'Atelier
+        </button>
+      </div>
+
       <!-- SHIP SELECTION (Inside Loadout Modal) -->
       <div class="input-group" style="margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid rgba(0,240,255,0.2);">
         <label class="label-row" style="color:var(--accent-cyan); font-family:var(--font-hud); font-size:0.85rem;">
@@ -1063,6 +1123,353 @@
     </div>
   </div>
 
+  <!-- MODAL: ATELIER CRAFTING 4.0 & TÊTES SUR-MESURE (JALON 2) -->
+  <div class="modal-overlay" id="craftingModal">
+    <div class="modal-content" style="max-width:740px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.3rem;">🛠️</span>
+          <div>
+            <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-purple); margin:0;" data-i18n="craftingModalTitle">ATELIER DE CRAFTING & TÊTES SUR-MESURE (CRAFTING 4.0)</h2>
+            <div style="font-size:0.75rem; color:var(--text-muted);" data-i18n="craftingModalDesc">Concevez, personnalisez et synchronisez vos têtes de minage et gadgets artisanaux avec votre guilde.</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseCrafting">&times;</button>
+      </div>
+
+      <!-- Workshop Sub-tabs -->
+      <div class="crafting-tabs-nav" style="display:flex; gap:8px; border-bottom:1px solid rgba(168,85,247,0.3); padding-bottom:8px; margin-bottom:14px;">
+        <button type="button" class="chip-btn active" id="tabCraftLasers" style="border-color:var(--accent-purple); color:var(--accent-purple); font-weight:700; padding:6px 14px;" data-i18n="craftingTabLasers">TÊTES DE MINAGE ARTISANALES</button>
+        <button type="button" class="chip-btn" id="tabCraftGadgets" style="font-weight:700; padding:6px 14px;" data-i18n="craftingTabGadgets">GADGETS MINIERS ARTISANAUX</button>
+      </div>
+
+      <!-- TAB PANE 1: MINING HEADS / LASERS -->
+      <div id="craftPaneLasers">
+        <!-- Form to Forge a New Head -->
+        <div class="craft-form-card" style="background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.35); border-radius:8px; padding:12px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-purple); font-weight:700;" data-i18n="craftBtnNewLaser">+ FORGER UNE NOUVELLE TÊTE ARTISANALE</span>
+            <span class="craft-badge">CRAFT 4.0</span>
+          </div>
+
+          <!-- Base Template Dropdown -->
+          <div class="input-group" style="margin-bottom:10px;">
+            <label class="label-row" style="font-size:0.75rem; color:var(--text-muted);" data-i18n="craftBaseTemplate">Modèle de base (Préremplir les statistiques) :</label>
+            <select id="craftLaserTemplateSelect" class="hud-select-full" style="font-size:0.82rem; padding:4px 8px;">
+              <option value="" data-i18n="craftTemplateSelect">-- Choisir un modèle de départ --</option>
+              <option value="lancet_s1">Lancet MH1 (S1 - Spécialiste Anti-Résistance)</option>
+              <option value="helix_s1">Helix I (S1 - Haute Pénétration Brute)</option>
+              <option value="arbor_s1">Arbor MH1 (S1 - Équilibré polyvalent)</option>
+              <option value="impact_s1">Impact I (S1 - Puissance / Stabilité)</option>
+              <option value="hofstede_s1">Hofstede-S1 (S1 - Fenêtre large)</option>
+              <option value="klein_s1">Klein-S1 (S1 - Extraction rapide)</option>
+              <option value="lancet_s2">Lancet MH2 (S2 - Lourd MOLE)</option>
+              <option value="helix_s2">Helix II (S2 - Monstre MOLE)</option>
+              <option value="arbor_s2">Arbor MH2 (S2 - Équilibré MOLE)</option>
+            </select>
+          </div>
+
+          <!-- Name & Size -->
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;" data-i18n="craftLaserName">Nom de la tête artisanale :</label>
+              <input type="text" id="craftLaserNameInput" class="hud-input" style="width:100%; box-sizing:border-box;" placeholder="Ex: Lancet MH1 Tier 3 Craft" maxlength="35" />
+            </div>
+            <div>
+              <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;" data-i18n="craftLaserSize">Taille du support :</label>
+              <select id="craftLaserSizeSelect" class="hud-select-full" style="padding:6px 8px;">
+                <option value="1">Size 1 (Prospector / S1)</option>
+                <option value="2">Size 2 (Argo MOLE / S2)</option>
+                <option value="3">Size 3 (Arrastra / Orion / S3)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Sliders Grid: Power, Resistance Mod, Instability Mod, Window Mod -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <!-- Power Watts -->
+            <div>
+              <div class="label-row" style="font-size:0.75rem;">
+                <span data-i18n="craftLaserPower">Puissance de fracture (Watts) :</span>
+                <span id="craftLaserPowerVal" style="color:#10b981; font-family:var(--font-mono); font-weight:700;">1 800 W</span>
+              </div>
+              <input type="range" id="craftLaserPowerSlider" min="500" max="8000" step="50" value="1800" class="hud-slider" />
+            </div>
+
+            <!-- Resistance Mod % -->
+            <div>
+              <div class="label-row" style="font-size:0.75rem;">
+                <span data-i18n="craftLaserResMod">Réduction résistance roche (%) :</span>
+                <span id="craftLaserResVal" style="color:var(--accent-cyan); font-family:var(--font-mono); font-weight:700;">-50 %</span>
+              </div>
+              <input type="range" id="craftLaserResSlider" min="-90" max="20" step="1" value="-50" class="hud-slider" />
+            </div>
+
+            <!-- Instability Mod % -->
+            <div>
+              <div class="label-row" style="font-size:0.75rem;">
+                <span data-i18n="craftLaserInstMod">Atténuation instabilité (%) :</span>
+                <span id="craftLaserInstVal" style="color:var(--accent-purple); font-family:var(--font-mono); font-weight:700;">-75 %</span>
+              </div>
+              <input type="range" id="craftLaserInstSlider" min="-95" max="40" step="1" value="-75" class="hud-slider" />
+            </div>
+
+            <!-- Optimal Window % -->
+            <div>
+              <div class="label-row" style="font-size:0.75rem;">
+                <span data-i18n="craftLaserWindowMod">Taille zone optimale (%) :</span>
+                <span id="craftLaserWindowVal" style="color:var(--accent-amber); font-family:var(--font-mono); font-weight:700;">+25 %</span>
+              </div>
+              <input type="range" id="craftLaserWindowSlider" min="-40" max="80" step="5" value="25" class="hud-slider" />
+            </div>
+          </div>
+
+          <!-- Slots row -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;">
+            <span style="font-size:0.78rem; color:var(--text-muted);" data-i18n="craftLaserSlots">Emplacements de sous-modules :</span>
+            <div class="quick-chips-row" style="display:flex; gap:6px;">
+              <button type="button" class="chip-btn craft-slot-btn" data-slots="1">1 Slot</button>
+              <button type="button" class="chip-btn craft-slot-btn" data-slots="2">2 Slots</button>
+              <button type="button" class="chip-btn craft-slot-btn active" data-slots="3">3 Slots</button>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" class="chip-btn" id="btnResetCraftLaserForm" data-i18n="craftResetBtn" style="font-size:0.75rem;">RÉINITIALISER</button>
+            <button type="button" class="chip-btn" id="btnSaveCraftLaser" data-i18n="craftSaveBtn" style="border-color:var(--accent-purple); color:var(--accent-purple); font-weight:700; font-size:0.8rem;">💾 ENREGISTRER LA TÊTE</button>
+          </div>
+        </div>
+
+        <!-- List of Saved Custom Lasers -->
+        <div>
+          <div style="font-family:var(--font-hud); font-size:0.8rem; color:var(--accent-cyan); letter-spacing:0.8px; margin-bottom:8px;" data-i18n="customLasersListTitle">TÊTES ARTISANALES ENREGISTRÉES</div>
+          <div id="customLasersListContainer" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB PANE 2: GADGETS -->
+      <div id="craftPaneGadgets" style="display:none;">
+        <div class="craft-form-card" style="background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.35); border-radius:8px; padding:12px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-purple); font-weight:700;" data-i18n="craftBtnNewGadget">+ CRÉER UN GADGET ARTISANAL</span>
+            <span class="craft-badge">PROTOTYPE</span>
+          </div>
+
+          <div class="input-group" style="margin-bottom:12px;">
+            <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;" data-i18n="craftGadgetName">Nom du gadget artisanal :</label>
+            <input type="text" id="craftGadgetNameInput" class="hud-input" style="width:100%; box-sizing:border-box;" placeholder="Ex: Sabir 21 Overclocké Guilde" maxlength="35" />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div>
+              <div class="label-row" style="font-size:0.72rem;">
+                <span>Résistance (%) :</span>
+                <span id="craftGadgetResVal" style="color:var(--accent-cyan); font-family:var(--font-mono); font-weight:700;">-50 %</span>
+              </div>
+              <input type="range" id="craftGadgetResSlider" min="-90" max="10" step="5" value="-50" class="hud-slider" />
+            </div>
+            <div>
+              <div class="label-row" style="font-size:0.72rem;">
+                <span>Instabilité (%) :</span>
+                <span id="craftGadgetInstVal" style="color:var(--accent-purple); font-family:var(--font-mono); font-weight:700;">-30 %</span>
+              </div>
+              <input type="range" id="craftGadgetInstSlider" min="-90" max="30" step="5" value="-30" class="hud-slider" />
+            </div>
+            <div>
+              <div class="label-row" style="font-size:0.72rem;">
+                <span>Fenêtre (%) :</span>
+                <span id="craftGadgetWindowVal" style="color:var(--accent-amber); font-family:var(--font-mono); font-weight:700;">+20 %</span>
+              </div>
+              <input type="range" id="craftGadgetWindowSlider" min="-20" max="80" step="5" value="20" class="hud-slider" />
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button type="button" class="chip-btn" id="btnResetCraftGadgetForm" data-i18n="craftResetBtn" style="font-size:0.75rem;">RÉINITIALISER</button>
+            <button type="button" class="chip-btn" id="btnSaveCraftGadget" data-i18n="craftSaveBtn" style="border-color:var(--accent-purple); color:var(--accent-purple); font-weight:700; font-size:0.8rem;">💾 ENREGISTRER LE GADGET</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:var(--font-hud); font-size:0.8rem; color:var(--accent-cyan); letter-spacing:0.8px; margin-bottom:8px;" data-i18n="customGadgetsListTitle">GADGETS ARTISANAUX ENREGISTRÉS</div>
+          <div id="customGadgetsListContainer" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SCANNER OCR INSTANTANÉ (JALON 3) -->
+  <div class="modal-overlay" id="ocrModal">
+    <div class="modal-content" style="max-width:760px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.3rem;">📸</span>
+          <div>
+            <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-purple); margin:0;" data-i18n="ocrModalTitle">SCANNER OCR INSTANTANÉ (HUD STAR CITIZEN)</h2>
+            <div style="font-size:0.75rem; color:var(--text-muted);" data-i18n="ocrModalDesc">Reconnaissance optique 100% locale : Caméra smartphone, capture d'écran F12 ou copier-coller Ctrl+V.</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btnCloseOcr">&times;</button>
+      </div>
+
+      <!-- Mode Switcher Tabs -->
+      <div class="ocr-tabs-nav" style="display:flex; gap:8px; border-bottom:1px solid rgba(168,85,247,0.3); padding-bottom:8px; margin-bottom:12px;">
+        <button type="button" class="chip-btn active" id="tabOcrClipboard" style="border-color:var(--accent-purple); color:var(--accent-purple); font-weight:700; padding:6px 14px;" data-i18n="ocrTabClipboard">📋 PRESSE-PAPIER & FICHIER (F12)</button>
+        <button type="button" class="chip-btn" id="tabOcrCamera" style="font-weight:700; padding:6px 14px;" data-i18n="ocrTabCamera">📷 CAMÉRA DIRECT</button>
+        <button type="button" class="chip-btn" id="tabOcrSamples" style="font-weight:700; padding:6px 14px;" data-i18n="ocrTabSamples">🧪 ÉCHANTILLONS SC 4.0</button>
+      </div>
+
+      <!-- TAB 1: CLIPBOARD & FILE DROP -->
+      <div id="ocrPaneClipboard">
+        <div class="ocr-dropzone" id="ocrDropzone">
+          <input type="file" id="ocrFileInput" accept="image/*" style="display:none;" />
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:20px; text-align:center;">
+            <div style="font-size:2rem; color:var(--accent-purple);">📋</div>
+            <div style="font-family:var(--font-hud); font-size:0.9rem; color:#fff;">
+              GLISSEZ UNE CAPTURE D'ÉCRAN ICI OU FAITES <kbd style="background:rgba(255,255,255,0.15); padding:2px 6px; border-radius:4px; font-family:var(--font-mono);">CTRL + V</kbd>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">
+              Prenez un screen dans Star Citizen (F12 / Snipping Tool), collez-le directement ou parcourez un fichier.
+            </div>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <button type="button" class="chip-btn" id="btnBrowseOcrFile" style="font-size:0.75rem;">📁 Choisir une image</button>
+              <button type="button" class="chip-btn" id="btnPasteOcrClipboard" style="font-size:0.75rem; border-color:var(--accent-cyan); color:var(--accent-cyan);">📋 Coller le presse-papier</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Text Paste Fallback -->
+        <div style="margin-top:10px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-hud);">OU COLLER DIRECTEMENT DU TEXTE DU SCAN :</label>
+            <button type="button" class="chip-btn" id="btnParseRawScanText" style="padding:1px 8px; font-size:0.68rem; border-color:var(--accent-purple); color:var(--accent-purple);" data-i18n="ocrBtnAnalyze">Analyser le texte</button>
+          </div>
+          <textarea id="ocrRawTextInput" class="hud-input" rows="2" style="width:100%; box-sizing:border-box; font-family:var(--font-mono); font-size:0.75rem;" placeholder="Ex: Mass: 5234 kg  Quantainium: 32.4%  Inert: 67.6%  Resistance: 42%  Instability: 50..."></textarea>
+        </div>
+      </div>
+
+      <!-- TAB 2: LIVE CAMERA -->
+      <div id="ocrPaneCamera" style="display:none;">
+        <div class="ocr-camera-wrapper" style="position:relative; width:100%; height:260px; background:#000; border-radius:8px; overflow:hidden; border:1px solid rgba(168,85,247,0.4); display:flex; align-items:center; justify-content:center;">
+          <video id="ocrCameraVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+          <div class="ocr-camera-reticle" style="position:absolute; inset:20px; border:2px dashed rgba(0,240,255,0.6); border-radius:8px; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; padding:8px;">
+            <div style="font-family:var(--font-hud); font-size:0.7rem; color:var(--accent-cyan); letter-spacing:1px; background:rgba(0,0,0,0.6); padding:2px 6px; width:fit-content; border-radius:3px;">
+              CADREZ LE RÉTICULE DE SCAN SC
+            </div>
+            <div style="font-family:var(--font-mono); font-size:0.65rem; color:var(--text-muted); text-align:right; background:rgba(0,0,0,0.6); padding:2px 6px; align-self:flex-end; border-radius:3px;">
+              ALIGNER MASSE & COMPOSITION
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:10px; margin-bottom:12px;">
+          <button type="button" class="chip-btn active" id="btnCaptureCameraFrame" style="padding:8px 18px; font-size:0.85rem; font-weight:700; background:var(--accent-purple); color:#fff; border-color:var(--accent-purple);">
+            📸 CAPTURER LE SCAN
+          </button>
+          <button type="button" class="chip-btn" id="btnSwitchCamera" style="font-size:0.75rem;">
+            🔄 Changer de caméra
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 3: TEST SAMPLES SC 4.0 -->
+      <div id="ocrPaneSamples" style="display:none; margin-bottom:12px;">
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">
+          Cliquez sur un échantillon pour tester instantanément le parseur OCR sans lancer Star Citizen :
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+          <button type="button" class="chip-btn ocr-sample-btn" data-sample="quantainium" style="padding:10px; text-align:left; display:flex; flex-direction:column; gap:3px;">
+            <span style="font-family:var(--font-hud); font-size:0.8rem; color:#a855f7; font-weight:700;">💎 Quantainium 32.4%</span>
+            <span style="font-size:0.7rem; color:#fff;">5 234 kg • Rés: 42% • Inst: 58</span>
+            <span style="font-size:0.65rem; color:var(--text-muted);">RS: 3 170 • Astéroïde Type-C</span>
+          </button>
+          <button type="button" class="chip-btn ocr-sample-btn" data-sample="bexalite" style="padding:10px; text-align:left; display:flex; flex-direction:column; gap:3px;">
+            <span style="font-family:var(--font-hud); font-size:0.8rem; color:#00f0ff; font-weight:700;">💠 Bexalite 48.0%</span>
+            <span style="font-size:0.7rem; color:#fff;">8 120 kg • Rés: 65% • Inst: 40</span>
+            <span style="font-size:0.65rem; color:var(--text-muted);">RS: 2 450 • Basalte</span>
+          </button>
+          <button type="button" class="chip-btn ocr-sample-btn" data-sample="taranite_laranite" style="padding:10px; text-align:left; display:flex; flex-direction:column; gap:3px;">
+            <span style="font-family:var(--font-hud); font-size:0.8rem; color:#10b981; font-weight:700;">⚡ Taranite 26% + Lara 14%</span>
+            <span style="font-size:0.7rem; color:#fff;">7 450 kg • Rés: 51% • Inst: 72</span>
+            <span style="font-size:0.65rem; color:var(--text-muted);">RS: 2 890 • Obsidienne</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- IMAGE PREVIEW & SCAN ANIMATION CANVAS -->
+      <div id="ocrPreviewContainer" style="display:none; position:relative; max-height:180px; overflow:hidden; border-radius:6px; border:1px solid rgba(0,240,255,0.3); margin-bottom:12px; background:#000;">
+        <canvas id="ocrCanvas" style="width:100%; height:auto; display:block;"></canvas>
+        <div class="ocr-scan-laser-line" id="ocrScanLaserLine"></div>
+      </div>
+
+      <!-- OCR EXTRACTION STATUS & RESULTS CARD -->
+      <div class="ocr-results-card" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-family:var(--font-hud); font-size:0.8rem; font-weight:700; color:var(--accent-cyan);">DONNÉES EXTRAITES :</span>
+            <span id="ocrStatusBadge" class="craft-badge" style="border-color:var(--text-muted); color:var(--text-muted);">EN ATTENTE D'IMAGE</span>
+          </div>
+          <span id="ocrTimingDisplay" style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono);">0.00s</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">MASSE (KG)</label>
+            <input type="number" id="ocrResMass" class="hud-input" style="width:100%; box-sizing:border-box; font-family:var(--font-mono);" value="5200" />
+          </div>
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">MINERAI 1</label>
+            <select id="ocrResMineral1" class="hud-select-full" style="padding:6px; font-size:0.75rem;"></select>
+          </div>
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">TENEUR 1 (%)</label>
+            <input type="number" step="0.1" id="ocrResPct1" class="hud-input" style="width:100%; box-sizing:border-box; font-family:var(--font-mono);" value="32.0" />
+          </div>
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">RÉSISTANCE (%)</label>
+            <input type="number" id="ocrResResistance" class="hud-input" style="width:100%; box-sizing:border-box; font-family:var(--font-mono);" value="40" />
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">INSTABILITÉ</label>
+            <input type="number" id="ocrResInstability" class="hud-input" style="width:100%; box-sizing:border-box; font-family:var(--font-mono);" value="50" />
+          </div>
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">MINERAI 2 (OPTIONNEL)</label>
+            <select id="ocrResMineral2" class="hud-select-full" style="padding:6px; font-size:0.75rem;"></select>
+          </div>
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">TENEUR 2 (%)</label>
+            <input type="number" step="0.1" id="ocrResPct2" class="hud-input" style="width:100%; box-sizing:border-box; font-family:var(--font-mono);" value="0.0" />
+          </div>
+          <div>
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">ARCHÉTYPE</label>
+            <select id="ocrResArchetype" class="hud-select-full" style="padding:6px; font-size:0.75rem;"></select>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="ocrChkBroadcastOnApply" checked style="cursor:pointer;" />
+            <span style="font-size:0.75rem; color:var(--accent-cyan); font-family:var(--font-mono);" data-i18n="ocrBtnBroadcast">Diffuser immédiatement à l'escadre (Fleet-Net)</span>
+          </label>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="chip-btn" id="btnCancelOcr" style="font-size:0.75rem;">ANNULER</button>
+            <button type="button" class="chip-btn active" id="btnApplyOcrData" style="font-size:0.8rem; font-weight:700; background:var(--accent-cyan); color:#000; border-color:var(--accent-cyan);" data-i18n="ocrBtnInject">
+              ⚡ INJECTER DANS LE CALCULATEUR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: SQUAD & FLEET MINING (FLOTTE & MULTI-VAISSEAUX) -->
   <div class="modal-overlay" id="crewModal">
     <div class="modal-content" style="max-width:680px;">
@@ -1083,25 +1490,88 @@
         <div style="font-size:0.83rem; color:var(--text-muted); line-height:1.4; flex:1; min-width:220px;" data-i18n="squadModalDesc">
           Coordonnez plusieurs vaisseaux miniers ou de transport : cumulez les puissances de fracture, réduisez conjointement la résistance rocheuse et répartissez équitablement les gains.
         </div>
-        <button type="button" class="chip-btn" id="btnOpenRoadmapFromCrew" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.72rem; padding:4px 8px; font-weight:700; white-space:nowrap;" data-i18n="fleetRoadmapBtn">🗺️ Feuille de Route Flotte</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="chip-btn" id="btnOpenCraftingFromCrew" style="border-color:var(--accent-purple); color:var(--accent-purple); font-size:0.72rem; padding:4px 8px; font-weight:700; white-space:nowrap;" data-i18n="craftWorkshopBtn">🛠️ Atelier Crafting 4.0</button>
+          <button type="button" class="chip-btn" id="btnOpenRoadmapFromCrew" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.72rem; padding:4px 8px; font-weight:700; white-space:nowrap;" data-i18n="fleetRoadmapBtn">🗺️ Feuille de Route Flotte</button>
+        </div>
+      </div>
+
+      <!-- AARON FLEET-NET P2P INTERLINK CONSOLE (JALON 1) -->
+      <div class="fleet-net-card" id="fleetNetCard">
+        <div class="fleet-net-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="fleet-net-led disconnected" id="fleetNetLed"></span>
+            <span class="fleet-net-title" data-i18n="fleetNetTitle">LIAISON P2P D'ESCADRE (FLEET-NET)</span>
+          </div>
+          <span class="fleet-net-status-badge disconnected" id="fleetNetStatusBadge" data-i18n="fleetNetSolo">MODE SOLO (HORS-LIGNE)</span>
+        </div>
+
+        <!-- Disconnected View: Create or Join -->
+        <div id="fleetNetDisconnectedBox" class="fleet-net-body">
+          <div class="fleet-net-join-row">
+            <button type="button" class="btn-fleet-create" id="btnFleetCreateWing">
+              <span style="font-size:1.1rem; line-height:1;">🚀</span>
+              <span data-i18n="fleetCreateWingBtn">CRÉER UNE ESCADRE (HÔTE)</span>
+            </button>
+            <div class="fleet-net-divider"><span data-i18n="orDivider">OU</span></div>
+            <div class="fleet-net-join-group">
+              <input type="text" id="inputFleetRoomCode" class="hud-input fleet-room-input" placeholder="WING-XXXX" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="characters" />
+              <button type="button" class="chip-btn btn-fleet-join" id="btnFleetJoinWing" data-i18n="fleetJoinBtn">REJOINDRE</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connected View: Active Wing Code, Invite Link, Ping, Leave -->
+        <div id="fleetNetConnectedBox" class="fleet-net-body" style="display:none;">
+          <div class="fleet-net-connected-row">
+            <div class="fleet-net-room-info">
+              <span class="fleet-net-label" data-i18n="activeWingLabel">SALON D'ESCADRE ACTIF</span>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                <span class="fleet-net-room-code" id="fleetNetRoomCodeDisplay">WING-4982</span>
+                <span class="fleet-net-role-badge host" id="fleetNetRoleBadge">HÔTE</span>
+              </div>
+            </div>
+
+            <div class="fleet-net-telemetry-badge">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="fleet-net-ping-indicator">●</span>
+                <span id="fleetNetPingDisplay" style="color:var(--accent-emerald); font-family:var(--font-mono); font-weight:700;">12 ms</span>
+              </div>
+              <span id="fleetNetPeersCountDisplay" style="color:var(--accent-cyan); font-size:0.75rem;">1 pair en ligne</span>
+            </div>
+
+            <div class="fleet-net-actions">
+              <button type="button" class="chip-btn" id="btnFleetCopyInvite" title="Copier le lien d'invitation 1-clic" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;">
+                🔗 <span data-i18n="fleetCopyLink">COPIER LE LIEN</span>
+              </button>
+              <button type="button" class="chip-btn" id="btnFleetLeaveWing" title="Quitter l'escadre" style="border-color:var(--accent-rose); color:var(--accent-rose);">
+                ✕ <span data-i18n="fleetLeaveBtn">QUITTER</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- FLEET TELEMETRY HEADER TILES -->
-      <div class="fleet-stats-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:16px;">
-        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
-          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetShipsLabel">Vaisseaux</div>
-          <div id="fleetStatShips" style="font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:var(--accent-cyan);">1</div>
+      <div class="fleet-stats-grid" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-bottom:16px;">
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 4px; text-align:center;">
+          <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetShipsLabel">Vaisseaux</div>
+          <div id="fleetStatShips" style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--accent-cyan);">1</div>
         </div>
-        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
-          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetPowerLabel">Puissance W</div>
-          <div id="fleetStatPower" style="font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:#10b981;">1 400 W</div>
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 4px; text-align:center;">
+          <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetPowerLabel">Puissance W</div>
+          <div id="fleetStatPower" style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:#10b981;">1 400 W</div>
         </div>
-        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
-          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetCargoLabel">Soute Flotte</div>
-          <div id="fleetStatCargo" style="font-family:var(--font-mono); font-size:1.2rem; font-weight:700; color:var(--accent-amber);">32 SCU</div>
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:8px 4px; text-align:center;">
+          <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetStatResReduction">Réd. Résist.</div>
+          <div id="fleetStatResReduction" style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--accent-purple);">-50 %</div>
         </div>
-        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 6px; text-align:center;">
-          <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetShareLabel">Part / Joueur</div>
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 4px; text-align:center;">
+          <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetCargoLabel">Soute Flotte</div>
+          <div id="fleetStatCargo" style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--accent-amber);">32 SCU</div>
+        </div>
+        <div class="fleet-stat-tile" style="background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px 4px; text-align:center;">
+          <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="fleetShareLabel">Part / Joueur</div>
           <div id="fleetStatShare" style="font-family:var(--font-mono); font-size:1.05rem; font-weight:700; color:#38bdf8;">~279k</div>
         </div>
       </div>
@@ -1852,14 +2322,40 @@
 
       <div class="changelog-scroller" id="changelogScroller" style="max-height:480px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-right:4px;">
 
-        <!-- VERSION 1.6.4 -->
+        <!-- VERSION 1.8.0 -->
         <div class="changelog-card current-version">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill current">v1.6.4</span>
+              <span class="version-tag-pill current">v1.8.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Jalons 1, 2 & 3 : Réseau Fleet-Net P2P, Crafting 4.0 & Scanner OCR Instantané</strong>
+            </div>
+            <span class="changelog-date">Version Actuelle (Alpha 4.10)</span>
+          </div>
+
+          <ul class="changelog-list">
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Jalon 1 — Réseau Tactique P2P FLEET-NET</strong> : Interconnexion de flotte décentralisée WebRTC DataChannels chiffrée & BroadcastChannel local (< 150ms). Indicateur de ping RTT en direct, statut de comms chiffrées et salon d'escadre par code court (ex: <code>WING-4982</code>).</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Jalon 2 — Sync Flotte & Atelier Crafting 4.0</strong> : Synchronisation automatique des loadouts, lasers et tourelles. Atelier de fabrication de têtes artisanales (Watts, résistance, instabilité, slots) et gadgets sur-mesure partagés avec l'escadre.</span>
+            </li>
+            <li>
+              <span class="badge-tag new" data-i18n="tagNew">NOUVEAU</span>
+              <span><strong>Jalon 3 — Télémétrie de Scan & Scanner OCR Instantané</strong> : Diffusion instantanée du scan rocheux (<code>ROCK_BROADCAST</code>), bandeau d'alerte tactique, auto-sync silencieux, voix cockpit (TTS) et scanner OCR 100% local (F12, glisser-déposer, caméra smartphone en direct avec réticule et 3 échantillons de test).</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- VERSION 1.6.4 -->
+        <div class="changelog-card">
+          <div class="changelog-card-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="version-tag-pill">v1.6.4</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Correctif Critique Calcul Réactif & Synthèse Vocale</strong>
             </div>
-            <span class="changelog-date">Dernière version (Alpha 4.10)</span>
+            <span class="changelog-date">Version précédente (Alpha 4.10)</span>
           </div>
 
           <ul class="changelog-list">
@@ -2211,7 +2707,7 @@
               <span class="version-tag-pill" style="background:rgba(168,85,247,0.15); border-color:#c084fc; color:#c084fc;">JALON 3 • v1.8.0</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Télémétrie de Scan Partagée & Scanner OCR Instantané</strong>
             </div>
-            <span class="changelog-date" style="color:#c084fc;">PRÉVU v1.8.0</span>
+            <span class="changelog-date" style="color:var(--accent-emerald);">DISPONIBLE (v1.8.0)</span>
           </div>
           <ul class="changelog-list">
             <li>
@@ -2491,7 +2987,7 @@
       <span>•</span>
       <span class="footer-link" id="btnOpenDonateFooter" style="color:#fbbf24; font-weight:700;" data-i18n="support">💛 Soutenir</span>
       <span>•</span>
-      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.6.4)</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.8.0)</span>
       <span>•</span>
       <span class="footer-link" id="btnOpenRoadmapFooter" style="color:var(--accent-cyan); font-weight:700;" data-i18n="roadmapLink">🗺️ Feuille de route</span>
       <span>•</span>
@@ -2499,11 +2995,13 @@
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.6.4)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.8.0)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.6.4 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.8.0 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
-  <script type="module" src="app.js?v=1.6.4"></script>
+  <!-- WebRTC Internet P2P Engine (PeerJS) -->
+  <script src="peerjs.min.js"></script>
+  <script type="module" src="app.js?v=1.8.0"></script>
 </body>
 </html>

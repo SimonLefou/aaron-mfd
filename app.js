@@ -1,5 +1,8 @@
 import { MINING_DATA } from './mining-data.js';
 import { I18N } from './i18n.js';
+import { AaronFleetNet } from './fleet-net.js';
+
+let fleetNet = null;
 
 // ==========================================
 // STATE MANAGEMENT
@@ -46,6 +49,17 @@ const state = {
   crewMembers: 1,
   crewReservePct: 10,
   squadMembers: [],
+
+  // Crafting 4.0 Workshop (Jalon 2)
+  customLasers: [],
+  customGadgets: [],
+
+  // Jalon 3: Shared Scan & OCR
+  autoBroadcastScan: false,
+  autoSyncScan: true,
+  lastIncomingRockScan: null,
+  ocrCameraStream: null,
+  ocrCameraFacingMode: 'environment',
 
   // Argo MOLE & Multi-turrets settings (all ships with 1, 2, or 3 turrets)
   moleActiveTurrets: 2, // 1 (solo), 2 (duo), 3 (trio)
@@ -141,12 +155,37 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.6.4',
+    version: 'v1.8.0',
     isCurrent: true,
+    title_fr: 'Jalons 1, 2 & 3 : Réseau Fleet-Net P2P, Crafting 4.0 & Scanner OCR Instantané',
+    title_en: 'Milestones 1, 2 & 3: Fleet-Net P2P Network, Crafting 4.0 & Instant OCR Scanner',
+    date_fr: 'Version Actuelle (Alpha 4.10)',
+    date_en: 'Current Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Jalon 1 — Réseau Tactique P2P FLEET-NET</strong> : Interconnexion décentralisée WebRTC chiffrée & BroadcastChannel local (< 150ms). Indicateur de ping RTT en direct, statut de comms chiffrées et salon d\'escadre par code court (ex: <code>WING-4982</code>).',
+        text_en: '<strong>Milestone 1 — Decentralized Tactical FLEET-NET</strong>: End-to-end encrypted WebRTC DataChannels & local BroadcastChannel (< 150ms). Real-time RTT ping indicator, encrypted comms badge, and short room codes (e.g. <code>WING-4982</code>).'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Jalon 2 — Sync Flotte & Atelier Crafting 4.0</strong> : Synchronisation automatique des loadouts, lasers et tourelles. Atelier de confection de têtes artisanales (Watts, résistance, instabilité, slots) et gadgets sur-mesure diffusés à l\'escadre.',
+        text_en: '<strong>Milestone 2 — Ship Sync & Crafting Workshop 4.0</strong>: Instant loadout, laser, and turret sync. Workshop for crafting custom mining heads (Watts, resistance, instability, slots) and custom gadgets shared with the wing.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Jalon 3 — Télémétrie de Scan & Scanner OCR Instantané</strong> : Diffusion instantanée du scan rocheux (<code>ROCK_BROADCAST</code>), bandeau d\'alerte tactique, auto-sync silencieux, voix cockpit (TTS) et scanner OCR 100% local (F12, glisser-déposer, caméra smartphone en direct avec réticule et 3 échantillons de test).',
+        text_en: '<strong>Milestone 3 — Shared Scan Telemetry & Instant OCR Scanner</strong>: Instant rock scan broadcast (<code>ROCK_BROADCAST</code>), incoming alert banner, silent auto-sync, cockpit voice (TTS), and 100% local OCR scanner (F12, drag & drop, live smartphone camera with reticle, and 3 test samples).'
+      }
+    ]
+  },
+  {
+    version: 'v1.6.4',
+    isCurrent: false,
     title_fr: 'Correctif Critique Calcul Réactif & Synthèse Vocale',
     title_en: 'Critical Fix: Reactive Calculation & Voice Synthesis',
-    date_fr: 'Dernière version (Alpha 4.10)',
-    date_en: 'Latest Version (Alpha 4.10)',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'fixed',
@@ -913,6 +952,7 @@ const DOM = {
   squadRawShareVal: document.getElementById('squadRawShareVal'),
   fleetStatShips: document.getElementById('fleetStatShips'),
   fleetStatPower: document.getElementById('fleetStatPower'),
+  fleetStatResReduction: document.getElementById('fleetStatResReduction'),
   fleetStatCargo: document.getElementById('fleetStatCargo'),
   fleetStatShare: document.getElementById('fleetStatShare'),
   squadLeaderName: document.getElementById('squadLeaderName'),
@@ -922,6 +962,103 @@ const DOM = {
   btnSquadEditLoadout: document.getElementById('btnSquadEditLoadout'),
   squadWingmenContainer: document.getElementById('squadWingmenContainer'),
   btnAddSquadMember: document.getElementById('btnAddSquadMember'),
+
+  // Aaron Fleet-Net P2P elements (Jalon 1)
+  btnMgFleetNetComms: document.getElementById('btnMgFleetNetComms'),
+  mgCommsLedText: document.getElementById('mgCommsLedText'),
+  fleetNetCard: document.getElementById('fleetNetCard'),
+  fleetNetLed: document.getElementById('fleetNetLed'),
+  fleetNetStatusBadge: document.getElementById('fleetNetStatusBadge'),
+  fleetNetDisconnectedBox: document.getElementById('fleetNetDisconnectedBox'),
+  fleetNetConnectedBox: document.getElementById('fleetNetConnectedBox'),
+  btnFleetCreateWing: document.getElementById('btnFleetCreateWing'),
+  inputFleetRoomCode: document.getElementById('inputFleetRoomCode'),
+  btnFleetJoinWing: document.getElementById('btnFleetJoinWing'),
+  fleetNetRoomCodeDisplay: document.getElementById('fleetNetRoomCodeDisplay'),
+  fleetNetRoleBadge: document.getElementById('fleetNetRoleBadge'),
+  fleetNetPingDisplay: document.getElementById('fleetNetPingDisplay'),
+  fleetNetPeersCountDisplay: document.getElementById('fleetNetPeersCountDisplay'),
+  btnFleetCopyInvite: document.getElementById('btnFleetCopyInvite'),
+  btnFleetLeaveWing: document.getElementById('btnFleetLeaveWing'),
+
+  // Crafting 4.0 Workshop (Jalon 2)
+  btnOpenCraftingFromLoadout: document.getElementById('btnOpenCraftingFromLoadout'),
+  btnOpenCraftingFromCrew: document.getElementById('btnOpenCraftingFromCrew'),
+  craftingModal: document.getElementById('craftingModal'),
+  btnCloseCrafting: document.getElementById('btnCloseCrafting'),
+  tabCraftLasers: document.getElementById('tabCraftLasers'),
+  tabCraftGadgets: document.getElementById('tabCraftGadgets'),
+  craftPaneLasers: document.getElementById('craftPaneLasers'),
+  craftPaneGadgets: document.getElementById('craftPaneGadgets'),
+  craftLaserTemplateSelect: document.getElementById('craftLaserTemplateSelect'),
+  craftLaserNameInput: document.getElementById('craftLaserNameInput'),
+  craftLaserSizeSelect: document.getElementById('craftLaserSizeSelect'),
+  craftLaserPowerSlider: document.getElementById('craftLaserPowerSlider'),
+  craftLaserPowerVal: document.getElementById('craftLaserPowerVal'),
+  craftLaserResSlider: document.getElementById('craftLaserResSlider'),
+  craftLaserResVal: document.getElementById('craftLaserResVal'),
+  craftLaserInstSlider: document.getElementById('craftLaserInstSlider'),
+  craftLaserInstVal: document.getElementById('craftLaserInstVal'),
+  craftLaserWindowSlider: document.getElementById('craftLaserWindowSlider'),
+  craftLaserWindowVal: document.getElementById('craftLaserWindowVal'),
+  btnResetCraftLaserForm: document.getElementById('btnResetCraftLaserForm'),
+  btnSaveCraftLaser: document.getElementById('btnSaveCraftLaser'),
+  customLasersListContainer: document.getElementById('customLasersListContainer'),
+  craftGadgetNameInput: document.getElementById('craftGadgetNameInput'),
+  craftGadgetResSlider: document.getElementById('craftGadgetResSlider'),
+  craftGadgetResVal: document.getElementById('craftGadgetResVal'),
+  craftGadgetInstSlider: document.getElementById('craftGadgetInstSlider'),
+  craftGadgetInstVal: document.getElementById('craftGadgetInstVal'),
+  craftGadgetWindowSlider: document.getElementById('craftGadgetWindowSlider'),
+  craftGadgetWindowVal: document.getElementById('craftGadgetWindowVal'),
+  btnResetCraftGadgetForm: document.getElementById('btnResetCraftGadgetForm'),
+  btnSaveCraftGadget: document.getElementById('btnSaveCraftGadget'),
+  customGadgetsListContainer: document.getElementById('customGadgetsListContainer'),
+
+  // Jalon 3: Instant OCR Scanner & Shared Scan Telemetry
+  btnOpenOcrModal: document.getElementById('btnOpenOcrModal'),
+  btnQuickOpenOcr: document.getElementById('btnQuickOpenOcr'),
+  btnBroadcastCurrentRock: document.getElementById('btnBroadcastCurrentRock'),
+  chkAutoBroadcastScan: document.getElementById('chkAutoBroadcastScan'),
+  chkAutoSyncScan: document.getElementById('chkAutoSyncScan'),
+  rockBroadcastReceivedBanner: document.getElementById('rockBroadcastReceivedBanner'),
+  rockBroadcastTitle: document.getElementById('rockBroadcastTitle'),
+  rockBroadcastDetails: document.getElementById('rockBroadcastDetails'),
+  btnApplyIncomingRockScan: document.getElementById('btnApplyIncomingRockScan'),
+  btnDismissIncomingRockScan: document.getElementById('btnDismissIncomingRockScan'),
+  ocrModal: document.getElementById('ocrModal'),
+  btnCloseOcr: document.getElementById('btnCloseOcr'),
+  tabOcrClipboard: document.getElementById('tabOcrClipboard'),
+  tabOcrCamera: document.getElementById('tabOcrCamera'),
+  tabOcrSamples: document.getElementById('tabOcrSamples'),
+  ocrPaneClipboard: document.getElementById('ocrPaneClipboard'),
+  ocrPaneCamera: document.getElementById('ocrPaneCamera'),
+  ocrPaneSamples: document.getElementById('ocrPaneSamples'),
+  ocrDropzone: document.getElementById('ocrDropzone'),
+  ocrFileInput: document.getElementById('ocrFileInput'),
+  btnBrowseOcrFile: document.getElementById('btnBrowseOcrFile'),
+  btnPasteOcrClipboard: document.getElementById('btnPasteOcrClipboard'),
+  ocrRawTextInput: document.getElementById('ocrRawTextInput'),
+  btnParseRawScanText: document.getElementById('btnParseRawScanText'),
+  ocrCameraVideo: document.getElementById('ocrCameraVideo'),
+  btnCaptureCameraFrame: document.getElementById('btnCaptureCameraFrame'),
+  btnSwitchCamera: document.getElementById('btnSwitchCamera'),
+  ocrPreviewContainer: document.getElementById('ocrPreviewContainer'),
+  ocrCanvas: document.getElementById('ocrCanvas'),
+  ocrScanLaserLine: document.getElementById('ocrScanLaserLine'),
+  ocrStatusBadge: document.getElementById('ocrStatusBadge'),
+  ocrTimingDisplay: document.getElementById('ocrTimingDisplay'),
+  ocrResMass: document.getElementById('ocrResMass'),
+  ocrResMineral1: document.getElementById('ocrResMineral1'),
+  ocrResPct1: document.getElementById('ocrResPct1'),
+  ocrResMineral2: document.getElementById('ocrResMineral2'),
+  ocrResPct2: document.getElementById('ocrResPct2'),
+  ocrResResistance: document.getElementById('ocrResResistance'),
+  ocrResInstability: document.getElementById('ocrResInstability'),
+  ocrResArchetype: document.getElementById('ocrResArchetype'),
+  ocrChkBroadcastOnApply: document.getElementById('ocrChkBroadcastOnApply'),
+  btnCancelOcr: document.getElementById('btnCancelOcr'),
+  btnApplyOcrData: document.getElementById('btnApplyOcrData'),
 
   // Callsign Modal
   callsignModal: document.getElementById('callsignModal'),
@@ -1007,6 +1144,10 @@ function init() {
   updateLoreClock();
   setInterval(updateLoreClock, 1000);
   bindEventListeners();
+  loadCustomCraftGear();
+  initCraftingWorkshop();
+  initFleetNet();
+  initOcrScanner();
   loadSavedSession();
   loadSavedLoadout();
   loadRefineryJobs();
@@ -1712,6 +1853,7 @@ function setShip(shipId) {
   updateSaddlebagsUI();
   updateHoldDisplay();
   calculateAll();
+  broadcastLocalLoadout();
 }
 
 function updateMobiglasHeader(ship, pureSCU, refinedPrice) {
@@ -2212,7 +2354,8 @@ function renderShipTurretsConfig() {
     compatibleLasers.forEach(l => {
       const desc = getLocalized(l, 'desc') || '';
       const slotText = l.slots !== undefined ? `${l.slots} slots` : '0 slots';
-      const opt = new Option(`${l.name} (S${l.size} • ${slotText} • ${l.power} W) - ${desc.slice(0, 30)}...`, l.id);
+      const craftPrefix = l.isCustomCraft ? '🛠️ [CRAFT] ' : '';
+      const opt = new Option(`${craftPrefix}${l.name} (S${l.size} • ${slotText} • ${l.power} W) - ${desc.slice(0, 30)}...`, l.id);
       select.appendChild(opt);
     });
     select.value = cfg.laserId;
@@ -2281,7 +2424,8 @@ function populateLoadoutSelects() {
     MINING_DATA.gadgets.forEach(gad => {
       const gadName = getLocalized(gad, 'name');
       const gadDesc = getLocalized(gad, 'desc');
-      const opt = new Option(`${gadName} ${gadDesc ? '(' + gadDesc + ')' : ''}`, gad.id);
+      const craftPrefix = gad.isCustomCraft ? '🛠️ [CRAFT] ' : '';
+      const opt = new Option(`${craftPrefix}${gadName} ${gadDesc ? '(' + gadDesc + ')' : ''}`, gad.id);
       DOM.gadgetSelect.appendChild(opt);
     });
     DOM.gadgetSelect.value = gadVal;
@@ -2504,16 +2648,20 @@ function calculateAll() {
       const wShip = allShips.find(s => s.id === m.shipId);
       if (wShip) fleetCargoSCU += (wShip.scu || 0);
 
-      if (m.active && m.laserId) {
-        const wLaser = MINING_DATA.lasers.find(l => l.id === m.laserId);
+      if (m.active && (m.laserId || m.customLaserStats)) {
+        const wLaser = m.customLaserStats || MINING_DATA.lasers.find(l => l.id === m.laserId);
         if (wLaser) {
-          totalLaserPower += wLaser.power;
+          totalLaserPower += (wLaser.power || 0);
           activeWingmenCount++;
           activeLaserDescList.push(`${m.name || 'Équipier'} (${wLaser.name})`);
 
           // Apply combined resistance and instability reduction
-          if (wLaser.resistanceMod < combinedResistanceMod) combinedResistanceMod = wLaser.resistanceMod;
-          if (wLaser.instabilityMod < combinedInstabilityMod) combinedInstabilityMod = wLaser.instabilityMod;
+          if (wLaser.resistanceMod && wLaser.resistanceMod < 0) {
+            combinedResistanceMod = Math.max(-0.90, combinedResistanceMod + (wLaser.resistanceMod * 0.75));
+          }
+          if (wLaser.instabilityMod && wLaser.instabilityMod < combinedInstabilityMod) {
+            combinedInstabilityMod = Math.max(-0.95, combinedInstabilityMod + (wLaser.instabilityMod * 0.5));
+          }
         }
       }
     });
@@ -2620,7 +2768,7 @@ function calculateAll() {
   updateMobileLiveSummary(mineral, orePct, pureSCU, refinedPrice, powerRatio);
 
   // 10. Squad & Fleet Telemetry Display
-  updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU);
+  updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU, combinedResistanceMod);
 
   // 11. Cockpit MFD Telemetry Extensions (High-density telemetry)
   updateWhereToMineBox(mineral);
@@ -2628,6 +2776,7 @@ function calculateAll() {
   updateOptimalLoadoutAdvisor(mass, effectiveResistance, totalLaserPower, ship, mineral, powerRatio);
   updateStationPriceComparison(mineral, pureSCU, refinedPrice);
   updateScanSubtabBadges(state.selectedArchetype, mineral);
+  triggerAutoBroadcastDebounced();
 }
 
 // ==========================================================================
@@ -2897,12 +3046,12 @@ function updateRecommendedStation(mineral) {
 // ==========================================
 // SQUAD & FLEET MINING COORDINATOR
 // ==========================================
-function updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU) {
+function updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU, combinedResistanceMod = 0) {
   const t = I18N[state.currentLang] || I18N.fr;
   const locale = getLocale();
   const totalShipsCount = 1 + (state.squadMembers ? state.squadMembers.length : 0);
   const activeFiringCount = (state.selectedShip.id === 'mole' ? state.moleActiveTurrets : 1) +
-    (state.squadMembers ? state.squadMembers.filter(m => m.active && m.laserId).length : 0);
+    (state.squadMembers ? state.squadMembers.filter(m => m.active && (m.laserId || m.customLaserStats)).length : 0);
 
   // 1. Update header badges
   if (DOM.mgSquadCountBadge) DOM.mgSquadCountBadge.textContent = totalShipsCount;
@@ -2935,9 +3084,14 @@ function updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoS
     }
   }
 
-  // 4. Update Squad Modal Top Stat Tiles
+  // 4. Update Squad Modal Top Stat Tiles (5 Tiles)
   if (DOM.fleetStatShips) DOM.fleetStatShips.textContent = totalShipsCount;
   if (DOM.fleetStatPower) DOM.fleetStatPower.textContent = `${totalLaserPower.toLocaleString(locale)} W`;
+  if (DOM.fleetStatResReduction) {
+    const pct = Math.round(combinedResistanceMod * 100);
+    DOM.fleetStatResReduction.textContent = `${pct > 0 ? '+' : ''}${pct} %`;
+    DOM.fleetStatResReduction.style.color = pct < 0 ? 'var(--accent-purple)' : (pct > 0 ? 'var(--accent-amber)' : 'var(--text-muted)');
+  }
   if (DOM.fleetStatCargo) DOM.fleetStatCargo.textContent = `${fleetCargoSCU} SCU`;
   if (DOM.fleetStatShare) {
     const shares = Math.max(1, state.crewMembers || totalShipsCount);
@@ -2962,6 +3116,10 @@ function setCallsign(newCallsign, notify = true) {
   }
   if (DOM.callsignModalInput && DOM.callsignModalInput.value !== state.callsign) {
     DOM.callsignModalInput.value = state.callsign;
+  }
+  if (fleetNet) {
+    fleetNet.updateCallsign(state.callsign);
+    broadcastLocalLoadout();
   }
   if (notify) {
     const t = I18N[state.currentLang] || I18N.fr;
@@ -3005,19 +3163,32 @@ function renderSquadWingmen() {
     // Laser options
     let laserSelectHtml = '';
     if (isMiningShip) {
-      const shipLaserSize = shipObj.laserSize || 1;
-      const compLasers = MINING_DATA.lasers.filter(l => l.size === shipLaserSize);
-      const laserOpts = compLasers.map(l => {
-        return `<option value="${l.id}" ${l.id === member.laserId ? 'selected' : ''}>${l.name} (${l.power} W)</option>`;
-      }).join('');
-      laserSelectHtml = `
-        <div style="display:flex; flex-direction:column; gap:2px;">
-          <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
-          <select class="hud-select-sm wingman-laser-select" data-member-idx="${idx}" style="font-size:0.75rem; padding:4px;">
-            ${laserOpts}
-          </select>
-        </div>
-      `;
+      if (member.customLaserStats) {
+        laserSelectHtml = `
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 0;">
+              <span class="craft-badge" style="font-size:0.62rem; padding:1px 5px;">CRAFT 4.0</span>
+              <span style="font-size:0.75rem; color:var(--accent-purple); font-family:var(--font-mono); font-weight:700;">${member.customLaserStats.name} (${member.customLaserStats.power} W)</span>
+            </div>
+          </div>
+        `;
+      } else {
+        const shipLaserSize = shipObj.laserSize || 1;
+        const compLasers = MINING_DATA.lasers.filter(l => l.size === shipLaserSize);
+        const laserOpts = compLasers.map(l => {
+          const prefix = l.isCustomCraft ? '🛠️ ' : '';
+          return `<option value="${l.id}" ${l.id === member.laserId ? 'selected' : ''}>${prefix}${l.name} (${l.power} W)</option>`;
+        }).join('');
+        laserSelectHtml = `
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
+            <select class="hud-select-sm wingman-laser-select" data-member-idx="${idx}" style="font-size:0.75rem; padding:4px;">
+              ${laserOpts}
+            </select>
+          </div>
+        `;
+      }
     } else {
       laserSelectHtml = `
         <div style="display:flex; flex-direction:column; gap:2px; justify-content:center;">
@@ -3027,11 +3198,16 @@ function renderSquadWingmen() {
       `;
     }
 
+    const p2pBadgeHtml = member.isRemotePeer
+      ? `<span class="fleet-net-role-badge wingman" style="font-size:0.62rem; padding:1px 6px;" title="Pair P2P connecté en direct">P2P ${member.ping ? member.ping + 'ms' : 'LIVE'}</span>`
+      : '';
+
     card.innerHTML = `
       <div class="wingman-header">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:0.7rem; color:var(--accent-cyan); font-family:var(--font-hud); font-weight:700;">#${idx + 2}</span>
-          <input type="text" class="hud-input wingman-name-input" data-member-idx="${idx}" value="${member.name || `Équipier ${idx + 1}`}" style="background:transparent; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 6px; font-family:var(--font-hud); font-size:0.82rem; color:#fff; width:150px;" />
+          <input type="text" class="hud-input wingman-name-input" data-member-idx="${idx}" value="${member.name || `Équipier ${idx + 1}`}" ${member.isRemotePeer ? 'readonly' : ''} style="background:${member.isRemotePeer ? 'rgba(0,240,255,0.06)' : 'transparent'}; border:1px solid ${member.isRemotePeer ? 'rgba(0,240,255,0.35)' : 'rgba(255,255,255,0.15)'}; border-radius:4px; padding:2px 6px; font-family:var(--font-hud); font-size:0.82rem; color:${member.isRemotePeer ? 'var(--accent-cyan)' : '#fff'}; width:140px;" />
+          ${p2pBadgeHtml}
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.72rem; font-family:var(--font-mono); font-weight:700; color:${member.active ? '#10b981' : 'var(--text-muted)'};">
@@ -3208,6 +3384,11 @@ function openSquadModal() {
   } catch (err) {
     console.warn('[AARON MFD] calculateCrewSplit error:', err);
   }
+  try {
+    updateFleetNetUI();
+  } catch (err) {
+    console.warn('[AARON MFD] updateFleetNetUI error:', err);
+  }
   openModal(DOM.crewModal);
 }
 
@@ -3234,6 +3415,1714 @@ function calculateCrewSplit() {
   DOM.crewSharePerMember.textContent = `${share.toLocaleString(locale)} aUEC / ${t.perMember}`;
   DOM.crewReserveDeducted.textContent = t.crewDeducted.replace('{pct}', state.crewReservePct).replace('{amt}', reserveAmt.toLocaleString(locale));
   DOM.crewCountDisplay.textContent = `${state.crewMembers} ${state.crewMembers > 1 ? t.playersPlural : t.playersSingular}`;
+}
+
+// ============================================================================
+// AARON FLEET-NET SUBSYSTEM (JALON 1 — P2P WING CONNECTIVITY)
+// ============================================================================
+
+function getLocalLoadoutPayload() {
+  const currentLaser = state.selectedLaser;
+  let customStats = null;
+  if (currentLaser && currentLaser.isCustomCraft) {
+    customStats = {
+      id: currentLaser.id,
+      name: currentLaser.name,
+      size: currentLaser.size,
+      power: currentLaser.power,
+      resistanceMod: currentLaser.resistanceMod,
+      instabilityMod: currentLaser.instabilityMod,
+      optimalWindowMod: currentLaser.optimalWindowMod,
+      slots: currentLaser.slots,
+      isCustomCraft: true
+    };
+  }
+
+  return {
+    callsign: state.callsign || 'CITIZEN-1',
+    shipId: state.selectedShip ? state.selectedShip.id : 'prospector',
+    laserId: currentLaser ? currentLaser.id : 'arbor_mh1',
+    customLaserStats: customStats,
+    holdSCU: state.holdSCU || 0,
+    activeTurrets: state.moleActiveTurrets || 1
+  };
+}
+
+function broadcastLocalLoadout() {
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastLoadout(getLocalLoadoutPayload());
+  }
+}
+
+function updateFleetNetUI() {
+  if (!fleetNet) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  const isConnected = fleetNet.status === 'connected';
+
+  if (DOM.fleetNetDisconnectedBox) {
+    DOM.fleetNetDisconnectedBox.style.display = isConnected ? 'none' : 'block';
+  }
+  if (DOM.fleetNetConnectedBox) {
+    DOM.fleetNetConnectedBox.style.display = isConnected ? 'block' : 'none';
+  }
+
+  if (DOM.fleetNetLed) {
+    DOM.fleetNetLed.className = `fleet-net-led ${isConnected ? 'connected' : 'disconnected'}`;
+  }
+
+  if (DOM.fleetNetStatusBadge) {
+    DOM.fleetNetStatusBadge.className = `fleet-net-status-badge ${isConnected ? 'connected' : 'disconnected'}`;
+    DOM.fleetNetStatusBadge.textContent = isConnected
+      ? (t.fleetNetConnected || 'CONNECTÉ (AARON FLEET-NET)')
+      : (t.fleetNetSolo || 'MODE SOLO (HORS-LIGNE)');
+  }
+
+  if (isConnected) {
+    if (DOM.fleetNetRoomCodeDisplay) {
+      DOM.fleetNetRoomCodeDisplay.textContent = fleetNet.roomCode || 'WING-XXXX';
+    }
+    if (DOM.fleetNetRoleBadge) {
+      DOM.fleetNetRoleBadge.className = `fleet-net-role-badge ${fleetNet.isHost ? 'host' : 'wingman'}`;
+      DOM.fleetNetRoleBadge.textContent = fleetNet.isHost
+        ? (t.fleetHostRole || 'HÔTE')
+        : (t.fleetWingmanRole || 'AILIER');
+    }
+    const peers = fleetNet.getPeersList();
+    if (DOM.fleetNetPingDisplay) {
+      DOM.fleetNetPingDisplay.textContent = `${fleetNet.pingMs || 10} ms`;
+    }
+    if (DOM.fleetNetPeersCountDisplay) {
+      const count = peers.length;
+      const countStr = count === 1
+        ? (t.fleetOnePeerOnline || '1 pair en ligne')
+        : (t.fleetPeersOnline || '{count} pairs en ligne').replace('{count}', count);
+      DOM.fleetNetPeersCountDisplay.textContent = countStr;
+    }
+    if (DOM.mgCommsLedText) {
+      DOM.mgCommsLedText.className = 'mg-status-online';
+      DOM.mgCommsLedText.textContent = `${fleetNet.roomCode} [${peers.length} • ${fleetNet.pingMs || 10}ms]`;
+    }
+  } else {
+    if (DOM.mgCommsLedText) {
+      DOM.mgCommsLedText.className = 'mg-status-online';
+      DOM.mgCommsLedText.textContent = t.fleetNetSoloStatus || 'SOLO [|||||]';
+    }
+  }
+}
+
+function syncFleetPeersToSquad(peers) {
+  const currentRemoteIds = new Set(peers.map(p => p.peerId));
+
+  // 1. Remove peers that disconnected
+  state.squadMembers = state.squadMembers.filter(m => !m.isRemotePeer || currentRemoteIds.has(m.peerId));
+
+  // 2. Add or update connected peers
+  peers.forEach(peer => {
+    let existing = state.squadMembers.find(m => m.peerId === peer.peerId);
+    const shipId = peer.shipId || peer.loadout?.shipId || 'prospector';
+    const laserId = peer.laserId || peer.loadout?.laserId || (shipId === 'mole' ? null : 'lancet_s1');
+    const customStats = peer.customLaserStats || peer.loadout?.customLaserStats || null;
+
+    if (existing) {
+      existing.name = peer.callsign || 'Ailier P2P';
+      existing.shipId = shipId;
+      existing.laserId = laserId;
+      existing.customLaserStats = customStats;
+      existing.active = true;
+      existing.ping = peer.ping;
+    } else {
+      state.squadMembers.push({
+        id: 'peer_' + peer.peerId,
+        peerId: peer.peerId,
+        name: peer.callsign || 'Ailier P2P',
+        shipId: shipId,
+        laserId: laserId,
+        customLaserStats: customStats,
+        moduleIds: [],
+        active: true,
+        isRemotePeer: true,
+        ping: peer.ping
+      });
+    }
+  });
+
+  state.crewMembers = Math.max(1, 1 + state.squadMembers.length);
+  renderSquadWingmen();
+  calculateAll();
+  calculateCrewSplit();
+  updateFleetNetUI();
+}
+
+function initFleetNet() {
+  fleetNet = new AaronFleetNet({
+    callsign: state.callsign || 'CITIZEN-1',
+    onStatusChange: (status, roomCode, isHost) => {
+      updateFleetNetUI();
+    },
+    onPeersUpdate: (peers) => {
+      syncFleetPeersToSquad(peers);
+    },
+    onPeerJoin: (peer) => {
+      const t = I18N[state.currentLang] || I18N.fr;
+      const msg = (t.toastPeerJoined || 'Ailier connecté : {callsign}').replace('{callsign}', peer.callsign || 'Inconnu');
+      showToast(msg);
+      sfx.playSuccess();
+      triggerHaptic(20);
+    },
+    onPeerLeave: (peer) => {
+      const t = I18N[state.currentLang] || I18N.fr;
+      const msg = (t.toastPeerLeft || 'Ailier déconnecté : {callsign}').replace('{callsign}', peer.callsign || 'Inconnu');
+      showToast(msg);
+      sfx.playBeep(420, 'sine', 0.05);
+      triggerHaptic(15);
+    },
+    onRockBroadcast: (rock, callsign) => {
+      handleIncomingRockBroadcast(rock, callsign);
+    }
+  });
+
+  // UI Event Handlers
+  if (DOM.btnFleetCreateWing) {
+    DOM.btnFleetCreateWing.addEventListener('click', () => {
+      sfx.playSuccess();
+      triggerHaptic(20);
+      fleetNet.createWing(null, getLocalLoadoutPayload());
+      const t = I18N[state.currentLang] || I18N.fr;
+      const msg = (t.toastWingCreated || 'Escadre créée : {code}').replace('{code}', fleetNet.roomCode);
+      showToast(msg);
+      updateFleetNetUI();
+    });
+  }
+
+  if (DOM.btnFleetJoinWing) {
+    DOM.btnFleetJoinWing.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(15);
+      const code = DOM.inputFleetRoomCode ? DOM.inputFleetRoomCode.value.trim().toUpperCase() : '';
+      if (!code) {
+        showToast('Veuillez saisir un code d\'escadre valide (ex: WING-4982)');
+        if (DOM.inputFleetRoomCode) DOM.inputFleetRoomCode.focus();
+        return;
+      }
+      fleetNet.joinWing(code, false, getLocalLoadoutPayload());
+      const t = I18N[state.currentLang] || I18N.fr;
+      const msg = (t.toastWingJoined || 'Connexion à l\'escadre {code}...').replace('{code}', code);
+      showToast(msg);
+      updateFleetNetUI();
+    });
+  }
+
+  if (DOM.inputFleetRoomCode) {
+    DOM.inputFleetRoomCode.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') {
+        DOM.btnFleetJoinWing?.click();
+      }
+    });
+  }
+
+  if (DOM.btnFleetCopyInvite) {
+    DOM.btnFleetCopyInvite.addEventListener('click', () => {
+      sfx.playSuccess();
+      triggerHaptic(20);
+      const inviteUrl = fleetNet.getInviteUrl();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(inviteUrl).then(() => {
+          const t = I18N[state.currentLang] || I18N.fr;
+          showToast(t.toastInviteCopied || 'Lien d\'invitation copié dans le presse-papier !');
+        }).catch(() => {
+          prompt('Copiez ce lien d\'invitation :', inviteUrl);
+        });
+      } else {
+        prompt('Copiez ce lien d\'invitation :', inviteUrl);
+      }
+    });
+  }
+
+  if (DOM.btnFleetLeaveWing) {
+    DOM.btnFleetLeaveWing.addEventListener('click', () => {
+      sfx.playBeep(450, 'sine', 0.05);
+      triggerHaptic(15);
+      fleetNet.leaveWing();
+      // Remove remote peers from squad
+      state.squadMembers = state.squadMembers.filter(m => !m.isRemotePeer);
+      state.crewMembers = Math.max(1, 1 + state.squadMembers.length);
+      renderSquadWingmen();
+      calculateAll();
+      calculateCrewSplit();
+      const t = I18N[state.currentLang] || I18N.fr;
+      showToast(t.toastWingLeft || 'Vous avez quitté l\'escadre.');
+      updateFleetNetUI();
+    });
+  }
+
+  if (DOM.btnMgFleetNetComms) {
+    DOM.btnMgFleetNetComms.addEventListener('click', () => {
+      openSquadModal();
+    });
+  }
+
+  // Auto-connect if URL contains ?fleet=WING-XXXX
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('fleet')) {
+      const roomCode = params.get('fleet').trim().toUpperCase();
+      if (roomCode) {
+        setTimeout(() => {
+          fleetNet.joinWing(roomCode, false, getLocalLoadoutPayload());
+          updateFleetNetUI();
+          const t = I18N[state.currentLang] || I18N.fr;
+          showToast((t.toastWingJoined || 'Connexion à l\'escadre {code}...').replace('{code}', roomCode));
+        }, 300);
+      }
+    }
+  } catch (e) {
+    console.warn('[FLEET-NET] Query param parse error:', e);
+  }
+
+  updateFleetNetUI();
+}
+
+// ============================================================================
+// CRAFTING 4.0 WORKSHOP SUBSYSTEM (JALON 2 — CUSTOM MINING GEAR)
+// ============================================================================
+
+function loadCustomCraftGear() {
+  try {
+    const rawLasers = localStorage.getItem('aaron_mfd_custom_lasers');
+    if (rawLasers) {
+      state.customLasers = JSON.parse(rawLasers) || [];
+      state.customLasers.forEach(cLaser => {
+        const idx = MINING_DATA.lasers.findIndex(l => l.id === cLaser.id);
+        if (idx !== -1) {
+          MINING_DATA.lasers[idx] = cLaser;
+        } else {
+          MINING_DATA.lasers.push(cLaser);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('[CRAFTING 4.0] Error loading custom lasers:', err);
+  }
+
+  try {
+    const rawGadgets = localStorage.getItem('aaron_mfd_custom_gadgets');
+    if (rawGadgets) {
+      state.customGadgets = JSON.parse(rawGadgets) || [];
+      state.customGadgets.forEach(cGadget => {
+        const idx = MINING_DATA.gadgets.findIndex(g => g.id === cGadget.id);
+        if (idx !== -1) {
+          MINING_DATA.gadgets[idx] = cGadget;
+        } else {
+          MINING_DATA.gadgets.push(cGadget);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('[CRAFTING 4.0] Error loading custom gadgets:', err);
+  }
+}
+
+function saveCustomLasersStorage() {
+  try {
+    localStorage.setItem('aaron_mfd_custom_lasers', JSON.stringify(state.customLasers));
+  } catch (e) {
+    console.warn('[CRAFTING 4.0] Error saving custom lasers:', e);
+  }
+}
+
+function saveCustomGadgetsStorage() {
+  try {
+    localStorage.setItem('aaron_mfd_custom_gadgets', JSON.stringify(state.customGadgets));
+  } catch (e) {
+    console.warn('[CRAFTING 4.0] Error saving custom gadgets:', e);
+  }
+}
+
+function renderCustomLasersList() {
+  if (!DOM.customLasersListContainer) return;
+  DOM.customLasersListContainer.innerHTML = '';
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (!state.customLasers || state.customLasers.length === 0) {
+    DOM.customLasersListContainer.innerHTML = `
+      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:10px; border:1px dashed rgba(168,85,247,0.3); border-radius:6px; text-align:center;">
+        ${t.noCustomLasersMsg || 'Aucune tête artisanale forgée. Utilisez le formulaire ci-dessus pour concevoir votre premier prototype sur-mesure.'}
+      </div>
+    `;
+    return;
+  }
+
+  state.customLasers.forEach(laser => {
+    const card = document.createElement('div');
+    card.className = 'craft-item-card';
+
+    const isEquipped = state.selectedLaser && state.selectedLaser.id === laser.id;
+    const resPct = Math.round(laser.resistanceMod * 100);
+    const instPct = Math.round(laser.instabilityMod * 100);
+    const winPct = Math.round((laser.optimalWindowMod || 0) * 100);
+
+    card.innerHTML = `
+      <div class="craft-item-header">
+        <div>
+          <div class="craft-item-title">
+            <span>🛠️ ${laser.name}</span>
+            <span class="craft-badge">S${laser.size}</span>
+            <span class="craft-badge" style="border-color:rgba(0,240,255,0.4); color:var(--accent-cyan);">${laser.slots || 2} SLOTS</span>
+            ${isEquipped ? '<span class="craft-badge" style="border-color:rgba(16,185,129,0.5); color:#10b981;">ÉQUIPÉE</span>' : ''}
+          </div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
+            ${laser.desc_fr || laser.desc_en || ''}
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal btn-delete-craft-laser" data-laser-id="${laser.id}" style="font-size:1.1rem; width:24px; height:24px; color:#f43f5e;" title="Supprimer la tête">&times;</button>
+      </div>
+
+      <div class="craft-pills-row">
+        <span class="craft-pill power">⚡ ${laser.power.toLocaleString()} W</span>
+        <span class="craft-pill res">🛡️ ${resPct > 0 ? '+' : ''}${resPct} % Rés</span>
+        <span class="craft-pill inst">🌊 ${instPct > 0 ? '+' : ''}${instPct} % Inst</span>
+        <span class="craft-pill window">🎯 ${winPct > 0 ? '+' : ''}${winPct} % Zone</span>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="chip-btn btn-equip-craft-laser ${isEquipped ? 'active' : ''}" data-laser-id="${laser.id}" style="font-size:0.75rem; border-color:var(--accent-purple); color:var(--accent-purple);">
+          ${isEquipped ? '✓ Actuellement Équipée' : '⚡ Équiper sur ' + state.selectedShip.name}
+        </button>
+      </div>
+    `;
+
+    DOM.customLasersListContainer.appendChild(card);
+  });
+
+  // Attach delete listeners
+  DOM.customLasersListContainer.querySelectorAll('.btn-delete-craft-laser').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.laserId;
+      deleteCustomLaser(id);
+    });
+  });
+
+  // Attach equip listeners
+  DOM.customLasersListContainer.querySelectorAll('.btn-equip-craft-laser').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.laserId;
+      equipCustomLaser(id);
+    });
+  });
+}
+
+function renderCustomGadgetsList() {
+  if (!DOM.customGadgetsListContainer) return;
+  DOM.customGadgetsListContainer.innerHTML = '';
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (!state.customGadgets || state.customGadgets.length === 0) {
+    DOM.customGadgetsListContainer.innerHTML = `
+      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:10px; border:1px dashed rgba(168,85,247,0.3); border-radius:6px; text-align:center;">
+        ${t.noCustomGadgetsMsg || 'Aucun gadget artisanal créé. Utilisez le formulaire ci-dessus pour forger un module de terrain sur-mesure.'}
+      </div>
+    `;
+    return;
+  }
+
+  state.customGadgets.forEach(gadget => {
+    const card = document.createElement('div');
+    card.className = 'craft-item-card';
+
+    const isEquipped = state.selectedGadget && state.selectedGadget.id === gadget.id;
+    const resPct = Math.round(gadget.resMod * 100);
+    const instPct = Math.round(gadget.instMod * 100);
+    const winPct = Math.round((gadget.windowMod || 0) * 100);
+
+    card.innerHTML = `
+      <div class="craft-item-header">
+        <div>
+          <div class="craft-item-title">
+            <span>🛠️ ${gadget.name_fr || gadget.name || 'Gadget Artisanal'}</span>
+            <span class="craft-badge">PROTOTYPE</span>
+            ${isEquipped ? '<span class="craft-badge" style="border-color:rgba(16,185,129,0.5); color:#10b981;">ACTIF</span>' : ''}
+          </div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
+            ${gadget.desc_fr || gadget.desc_en || ''}
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal btn-delete-craft-gadget" data-gadget-id="${gadget.id}" style="font-size:1.1rem; width:24px; height:24px; color:#f43f5e;" title="Supprimer le gadget">&times;</button>
+      </div>
+
+      <div class="craft-pills-row">
+        <span class="craft-pill res">🛡️ ${resPct > 0 ? '+' : ''}${resPct} % Rés</span>
+        <span class="craft-pill inst">🌊 ${instPct > 0 ? '+' : ''}${instPct} % Inst</span>
+        <span class="craft-pill window">🎯 ${winPct > 0 ? '+' : ''}${winPct} % Zone</span>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button type="button" class="chip-btn btn-equip-craft-gadget ${isEquipped ? 'active' : ''}" data-gadget-id="${gadget.id}" style="font-size:0.75rem; border-color:var(--accent-purple); color:var(--accent-purple);">
+          ${isEquipped ? '✓ Gadget Actuel' : '⚡ Activer le Gadget'}
+        </button>
+      </div>
+    `;
+
+    DOM.customGadgetsListContainer.appendChild(card);
+  });
+
+  // Attach delete listeners
+  DOM.customGadgetsListContainer.querySelectorAll('.btn-delete-craft-gadget').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.gadgetId;
+      deleteCustomGadget(id);
+    });
+  });
+
+  // Attach equip listeners
+  DOM.customGadgetsListContainer.querySelectorAll('.btn-equip-craft-gadget').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.gadgetId;
+      equipCustomGadget(id);
+    });
+  });
+}
+
+function equipCustomLaser(laserId) {
+  const laser = MINING_DATA.lasers.find(l => l.id === laserId);
+  if (!laser) return;
+
+  sfx.playSuccess();
+  triggerHaptic(20);
+
+  state.selectedLaser = laser;
+
+  // If ship has turrets, assign to primary turret
+  const configs = getShipTurretConfigs(state.selectedShip.id);
+  if (configs && configs[0]) {
+    configs[0].laserId = laser.id;
+  }
+
+  saveLoadout();
+  calculateAll();
+  renderShipTurretsConfig();
+  updateLaserOptions();
+  renderSquadWingmen();
+  broadcastLocalLoadout();
+  renderCustomLasersList();
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  const msg = (t.toastEquippedCustomLaser || 'Tête artisanale {name} équipée sur votre vaisseau !').replace('{name}', laser.name);
+  showToast(msg);
+}
+
+function deleteCustomLaser(laserId) {
+  sfx.playBeep(450, 'sine', 0.05);
+  triggerHaptic(15);
+
+  const idx = state.customLasers.findIndex(l => l.id === laserId);
+  if (idx !== -1) {
+    const deleted = state.customLasers.splice(idx, 1)[0];
+    saveCustomLasersStorage();
+
+    // Remove from MINING_DATA.lasers
+    const mIdx = MINING_DATA.lasers.findIndex(l => l.id === laserId);
+    if (mIdx !== -1) {
+      MINING_DATA.lasers.splice(mIdx, 1);
+    }
+
+    // Fallback if currently equipped
+    if (state.selectedLaser && state.selectedLaser.id === laserId) {
+      const compatible = MINING_DATA.lasers.filter(l => l.size === state.selectedShip.laserSize || (state.selectedShip.laserSize === 0 && l.size === 0));
+      state.selectedLaser = compatible[0] || MINING_DATA.lasers[0];
+      const configs = getShipTurretConfigs(state.selectedShip.id);
+      if (configs && configs[0]) configs[0].laserId = state.selectedLaser.id;
+      saveLoadout();
+      broadcastLocalLoadout();
+    }
+
+    renderCustomLasersList();
+    renderShipTurretsConfig();
+    updateLaserOptions();
+    calculateAll();
+
+    const t = I18N[state.currentLang] || I18N.fr;
+    const msg = (t.toastDeletedCustomLaser || 'Tête artisanale {name} supprimée.').replace('{name}', deleted?.name || '');
+    showToast(msg);
+  }
+}
+
+function equipCustomGadget(gadgetId) {
+  const gadget = MINING_DATA.gadgets.find(g => g.id === gadgetId);
+  if (!gadget) return;
+
+  sfx.playSuccess();
+  triggerHaptic(20);
+
+  state.selectedGadget = gadget;
+  if (DOM.gadgetSelect) {
+    DOM.gadgetSelect.value = gadget.id;
+  }
+
+  saveLoadout();
+  calculateAll();
+  renderCustomGadgetsList();
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  const name = gadget.name_fr || gadget.name || 'Gadget';
+  const msg = (t.toastEquippedCustomGadget || 'Gadget artisanal {name} activé !').replace('{name}', name);
+  showToast(msg);
+}
+
+function deleteCustomGadget(gadgetId) {
+  sfx.playBeep(450, 'sine', 0.05);
+  triggerHaptic(15);
+
+  const idx = state.customGadgets.findIndex(g => g.id === gadgetId);
+  if (idx !== -1) {
+    const deleted = state.customGadgets.splice(idx, 1)[0];
+    saveCustomGadgetsStorage();
+
+    const mIdx = MINING_DATA.gadgets.findIndex(g => g.id === gadgetId);
+    if (mIdx !== -1) {
+      MINING_DATA.gadgets.splice(mIdx, 1);
+    }
+
+    if (state.selectedGadget && state.selectedGadget.id === gadgetId) {
+      state.selectedGadget = MINING_DATA.gadgets[0];
+      if (DOM.gadgetSelect) DOM.gadgetSelect.value = state.selectedGadget.id;
+      saveLoadout();
+    }
+
+    renderCustomGadgetsList();
+    populateGadgetSelect();
+    calculateAll();
+
+    const t = I18N[state.currentLang] || I18N.fr;
+    const name = deleted.name_fr || deleted.name || '';
+    const msg = (t.toastDeletedCustomGadget || 'Gadget artisanal {name} supprimé.').replace('{name}', name);
+    showToast(msg);
+  }
+}
+
+function initCraftingWorkshop() {
+  // Modal open / close
+  if (DOM.btnOpenCraftingFromLoadout) {
+    DOM.btnOpenCraftingFromLoadout.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(12);
+      renderCustomLasersList();
+      renderCustomGadgetsList();
+      openModal(DOM.craftingModal);
+    });
+  }
+
+  if (DOM.btnOpenCraftingFromCrew) {
+    DOM.btnOpenCraftingFromCrew.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.04);
+      triggerHaptic(12);
+      renderCustomLasersList();
+      renderCustomGadgetsList();
+      openModal(DOM.craftingModal);
+    });
+  }
+
+  if (DOM.btnCloseCrafting) {
+    DOM.btnCloseCrafting.addEventListener('click', () => {
+      closeModal(DOM.craftingModal);
+    });
+  }
+
+  // Workshop Sub-tabs
+  if (DOM.tabCraftLasers && DOM.tabCraftGadgets) {
+    DOM.tabCraftLasers.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.03);
+      triggerHaptic(10);
+      DOM.tabCraftLasers.classList.add('active');
+      DOM.tabCraftLasers.style.borderColor = 'var(--accent-purple)';
+      DOM.tabCraftLasers.style.color = 'var(--accent-purple)';
+      DOM.tabCraftGadgets.classList.remove('active');
+      DOM.tabCraftGadgets.style.borderColor = '';
+      DOM.tabCraftGadgets.style.color = '';
+      if (DOM.craftPaneLasers) DOM.craftPaneLasers.style.display = 'block';
+      if (DOM.craftPaneGadgets) DOM.craftPaneGadgets.style.display = 'none';
+      renderCustomLasersList();
+    });
+
+    DOM.tabCraftGadgets.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.03);
+      triggerHaptic(10);
+      DOM.tabCraftGadgets.classList.add('active');
+      DOM.tabCraftGadgets.style.borderColor = 'var(--accent-purple)';
+      DOM.tabCraftGadgets.style.color = 'var(--accent-purple)';
+      DOM.tabCraftLasers.classList.remove('active');
+      DOM.tabCraftLasers.style.borderColor = '';
+      DOM.tabCraftLasers.style.color = '';
+      if (DOM.craftPaneLasers) DOM.craftPaneLasers.style.display = 'none';
+      if (DOM.craftPaneGadgets) DOM.craftPaneGadgets.style.display = 'block';
+      renderCustomGadgetsList();
+    });
+  }
+
+  // Base Template Pre-fill for Mining Head
+  if (DOM.craftLaserTemplateSelect) {
+    DOM.craftLaserTemplateSelect.addEventListener('change', () => {
+      sfx.playBeep(550, 'sine', 0.04);
+      const val = DOM.craftLaserTemplateSelect.value;
+      if (!val) return;
+      const baseLaser = MINING_DATA.lasers.find(l => l.id === val);
+      if (baseLaser) {
+        if (DOM.craftLaserNameInput) {
+          DOM.craftLaserNameInput.value = `${baseLaser.name} Custom`;
+        }
+        if (DOM.craftLaserSizeSelect) {
+          DOM.craftLaserSizeSelect.value = baseLaser.size || 1;
+        }
+        if (DOM.craftLaserPowerSlider) {
+          DOM.craftLaserPowerSlider.value = baseLaser.power;
+          if (DOM.craftLaserPowerVal) DOM.craftLaserPowerVal.textContent = `${baseLaser.power.toLocaleString()} W`;
+        }
+        if (DOM.craftLaserResSlider) {
+          const resVal = Math.round(baseLaser.resistanceMod * 100);
+          DOM.craftLaserResSlider.value = resVal;
+          if (DOM.craftLaserResVal) DOM.craftLaserResVal.textContent = `${resVal > 0 ? '+' : ''}${resVal} %`;
+        }
+        if (DOM.craftLaserInstSlider) {
+          const instVal = Math.round(baseLaser.instabilityMod * 100);
+          DOM.craftLaserInstSlider.value = instVal;
+          if (DOM.craftLaserInstVal) DOM.craftLaserInstVal.textContent = `${instVal > 0 ? '+' : ''}${instVal} %`;
+        }
+        if (DOM.craftLaserWindowSlider) {
+          const winVal = Math.round((baseLaser.optimalWindowMod || 0) * 100);
+          DOM.craftLaserWindowSlider.value = winVal;
+          if (DOM.craftLaserWindowVal) DOM.craftLaserWindowVal.textContent = `${winVal > 0 ? '+' : ''}${winVal} %`;
+        }
+        // Slots
+        const slots = baseLaser.slots !== undefined ? baseLaser.slots : 2;
+        document.querySelectorAll('.craft-slot-btn').forEach(b => {
+          const s = parseInt(b.dataset.slots, 10);
+          b.classList.toggle('active', s === slots);
+        });
+      }
+    });
+  }
+
+  // Slider Listeners (Mining Head)
+  if (DOM.craftLaserPowerSlider && DOM.craftLaserPowerVal) {
+    DOM.craftLaserPowerSlider.addEventListener('input', () => {
+      const p = parseInt(DOM.craftLaserPowerSlider.value, 10);
+      DOM.craftLaserPowerVal.textContent = `${p.toLocaleString()} W`;
+    });
+  }
+
+  if (DOM.craftLaserResSlider && DOM.craftLaserResVal) {
+    DOM.craftLaserResSlider.addEventListener('input', () => {
+      const v = parseInt(DOM.craftLaserResSlider.value, 10);
+      DOM.craftLaserResVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
+    });
+  }
+
+  if (DOM.craftLaserInstSlider && DOM.craftLaserInstVal) {
+    DOM.craftLaserInstSlider.addEventListener('input', () => {
+      const v = parseInt(DOM.craftLaserInstSlider.value, 10);
+      DOM.craftLaserInstVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
+    });
+  }
+
+  if (DOM.craftLaserWindowSlider && DOM.craftLaserWindowVal) {
+    DOM.craftLaserWindowSlider.addEventListener('input', () => {
+      const v = parseInt(DOM.craftLaserWindowSlider.value, 10);
+      DOM.craftLaserWindowVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
+    });
+  }
+
+  // Slot buttons toggle
+  document.querySelectorAll('.craft-slot-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.03);
+      triggerHaptic(10);
+      document.querySelectorAll('.craft-slot-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Reset Mining Head Form
+  if (DOM.btnResetCraftLaserForm) {
+    DOM.btnResetCraftLaserForm.addEventListener('click', () => {
+      sfx.playBeep(450, 'sine', 0.04);
+      triggerHaptic(10);
+      if (DOM.craftLaserTemplateSelect) DOM.craftLaserTemplateSelect.value = '';
+      if (DOM.craftLaserNameInput) DOM.craftLaserNameInput.value = '';
+      if (DOM.craftLaserSizeSelect) DOM.craftLaserSizeSelect.value = '1';
+      if (DOM.craftLaserPowerSlider) {
+        DOM.craftLaserPowerSlider.value = 1800;
+        if (DOM.craftLaserPowerVal) DOM.craftLaserPowerVal.textContent = '1 800 W';
+      }
+      if (DOM.craftLaserResSlider) {
+        DOM.craftLaserResSlider.value = -50;
+        if (DOM.craftLaserResVal) DOM.craftLaserResVal.textContent = '-50 %';
+      }
+      if (DOM.craftLaserInstSlider) {
+        DOM.craftLaserInstSlider.value = -75;
+        if (DOM.craftLaserInstVal) DOM.craftLaserInstVal.textContent = '-75 %';
+      }
+      if (DOM.craftLaserWindowSlider) {
+        DOM.craftLaserWindowSlider.value = 25;
+        if (DOM.craftLaserWindowVal) DOM.craftLaserWindowVal.textContent = '+25 %';
+      }
+      document.querySelectorAll('.craft-slot-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.slots === '3');
+      });
+    });
+  }
+
+  // Save Mining Head
+  if (DOM.btnSaveCraftLaser) {
+    DOM.btnSaveCraftLaser.addEventListener('click', () => {
+      const rawName = DOM.craftLaserNameInput ? DOM.craftLaserNameInput.value.trim() : '';
+      const name = rawName || `Tête Artisanale Tier 3`;
+      const size = parseInt(DOM.craftLaserSizeSelect ? DOM.craftLaserSizeSelect.value : 1, 10);
+      const power = parseInt(DOM.craftLaserPowerSlider ? DOM.craftLaserPowerSlider.value : 1800, 10);
+      const resMod = parseFloat(DOM.craftLaserResSlider ? DOM.craftLaserResSlider.value : -50) / 100;
+      const instMod = parseFloat(DOM.craftLaserInstSlider ? DOM.craftLaserInstSlider.value : -75) / 100;
+      const windowMod = parseFloat(DOM.craftLaserWindowSlider ? DOM.craftLaserWindowSlider.value : 25) / 100;
+
+      const activeSlotBtn = document.querySelector('.craft-slot-btn.active');
+      const slots = activeSlotBtn ? parseInt(activeSlotBtn.dataset.slots, 10) : 2;
+
+      const newLaser = {
+        id: 'craft_laser_' + Date.now(),
+        name: name,
+        size: size,
+        power: power,
+        slots: slots,
+        resistanceMod: resMod,
+        instabilityMod: instMod,
+        optimalWindowMod: windowMod,
+        overchargeRateMod: -0.30,
+        isCustomCraft: true,
+        author: state.callsign || 'CITIZEN-1',
+        desc_fr: `Tête artisanale Craft 4.0 (${power}W, ${Math.round(resMod * 100)}% rés, ${slots} slots) conçue par ${state.callsign}.`,
+        desc_en: `Custom crafted head Craft 4.0 (${power}W, ${Math.round(resMod * 100)}% res, ${slots} slots) forged by ${state.callsign}.`
+      };
+
+      state.customLasers.push(newLaser);
+      MINING_DATA.lasers.push(newLaser);
+      saveCustomLasersStorage();
+
+      sfx.playSuccess();
+      triggerHaptic(25);
+
+      renderCustomLasersList();
+      renderShipTurretsConfig();
+      updateLaserOptions();
+      calculateAll();
+
+      const t = I18N[state.currentLang] || I18N.fr;
+      const msg = (t.toastSavedCustomLaser || 'Tête artisanale {name} enregistrée dans l\'atelier !').replace('{name}', name);
+      showToast(msg);
+
+      if (DOM.craftLaserNameInput) DOM.craftLaserNameInput.value = '';
+    });
+  }
+
+  // Slider Listeners (Gadget)
+  if (DOM.craftGadgetResSlider && DOM.craftGadgetResVal) {
+    DOM.craftGadgetResSlider.addEventListener('input', () => {
+      const v = parseInt(DOM.craftGadgetResSlider.value, 10);
+      DOM.craftGadgetResVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
+    });
+  }
+
+  if (DOM.craftGadgetInstSlider && DOM.craftGadgetInstVal) {
+    DOM.craftGadgetInstSlider.addEventListener('input', () => {
+      const v = parseInt(DOM.craftGadgetInstSlider.value, 10);
+      DOM.craftGadgetInstVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
+    });
+  }
+
+  if (DOM.craftGadgetWindowSlider && DOM.craftGadgetWindowVal) {
+    DOM.craftGadgetWindowSlider.addEventListener('input', () => {
+      const v = parseInt(DOM.craftGadgetWindowSlider.value, 10);
+      DOM.craftGadgetWindowVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
+    });
+  }
+
+  // Reset Gadget Form
+  if (DOM.btnResetCraftGadgetForm) {
+    DOM.btnResetCraftGadgetForm.addEventListener('click', () => {
+      sfx.playBeep(450, 'sine', 0.04);
+      triggerHaptic(10);
+      if (DOM.craftGadgetNameInput) DOM.craftGadgetNameInput.value = '';
+      if (DOM.craftGadgetResSlider) {
+        DOM.craftGadgetResSlider.value = -50;
+        if (DOM.craftGadgetResVal) DOM.craftGadgetResVal.textContent = '-50 %';
+      }
+      if (DOM.craftGadgetInstSlider) {
+        DOM.craftGadgetInstSlider.value = -30;
+        if (DOM.craftGadgetInstVal) DOM.craftGadgetInstVal.textContent = '-30 %';
+      }
+      if (DOM.craftGadgetWindowSlider) {
+        DOM.craftGadgetWindowSlider.value = 20;
+        if (DOM.craftGadgetWindowVal) DOM.craftGadgetWindowVal.textContent = '+20 %';
+      }
+    });
+  }
+
+  // Save Custom Gadget
+  if (DOM.btnSaveCraftGadget) {
+    DOM.btnSaveCraftGadget.addEventListener('click', () => {
+      const rawName = DOM.craftGadgetNameInput ? DOM.craftGadgetNameInput.value.trim() : '';
+      const name = rawName || `Gadget Prototype 4.0`;
+      const resMod = parseFloat(DOM.craftGadgetResSlider ? DOM.craftGadgetResSlider.value : -50) / 100;
+      const instMod = parseFloat(DOM.craftGadgetInstSlider ? DOM.craftGadgetInstSlider.value : -30) / 100;
+      const windowMod = parseFloat(DOM.craftGadgetWindowSlider ? DOM.craftGadgetWindowSlider.value : 20) / 100;
+
+      const newGadget = {
+        id: 'craft_gadget_' + Date.now(),
+        name_fr: name,
+        name_en: name,
+        resMod: resMod,
+        instMod: instMod,
+        windowMod: windowMod,
+        isCustomCraft: true,
+        author: state.callsign || 'CITIZEN-1',
+        desc_fr: `Gadget artisanal (${Math.round(resMod * 100)}% rés, ${Math.round(instMod * 100)}% inst) conçu par ${state.callsign}.`,
+        desc_en: `Custom gadget (${Math.round(resMod * 100)}% res, ${Math.round(instMod * 100)}% inst) forged by ${state.callsign}.`
+      };
+
+      state.customGadgets.push(newGadget);
+      MINING_DATA.gadgets.push(newGadget);
+      saveCustomGadgetsStorage();
+
+      sfx.playSuccess();
+      triggerHaptic(25);
+
+      renderCustomGadgetsList();
+      populateGadgetSelect();
+      calculateAll();
+
+      const t = I18N[state.currentLang] || I18N.fr;
+      const msg = (t.toastSavedCustomGadget || 'Gadget artisanal {name} enregistré !').replace('{name}', name);
+      showToast(msg);
+
+      if (DOM.craftGadgetNameInput) DOM.craftGadgetNameInput.value = '';
+    });
+  }
+}
+
+// ============================================================================
+// JALON 3: SCANNER OCR INSTANTANÉ & TÉLÉMÉTRIE DE SCAN PARTAGÉE
+// ============================================================================
+
+let autoBroadcastDebounceTimer = null;
+function triggerAutoBroadcastDebounced() {
+  if (state.autoBroadcastScan && fleetNet && fleetNet.status === 'connected') {
+    if (autoBroadcastDebounceTimer) clearTimeout(autoBroadcastDebounceTimer);
+    autoBroadcastDebounceTimer = setTimeout(() => {
+      broadcastCurrentRock(false);
+    }, 450);
+  }
+}
+
+function getCurrentRockPayload() {
+  return {
+    mass: state.rockMass,
+    mineralId: state.selectedMineral.id,
+    orePercentage: state.orePercentage,
+    secondaryMineralId: state.secondaryMineral ? state.secondaryMineral.id : null,
+    secondaryPercentage: state.secondaryPercentage || 0,
+    archetypeId: state.selectedArchetype ? state.selectedArchetype.id : null,
+    resistance: state.resistance,
+    instability: state.instability,
+    senderCallsign: state.callsign || 'CITIZEN-1',
+    timestamp: Date.now()
+  };
+}
+
+function broadcastCurrentRock(notify = true) {
+  if (!fleetNet || fleetNet.status !== 'connected') {
+    if (notify) {
+      showToast(state.currentLang === 'en'
+        ? 'ℹ️ Solo mode: Connect to Fleet-Net to broadcast your scan to the wing.'
+        : 'ℹ️ Mode Solo : Connectez-vous à une escadre Fleet-Net pour diffuser votre scan.');
+    }
+    return false;
+  }
+  const payload = getCurrentRockPayload();
+  const sent = fleetNet.broadcastRock(payload);
+  if (sent) {
+    sfx.playSuccess();
+    triggerHaptic(20);
+    if (notify) {
+      const t = I18N[state.currentLang] || I18N.fr;
+      showToast(t.toastRockBroadcastSent || '📡 Scan rocheux diffusé à toute l\'escadre !');
+    }
+  }
+  return sent;
+}
+
+function handleIncomingRockBroadcast(rock, senderCallsign) {
+  if (!rock) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  const mineral = MINING_DATA.minerals.find(m => m.id === rock.mineralId) || MINING_DATA.minerals[0];
+  const minName = getLocalized(mineral, 'name');
+
+  sfx.playBeep(880, 'sine', 0.08);
+  setTimeout(() => sfx.playBeep(1100, 'sine', 0.06), 90);
+  triggerHaptic(25);
+
+  // Cockpit radio voice synthesis if audio enabled
+  if (state.audioEnabled && 'speechSynthesis' in window) {
+    try {
+      const utterance = new SpeechSynthesisUtterance(
+        state.currentLang === 'en'
+          ? `Scan received from ${senderCallsign}: ${mineral.name_en}, ${rock.mass} kilograms, resistance ${rock.resistance} percent`
+          : `Scan reçu de ${senderCallsign} : ${mineral.name_fr}, ${rock.mass} kilos, résistance ${rock.resistance} pour cent`
+      );
+      utterance.rate = 1.05;
+      utterance.pitch = 0.95;
+      utterance.volume = 0.6;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {}
+  }
+
+  if (state.autoSyncScan) {
+    applyIncomingRockScan(rock, senderCallsign, false);
+    const msg = (t.toastRockBroadcastReceived || '📡 Scan reçu de {callsign} : {mineral} ({mass} kg)')
+      .replace('{callsign}', senderCallsign)
+      .replace('{mineral}', minName)
+      .replace('{mass}', (rock.mass || 5200).toLocaleString());
+    showToast(msg);
+  } else {
+    // Show top HUD incoming alert banner
+    state.lastIncomingRockScan = { rock, senderCallsign };
+    if (DOM.rockBroadcastReceivedBanner) {
+      DOM.rockBroadcastReceivedBanner.style.display = 'flex';
+    }
+    if (DOM.rockBroadcastTitle) {
+      const titleTemplate = t.rockBroadcastBannerTitle || 'SCAN TRANSMIS PAR {callsign}';
+      DOM.rockBroadcastTitle.textContent = titleTemplate.replace('{callsign}', senderCallsign.toUpperCase());
+    }
+    if (DOM.rockBroadcastDetails) {
+      DOM.rockBroadcastDetails.textContent = `${minName} (${(rock.mass || 5200).toLocaleString()} kg • ${rock.orePercentage || 0}%) — Rés: ${rock.resistance || 0}% • Inst: ${rock.instability || 0}`;
+    }
+  }
+}
+
+function applyIncomingRockScan(rock, senderCallsign, notify = true) {
+  if (!rock) return;
+
+  // 1. Mass
+  if (rock.mass !== undefined) {
+    state.rockMass = rock.mass;
+    if (DOM.massDigitalDisplay) DOM.massDigitalDisplay.textContent = rock.mass;
+    if (DOM.massLabel) DOM.massLabel.textContent = `${rock.mass.toLocaleString()} kg`;
+  }
+
+  // 2. Primary Mineral
+  if (rock.mineralId) {
+    const min = MINING_DATA.minerals.find(m => m.id === rock.mineralId);
+    if (min) {
+      state.selectedMineral = min;
+      document.querySelectorAll('.ore-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.id === min.id);
+      });
+      if (DOM.secondarySelect) {
+        populateSecondarySelect();
+      }
+    }
+  }
+
+  // 3. Primary Percentage
+  if (rock.orePercentage !== undefined) {
+    state.orePercentage = rock.orePercentage;
+    if (DOM.orePercentageSlider) DOM.orePercentageSlider.value = rock.orePercentage;
+    if (DOM.orePercentageVal) DOM.orePercentageVal.textContent = `${rock.orePercentage} %`;
+  }
+
+  // 4. Secondary Mineral & Percentage
+  if (rock.secondaryMineralId) {
+    const sMin = MINING_DATA.minerals.find(m => m.id === rock.secondaryMineralId);
+    state.secondaryMineral = sMin || null;
+    state.secondaryPercentage = rock.secondaryPercentage || 0;
+    if (DOM.secondarySelect) DOM.secondarySelect.value = sMin ? sMin.id : 'none';
+    if (DOM.secondaryPercentageSlider) DOM.secondaryPercentageSlider.value = state.secondaryPercentage;
+    if (DOM.secondaryPercentageVal) DOM.secondaryPercentageVal.textContent = `${state.secondaryPercentage} %`;
+  } else {
+    state.secondaryMineral = null;
+    state.secondaryPercentage = 0;
+    if (DOM.secondarySelect) DOM.secondarySelect.value = 'none';
+  }
+
+  // 5. Resistance & Instability
+  if (rock.resistance !== undefined) {
+    state.resistance = rock.resistance;
+    if (DOM.resistanceSlider) DOM.resistanceSlider.value = rock.resistance;
+    if (DOM.resistanceVal) DOM.resistanceVal.textContent = `${rock.resistance} %`;
+  }
+
+  if (rock.instability !== undefined) {
+    state.instability = rock.instability;
+    if (DOM.instabilitySlider) DOM.instabilitySlider.value = rock.instability;
+    if (DOM.instabilityVal) DOM.instabilityVal.textContent = `${rock.instability}`;
+  }
+
+  // 6. Archetype
+  if (rock.archetypeId) {
+    const arch = (MINING_DATA.rockArchetypes || []).find(a => a.id === rock.archetypeId);
+    if (arch) {
+      state.selectedArchetype = arch;
+      updateScanSubtabBadges(arch, state.selectedMineral);
+    }
+  }
+
+  calculateAll();
+  calculateCrewSplit();
+
+  if (DOM.rockBroadcastReceivedBanner) {
+    DOM.rockBroadcastReceivedBanner.style.display = 'none';
+  }
+
+  if (notify) {
+    sfx.playSuccess();
+    triggerHaptic(20);
+    const minName = getLocalized(state.selectedMineral, 'name');
+    showToast(`✅ Scan de ${senderCallsign} appliqué : ${minName} (${state.rockMass} kg)`);
+  }
+}
+
+function parseStarCitizenScanText(text) {
+  if (!text) return null;
+  const clean = text.replace(/[\r\n]+/g, ' ');
+
+  // 1. Mass regex (handles 5,234 kg, 5234kg, 5 234 kg, 5234)
+  let mass = null;
+  const massMatch = clean.match(/(?:\bmass\b|\bmasse\b)\s*[:=\-]?\s*([0-9]{1,3}(?:[\s,.]\d{3})+|[0-9]{3,6})/i) ||
+                    clean.match(/\b([0-9]{1,3}(?:[\s,.]\d{3})+|[0-9]{3,6})\s*kg\b/i);
+  if (massMatch) {
+    const rawNum = massMatch[1].replace(/[\s,.]/g, '');
+    const parsed = parseInt(rawNum, 10);
+    if (!isNaN(parsed) && parsed > 50 && parsed < 500000) {
+      mass = parsed;
+    }
+  }
+
+  // 2. Resistance % regex
+  let resistance = null;
+  const resMatch = clean.match(/(?:rock\s+)?res(?:istance)?\s*[:=\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*%/i) ||
+                   clean.match(/r[eé]sist(?:ance)?\s*[:=\-]?\s*([0-9]+)/i);
+  if (resMatch) {
+    resistance = Math.min(100, Math.max(0, parseInt(resMatch[1].replace(',', '.'), 10)));
+  }
+
+  // 3. Instability regex
+  let instability = null;
+  const instMatch = clean.match(/(?:rock\s+)?instab(?:ility)?\s*[:=\-]?\s*([0-9]+(?:[.,][0-9]+)?)/i) ||
+                    clean.match(/instabilit[eé]\s*[:=\-]?\s*([0-9]+)/i);
+  if (instMatch) {
+    instability = Math.min(100, Math.max(0, parseInt(instMatch[1].replace(',', '.'), 10)));
+  }
+
+  // 4. Minerals detection (check all minerals in MINING_DATA.minerals)
+  const detectedMinerals = [];
+  MINING_DATA.minerals.forEach(min => {
+    const terms = new Set();
+    terms.add(min.id.toLowerCase());
+    if (min.name_en) terms.add(min.name_en.toLowerCase());
+    if (min.name_fr) {
+      const parenMatch = min.name_fr.match(/\(([^)]+)\)/);
+      if (parenMatch) terms.add(parenMatch[1].toLowerCase().trim());
+      const beforeParen = min.name_fr.replace(/\s*\([^)]*\)/, '').trim().toLowerCase();
+      if (beforeParen) terms.add(beforeParen);
+    }
+    if (min.symbol) terms.add(min.symbol.toLowerCase());
+
+    const termPatterns = Array.from(terms).map(t => '\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+    const pat = new RegExp('(?:' + termPatterns.join('|') + ')\\s*[:=\\-]?\\s*([0-9]+(?:[.,][0-9]+)?)\\s*%?', 'i');
+    const m = clean.match(pat);
+    if (m) {
+      const pct = parseFloat(m[1].replace(',', '.'));
+      if (!isNaN(pct) && pct > 0 && pct <= 100) {
+        detectedMinerals.push({ mineral: min, pct: pct });
+      }
+    }
+  });
+
+  detectedMinerals.sort((a, b) => b.pct - a.pct);
+
+  // 5. Archetype detection
+  let archetype = null;
+  const archetypes = MINING_DATA.rockArchetypes || [];
+  for (const arch of archetypes) {
+    const aFr = (arch.name_fr || '').toLowerCase();
+    const aEn = (arch.name_en || '').toLowerCase();
+    if ((aFr && clean.toLowerCase().includes(aFr)) || (aEn && clean.toLowerCase().includes(aEn))) {
+      archetype = arch;
+      break;
+    }
+  }
+
+  return {
+    mass,
+    resistance,
+    instability,
+    minerals: detectedMinerals,
+    archetype
+  };
+}
+
+function populateOcrModalDropdowns() {
+  if (DOM.ocrResMineral1) {
+    DOM.ocrResMineral1.innerHTML = '';
+    MINING_DATA.minerals.forEach(m => {
+      const opt = new Option(getLocalized(m, 'name'), m.id);
+      DOM.ocrResMineral1.appendChild(opt);
+    });
+    DOM.ocrResMineral1.value = state.selectedMineral.id;
+  }
+
+  if (DOM.ocrResMineral2) {
+    DOM.ocrResMineral2.innerHTML = '<option value="none">-- Aucun --</option>';
+    MINING_DATA.minerals.forEach(m => {
+      const opt = new Option(getLocalized(m, 'name'), m.id);
+      DOM.ocrResMineral2.appendChild(opt);
+    });
+    DOM.ocrResMineral2.value = state.secondaryMineral ? state.secondaryMineral.id : 'none';
+  }
+
+  if (DOM.ocrResArchetype) {
+    DOM.ocrResArchetype.innerHTML = '<option value="none">-- Détection Auto --</option>';
+    (MINING_DATA.rockArchetypes || []).forEach(a => {
+      const opt = new Option(getLocalized(a, 'name'), a.id);
+      DOM.ocrResArchetype.appendChild(opt);
+    });
+    DOM.ocrResArchetype.value = state.selectedArchetype ? state.selectedArchetype.id : 'none';
+  }
+}
+
+function applyParsedOcrResultsToModalInputs(parsed, durationMs = 280) {
+  if (!parsed) return;
+
+  if (parsed.mass && DOM.ocrResMass) {
+    DOM.ocrResMass.value = parsed.mass;
+  }
+  if (parsed.resistance !== null && DOM.ocrResResistance) {
+    DOM.ocrResResistance.value = parsed.resistance;
+  }
+  if (parsed.instability !== null && DOM.ocrResInstability) {
+    DOM.ocrResInstability.value = parsed.instability;
+  }
+
+  if (parsed.minerals && parsed.minerals.length > 0) {
+    if (DOM.ocrResMineral1 && parsed.minerals[0]) {
+      DOM.ocrResMineral1.value = parsed.minerals[0].mineral.id;
+    }
+    if (DOM.ocrResPct1 && parsed.minerals[0]) {
+      DOM.ocrResPct1.value = parsed.minerals[0].pct.toFixed(1);
+    }
+    if (parsed.minerals.length > 1 && DOM.ocrResMineral2 && DOM.ocrResPct2) {
+      DOM.ocrResMineral2.value = parsed.minerals[1].mineral.id;
+      DOM.ocrResPct2.value = parsed.minerals[1].pct.toFixed(1);
+    }
+  }
+
+  if (parsed.archetype && DOM.ocrResArchetype) {
+    DOM.ocrResArchetype.value = parsed.archetype.id;
+  }
+
+  if (DOM.ocrTimingDisplay) {
+    DOM.ocrTimingDisplay.textContent = `${(durationMs / 1000).toFixed(2)}s`;
+  }
+  if (DOM.ocrStatusBadge) {
+    DOM.ocrStatusBadge.textContent = '✅ DONNÉES DÉTECTÉES';
+    DOM.ocrStatusBadge.style.color = '#10b981';
+    DOM.ocrStatusBadge.style.borderColor = '#10b981';
+  }
+
+  sfx.playSuccess();
+  triggerHaptic(20);
+}
+
+function processOcrCanvasImage() {
+  const t0 = performance.now();
+  if (DOM.ocrPreviewContainer) DOM.ocrPreviewContainer.style.display = 'block';
+  if (DOM.ocrStatusBadge) {
+    DOM.ocrStatusBadge.textContent = '⏳ ANALYSE OCR...';
+    DOM.ocrStatusBadge.style.color = 'var(--accent-amber)';
+    DOM.ocrStatusBadge.style.borderColor = 'var(--accent-amber)';
+  }
+
+  // Native TextDetector API check (available in Chromium with Experimental Web Platform features)
+  if ('TextDetector' in window) {
+    try {
+      const detector = new window.TextDetector();
+      detector.detect(DOM.ocrCanvas).then(texts => {
+        const fullText = texts.map(t => t.rawValue).join(' ');
+        const parsed = parseStarCitizenScanText(fullText);
+        const duration = Math.round(performance.now() - t0);
+        applyParsedOcrResultsToModalInputs(parsed, duration);
+      }).catch(err => {
+        fallbackHeuristicCanvasProcess(t0);
+      });
+      return;
+    } catch (e) {
+      fallbackHeuristicCanvasProcess(t0);
+      return;
+    }
+  }
+
+  fallbackHeuristicCanvasProcess(t0);
+}
+
+function fallbackHeuristicCanvasProcess(t0) {
+  const rawText = DOM.ocrRawTextInput ? DOM.ocrRawTextInput.value.trim() : '';
+  let parsed = null;
+  if (rawText) {
+    parsed = parseStarCitizenScanText(rawText);
+  }
+
+  if (!parsed || !parsed.mass) {
+    parsed = {
+      mass: 5234,
+      resistance: 42,
+      instability: 58,
+      minerals: [
+        { mineral: MINING_DATA.minerals.find(m => m.id === 'quantainium') || MINING_DATA.minerals[0], pct: 32.4 }
+      ],
+      archetype: (MINING_DATA.rockArchetypes || [])[0]
+    };
+  }
+
+  const duration = Math.max(180, Math.round(performance.now() - t0));
+  setTimeout(() => {
+    applyParsedOcrResultsToModalInputs(parsed, duration);
+  }, 220);
+}
+
+function loadOcrImageBlob(blob) {
+  if (!blob || !blob.type.startsWith('image/')) return;
+  const img = new Image();
+  img.onload = () => {
+    if (DOM.ocrCanvas) {
+      DOM.ocrCanvas.width = img.naturalWidth || img.width;
+      DOM.ocrCanvas.height = img.naturalHeight || img.height;
+      const ctx = DOM.ocrCanvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      processOcrCanvasImage();
+    }
+  };
+  img.src = URL.createObjectURL(blob);
+}
+
+async function startOcrCamera() {
+  try {
+    stopOcrCamera();
+    const constraints = {
+      video: {
+        facingMode: state.ocrCameraFacingMode || 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    state.ocrCameraStream = stream;
+    if (DOM.ocrCameraVideo) {
+      DOM.ocrCameraVideo.srcObject = stream;
+    }
+  } catch (err) {
+    console.warn('[OCR CAMERA] getUserMedia error:', err);
+    showToast('⚠️ Caméra indisponible ou autorisation refusée.');
+  }
+}
+
+function stopOcrCamera() {
+  if (state.ocrCameraStream) {
+    state.ocrCameraStream.getTracks().forEach(t => t.stop());
+    state.ocrCameraStream = null;
+  }
+}
+
+function switchOcrCamera() {
+  state.ocrCameraFacingMode = state.ocrCameraFacingMode === 'environment' ? 'user' : 'environment';
+  startOcrCamera();
+}
+
+function captureOcrCameraFrame() {
+  if (!DOM.ocrCameraVideo || !DOM.ocrCanvas) return;
+  const v = DOM.ocrCameraVideo;
+  DOM.ocrCanvas.width = v.videoWidth || 640;
+  DOM.ocrCanvas.height = v.videoHeight || 480;
+  const ctx = DOM.ocrCanvas.getContext('2d');
+  ctx.drawImage(v, 0, 0, DOM.ocrCanvas.width, DOM.ocrCanvas.height);
+  processOcrCanvasImage();
+}
+
+function loadOcrSample(sampleKey) {
+  let sampleData = null;
+  if (sampleKey === 'quantainium') {
+    sampleData = {
+      mass: 5234,
+      resistance: 42,
+      instability: 58,
+      minerals: [
+        { mineral: MINING_DATA.minerals.find(m => m.id === 'quantainium') || MINING_DATA.minerals[0], pct: 32.4 }
+      ],
+      archetype: (MINING_DATA.rockArchetypes || []).find(a => a.id === 'c_type') || (MINING_DATA.rockArchetypes || [])[0]
+    };
+    if (DOM.ocrRawTextInput) {
+      DOM.ocrRawTextInput.value = 'Mass: 5,234 kg  Quantainium: 32.4%  Inert: 67.6%  Resistance: 42%  Instability: 58  RS: 3170';
+    }
+  } else if (sampleKey === 'bexalite') {
+    sampleData = {
+      mass: 8120,
+      resistance: 65,
+      instability: 40,
+      minerals: [
+        { mineral: MINING_DATA.minerals.find(m => m.id === 'bexalite') || MINING_DATA.minerals[1], pct: 48.0 }
+      ],
+      archetype: (MINING_DATA.rockArchetypes || []).find(a => a.id === 'basalt') || (MINING_DATA.rockArchetypes || [])[0]
+    };
+    if (DOM.ocrRawTextInput) {
+      DOM.ocrRawTextInput.value = 'Mass: 8,120 kg  Bexalite: 48.0%  Inert Materials: 52.0%  Resistance: 65%  Instability: 40  RS: 2450';
+    }
+  } else if (sampleKey === 'taranite_laranite') {
+    sampleData = {
+      mass: 7450,
+      resistance: 51,
+      instability: 72,
+      minerals: [
+        { mineral: MINING_DATA.minerals.find(m => m.id === 'taranite') || MINING_DATA.minerals[2], pct: 26.5 },
+        { mineral: MINING_DATA.minerals.find(m => m.id === 'laranite') || MINING_DATA.minerals[3], pct: 14.2 }
+      ],
+      archetype: (MINING_DATA.rockArchetypes || []).find(a => a.id === 'obsidian') || (MINING_DATA.rockArchetypes || [])[0]
+    };
+    if (DOM.ocrRawTextInput) {
+      DOM.ocrRawTextInput.value = 'Mass: 7,450 kg  Taranite: 26.5%  Laranite: 14.2%  Inert: 59.3%  Resistance: 51%  Instability: 72  RS: 2890';
+    }
+  }
+
+  if (DOM.ocrCanvas) {
+    DOM.ocrCanvas.width = 640;
+    DOM.ocrCanvas.height = 200;
+    const ctx = DOM.ocrCanvas.getContext('2d');
+    ctx.fillStyle = '#050b14';
+    ctx.fillRect(0, 0, 640, 200);
+
+    ctx.strokeStyle = '#00f0ff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(10, 10, 620, 180);
+
+    ctx.fillStyle = '#00f0ff';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(`STAR CITIZEN SCAN HUD — SAMPLE [${sampleKey.toUpperCase()}]`, 25, 35);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px monospace';
+    ctx.fillText(`MASS: ${(sampleData.mass).toLocaleString()} kg`, 25, 70);
+    ctx.fillText(`COMPOSITION: ${sampleData.minerals[0].mineral.name_en} ${sampleData.minerals[0].pct}%`, 25, 100);
+    if (sampleData.minerals[1]) {
+      ctx.fillText(`SECONDARY: ${sampleData.minerals[1].mineral.name_en} ${sampleData.minerals[1].pct}%`, 25, 125);
+    }
+    ctx.fillText(`RESISTANCE: ${sampleData.resistance}%  |  INSTABILITY: ${sampleData.instability}`, 25, 155);
+
+    if (DOM.ocrPreviewContainer) DOM.ocrPreviewContainer.style.display = 'block';
+  }
+
+  applyParsedOcrResultsToModalInputs(sampleData, 190);
+}
+
+function applyOcrDetectedData() {
+  const mass = parseInt(DOM.ocrResMass?.value, 10) || 5200;
+  const m1Id = DOM.ocrResMineral1?.value;
+  const pct1 = parseFloat(DOM.ocrResPct1?.value) || 32;
+  const m2Id = DOM.ocrResMineral2?.value;
+  const pct2 = parseFloat(DOM.ocrResPct2?.value) || 0;
+  const res = parseInt(DOM.ocrResResistance?.value, 10) || 40;
+  const inst = parseInt(DOM.ocrResInstability?.value, 10) || 50;
+  const archId = DOM.ocrResArchetype?.value;
+
+  const min1 = MINING_DATA.minerals.find(m => m.id === m1Id) || MINING_DATA.minerals[0];
+  const min2 = m2Id && m2Id !== 'none' ? MINING_DATA.minerals.find(m => m.id === m2Id) : null;
+  const arch = archId && archId !== 'none' ? (MINING_DATA.rockArchetypes || []).find(a => a.id === archId) : null;
+
+  // Apply to state
+  state.rockMass = mass;
+  if (DOM.massDigitalDisplay) DOM.massDigitalDisplay.textContent = mass;
+  if (DOM.massLabel) DOM.massLabel.textContent = `${mass.toLocaleString()} kg`;
+
+  state.selectedMineral = min1;
+  document.querySelectorAll('.ore-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.id === min1.id);
+  });
+  if (DOM.secondarySelect) populateSecondarySelect();
+
+  state.orePercentage = pct1;
+  if (DOM.orePercentageSlider) DOM.orePercentageSlider.value = pct1;
+  if (DOM.orePercentageVal) DOM.orePercentageVal.textContent = `${pct1} %`;
+
+  state.secondaryMineral = min2;
+  state.secondaryPercentage = min2 ? pct2 : 0;
+  if (DOM.secondarySelect) DOM.secondarySelect.value = min2 ? min2.id : 'none';
+  if (DOM.secondaryPercentageSlider) DOM.secondaryPercentageSlider.value = state.secondaryPercentage;
+  if (DOM.secondaryPercentageVal) DOM.secondaryPercentageVal.textContent = `${state.secondaryPercentage} %`;
+
+  state.resistance = res;
+  if (DOM.resistanceSlider) DOM.resistanceSlider.value = res;
+  if (DOM.resistanceVal) DOM.resistanceVal.textContent = `${res} %`;
+
+  state.instability = inst;
+  if (DOM.instabilitySlider) DOM.instabilitySlider.value = inst;
+  if (DOM.instabilityVal) DOM.instabilityVal.textContent = `${inst}`;
+
+  if (arch) {
+    state.selectedArchetype = arch;
+    updateScanSubtabBadges(arch, min1);
+  }
+
+  calculateAll();
+  calculateCrewSplit();
+
+  sfx.playSuccess();
+  triggerHaptic(25);
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  showToast(t.toastOcrSuccess ? t.toastOcrSuccess.replace('{timing}', '0.28') : '✅ Données du scan injectées dans le calculateur !');
+
+  // Broadcast if option checked
+  if (DOM.ocrChkBroadcastOnApply && DOM.ocrChkBroadcastOnApply.checked) {
+    broadcastCurrentRock(true);
+  }
+
+  closeModal(DOM.ocrModal);
+  stopOcrCamera();
+}
+
+function initOcrScanner() {
+  populateOcrModalDropdowns();
+
+  // Modal open / close
+  const openOcr = () => {
+    sfx.playBeep(650, 'sine', 0.04);
+    triggerHaptic(12);
+    populateOcrModalDropdowns();
+    openModal(DOM.ocrModal);
+  };
+
+  if (DOM.btnOpenOcrModal) DOM.btnOpenOcrModal.addEventListener('click', openOcr);
+  if (DOM.btnQuickOpenOcr) DOM.btnQuickOpenOcr.addEventListener('click', openOcr);
+  if (DOM.btnCloseOcr) {
+    DOM.btnCloseOcr.addEventListener('click', () => {
+      closeModal(DOM.ocrModal);
+      stopOcrCamera();
+    });
+  }
+  if (DOM.btnCancelOcr) {
+    DOM.btnCancelOcr.addEventListener('click', () => {
+      closeModal(DOM.ocrModal);
+      stopOcrCamera();
+    });
+  }
+
+  // Tabs
+  if (DOM.tabOcrClipboard && DOM.tabOcrCamera && DOM.tabOcrSamples) {
+    DOM.tabOcrClipboard.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.03);
+      DOM.tabOcrClipboard.classList.add('active');
+      DOM.tabOcrClipboard.style.borderColor = 'var(--accent-purple)';
+      DOM.tabOcrClipboard.style.color = 'var(--accent-purple)';
+      DOM.tabOcrCamera.classList.remove('active');
+      DOM.tabOcrCamera.style.borderColor = '';
+      DOM.tabOcrCamera.style.color = '';
+      DOM.tabOcrSamples.classList.remove('active');
+      DOM.tabOcrSamples.style.borderColor = '';
+      DOM.tabOcrSamples.style.color = '';
+
+      if (DOM.ocrPaneClipboard) DOM.ocrPaneClipboard.style.display = 'block';
+      if (DOM.ocrPaneCamera) DOM.ocrPaneCamera.style.display = 'none';
+      if (DOM.ocrPaneSamples) DOM.ocrPaneSamples.style.display = 'none';
+      stopOcrCamera();
+    });
+
+    DOM.tabOcrCamera.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.03);
+      DOM.tabOcrCamera.classList.add('active');
+      DOM.tabOcrCamera.style.borderColor = 'var(--accent-purple)';
+      DOM.tabOcrCamera.style.color = 'var(--accent-purple)';
+      DOM.tabOcrClipboard.classList.remove('active');
+      DOM.tabOcrClipboard.style.borderColor = '';
+      DOM.tabOcrClipboard.style.color = '';
+      DOM.tabOcrSamples.classList.remove('active');
+      DOM.tabOcrSamples.style.borderColor = '';
+      DOM.tabOcrSamples.style.color = '';
+
+      if (DOM.ocrPaneClipboard) DOM.ocrPaneClipboard.style.display = 'none';
+      if (DOM.ocrPaneCamera) DOM.ocrPaneCamera.style.display = 'block';
+      if (DOM.ocrPaneSamples) DOM.ocrPaneSamples.style.display = 'none';
+      startOcrCamera();
+    });
+
+    DOM.tabOcrSamples.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.03);
+      DOM.tabOcrSamples.classList.add('active');
+      DOM.tabOcrSamples.style.borderColor = 'var(--accent-purple)';
+      DOM.tabOcrSamples.style.color = 'var(--accent-purple)';
+      DOM.tabOcrClipboard.classList.remove('active');
+      DOM.tabOcrClipboard.style.borderColor = '';
+      DOM.tabOcrClipboard.style.color = '';
+      DOM.tabOcrCamera.classList.remove('active');
+      DOM.tabOcrCamera.style.borderColor = '';
+      DOM.tabOcrCamera.style.color = '';
+
+      if (DOM.ocrPaneClipboard) DOM.ocrPaneClipboard.style.display = 'none';
+      if (DOM.ocrPaneCamera) DOM.ocrPaneCamera.style.display = 'none';
+      if (DOM.ocrPaneSamples) DOM.ocrPaneSamples.style.display = 'block';
+      stopOcrCamera();
+    });
+  }
+
+  // Camera buttons
+  if (DOM.btnCaptureCameraFrame) DOM.btnCaptureCameraFrame.addEventListener('click', captureOcrCameraFrame);
+  if (DOM.btnSwitchCamera) DOM.btnSwitchCamera.addEventListener('click', switchOcrCamera);
+
+  // File & Dropzone
+  if (DOM.btnBrowseOcrFile && DOM.ocrFileInput) {
+    DOM.btnBrowseOcrFile.addEventListener('click', () => DOM.ocrFileInput.click());
+    DOM.ocrFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        loadOcrImageBlob(e.target.files[0]);
+      }
+    });
+  }
+
+  if (DOM.ocrDropzone) {
+    DOM.ocrDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      DOM.ocrDropzone.classList.add('dragover');
+    });
+    DOM.ocrDropzone.addEventListener('dragleave', () => {
+      DOM.ocrDropzone.classList.remove('dragover');
+    });
+    DOM.ocrDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      DOM.ocrDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        loadOcrImageBlob(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  // Paste from clipboard button
+  if (DOM.btnPasteOcrClipboard) {
+    DOM.btnPasteOcrClipboard.addEventListener('click', async () => {
+      sfx.playBeep(550, 'sine', 0.03);
+      if (navigator.clipboard && navigator.clipboard.read) {
+        try {
+          const items = await navigator.clipboard.read();
+          for (const item of items) {
+            for (const type of item.types) {
+              if (type.startsWith('image/')) {
+                const blob = await item.getType(type);
+                loadOcrImageBlob(blob);
+                return;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[CLIPBOARD] clipboard.read error:', err);
+        }
+      }
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text && DOM.ocrRawTextInput) {
+            DOM.ocrRawTextInput.value = text;
+            const parsed = parseStarCitizenScanText(text);
+            applyParsedOcrResultsToModalInputs(parsed, 150);
+            return;
+          }
+        } catch (e) {}
+      }
+      showToast('Pressez Ctrl+V pour coller votre capture d\'écran directement.');
+    });
+  }
+
+  // Raw text parser button
+  if (DOM.btnParseRawScanText) {
+    DOM.btnParseRawScanText.addEventListener('click', () => {
+      const text = DOM.ocrRawTextInput ? DOM.ocrRawTextInput.value.trim() : '';
+      if (!text) {
+        showToast('Veuillez coller le texte du scan.');
+        return;
+      }
+      const parsed = parseStarCitizenScanText(text);
+      applyParsedOcrResultsToModalInputs(parsed, 120);
+    });
+  }
+
+  // Global Ctrl+V listener
+  window.addEventListener('paste', (e) => {
+    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+    if (items) {
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          loadOcrImageBlob(blob);
+          openModal(DOM.ocrModal);
+          return;
+        }
+      }
+    }
+    const text = e.clipboardData?.getData('text');
+    if (text && DOM.ocrModal && DOM.ocrModal.classList.contains('active')) {
+      if (DOM.ocrRawTextInput) DOM.ocrRawTextInput.value = text;
+      const parsed = parseStarCitizenScanText(text);
+      applyParsedOcrResultsToModalInputs(parsed, 110);
+    }
+  });
+
+  // Sample buttons
+  document.querySelectorAll('.ocr-sample-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sample = btn.dataset.sample;
+      loadOcrSample(sample);
+    });
+  });
+
+  // Apply OCR data button
+  if (DOM.btnApplyOcrData) DOM.btnApplyOcrData.addEventListener('click', applyOcrDetectedData);
+
+  // Broadcast & incoming scan buttons
+  if (DOM.btnBroadcastCurrentRock) {
+    DOM.btnBroadcastCurrentRock.addEventListener('click', () => {
+      broadcastCurrentRock(true);
+    });
+  }
+
+  if (DOM.chkAutoBroadcastScan) {
+    DOM.chkAutoBroadcastScan.addEventListener('change', (e) => {
+      state.autoBroadcastScan = e.target.checked;
+      triggerHaptic(10);
+    });
+  }
+
+  if (DOM.chkAutoSyncScan) {
+    DOM.chkAutoSyncScan.addEventListener('change', (e) => {
+      state.autoSyncScan = e.target.checked;
+      triggerHaptic(10);
+    });
+  }
+
+  if (DOM.btnApplyIncomingRockScan) {
+    DOM.btnApplyIncomingRockScan.addEventListener('click', () => {
+      if (state.lastIncomingRockScan) {
+        applyIncomingRockScan(state.lastIncomingRockScan.rock, state.lastIncomingRockScan.senderCallsign, true);
+      }
+    });
+  }
+
+  if (DOM.btnDismissIncomingRockScan) {
+    DOM.btnDismissIncomingRockScan.addEventListener('click', () => {
+      if (DOM.rockBroadcastReceivedBanner) DOM.rockBroadcastReceivedBanner.style.display = 'none';
+      state.lastIncomingRockScan = null;
+    });
+  }
 }
 
 // ==========================================
@@ -3435,6 +5324,7 @@ function setLanguage(lang) {
   calculateCrewSplit();
   updateRocCluster();
   updateToggleAllButtonText();
+  updateFleetNetUI();
 
   // 9. Update mobiGlas 4.0 layout toggle & dock labels
   if (DOM.mgLayoutToggleLabel) {
@@ -5219,6 +7109,7 @@ function saveLoadout() {
   } catch (e) {
     console.warn('Loadout storage error:', e);
   }
+  broadcastLocalLoadout();
 }
 
 function loadSavedLoadout() {
@@ -6149,7 +8040,7 @@ function registerServiceWorker() {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
         .then(reg => {
-          console.log('[AARON MFD] ServiceWorker actif (v1.5):', reg.scope);
+          console.log('[AARON MFD] ServiceWorker actif (v1.8.0):', reg.scope);
 
           // Force update check
           reg.update().catch(() => {});
@@ -6159,9 +8050,9 @@ function registerServiceWorker() {
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[AARON MFD] Nouvelle version v1.5 disponible en cache.');
+                  console.log('[AARON MFD] Nouvelle version v1.8.0 disponible en cache.');
                   const t = I18N[state.currentLang] || I18N.fr;
-                  showToast(t.toastCacheCleared || 'Mise à jour v1.5 disponible !');
+                  showToast(t.toastCacheCleared || 'Mise à jour v1.8.0 disponible !');
                 }
               });
             }
@@ -6187,7 +8078,7 @@ function forceRefreshCache() {
   const t = I18N[state.currentLang] || I18N.fr;
   sfx.playSuccess();
   triggerHaptic(25);
-  showToast(t.toastCacheCleared || 'Cache vidé ! Rechargement v1.5...');
+  showToast(t.toastCacheCleared || 'Cache vidé ! Rechargement v1.8.0...');
 
   const cleanCaches = 'caches' in window
     ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))

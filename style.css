@@ -671,6 +671,228 @@ html[data-layout="classic"] body {
   border-radius: 10px;
 }
 
+/* ==========================================================================
+   AARON FLEET-NET P2P INTERLINK CONSOLE (JALON 1)
+   ========================================================================== */
+
+.fleet-net-card {
+  background: linear-gradient(135deg, rgba(6, 20, 38, 0.95) 0%, rgba(3, 10, 20, 0.98) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(0, 240, 255, 0.2);
+}
+
+.fleet-net-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
+}
+
+.fleet-net-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #64748b;
+  box-shadow: 0 0 6px rgba(100, 116, 139, 0.5);
+  transition: all 0.3s ease;
+}
+
+.fleet-net-led.connected {
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981, 0 0 16px rgba(16, 185, 129, 0.6);
+  animation: fleetNetPulse 2s infinite;
+}
+
+.fleet-net-led.connecting {
+  background: #fbbf24;
+  box-shadow: 0 0 10px #fbbf24;
+  animation: fleetNetPulse 0.8s infinite;
+}
+
+@keyframes fleetNetPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+
+.fleet-net-title {
+  font-family: var(--font-hud);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--accent-cyan);
+}
+
+.fleet-net-status-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fleet-net-status-badge.connected {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+}
+
+.fleet-net-status-badge.connecting {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.fleet-net-join-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-fleet-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(16, 185, 129, 0.25) 100%);
+  border: 1px solid var(--accent-cyan);
+  color: #fff;
+  font-family: var(--font-hud);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-fleet-create:hover {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.35) 0%, rgba(16, 185, 129, 0.4) 100%);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.fleet-net-divider {
+  font-family: var(--font-hud);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.fleet-net-join-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.fleet-room-input {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: var(--accent-cyan);
+  border-radius: 6px;
+  width: 120px;
+}
+
+.btn-fleet-join {
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-family: var(--font-hud);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-fleet-join:hover {
+  background: var(--accent-cyan);
+  color: #000;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+
+.fleet-net-connected-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fleet-net-room-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.fleet-net-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-hud);
+  letter-spacing: 0.5px;
+}
+
+.fleet-net-room-code {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+.fleet-net-role-badge {
+  font-family: var(--font-hud);
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+}
+
+.fleet-net-telemetry-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.fleet-net-ping-indicator {
+  color: #10b981;
+  font-size: 0.65rem;
+  animation: fleetNetPulse 1.5s infinite;
+}
+
+.fleet-net-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .wingman-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -3855,4 +4077,192 @@ html[data-layout="classic"] body {
   .verdict-status {
     font-size: 1.3rem;
   }
+}
+
+/* ==========================================================================
+   AARON MFD — CRAFTING 4.0 WORKSHOP STYLES (JALON 2)
+   ========================================================================== */
+.craft-badge {
+  font-family: var(--font-hud);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(168, 85, 247, 0.2);
+  color: var(--accent-purple);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  text-transform: uppercase;
+}
+
+.craft-item-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 6px;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+}
+
+.craft-item-card:hover {
+  background: rgba(168, 85, 247, 0.06);
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+}
+
+.craft-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.craft-item-title {
+  font-family: var(--font-hud);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.craft-pills-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.craft-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.craft-pill.power {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.craft-pill.res {
+  color: var(--accent-cyan);
+  border-color: rgba(0, 240, 255, 0.3);
+}
+
+.craft-pill.inst {
+  color: var(--accent-purple);
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.craft-pill.window {
+  color: var(--accent-amber);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* ============================================================================
+   JALON 3: SCANNER OCR & TÉLÉMÉTRIE DE SCAN PARTAGÉE
+   ============================================================================ */
+
+.rock-broadcast-received-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid var(--accent-cyan);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+  animation: pulseBeaconGlow 2.5s infinite alternate;
+}
+
+@keyframes pulseBeaconGlow {
+  0% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.15); border-color: rgba(0, 240, 255, 0.4); }
+  100% { box-shadow: 0 0 18px rgba(0, 240, 255, 0.4); border-color: var(--accent-cyan); }
+}
+
+.pulse-beacon-icon {
+  font-size: 1.2rem;
+  animation: beaconPing 1.6s infinite ease-in-out;
+}
+
+@keyframes beaconPing {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 4px var(--accent-cyan)); }
+}
+
+.scan-telemetry-action-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.scan-telemetry-action-strip .ocr-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  padding: 6px 12px;
+}
+
+.scan-telemetry-action-strip .broadcast-scan-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  padding: 6px 12px;
+  border-color: rgba(0, 240, 255, 0.4);
+  color: var(--accent-cyan);
+}
+
+.scan-telemetry-action-strip .broadcast-scan-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+.ocr-dropzone {
+  border: 2px dashed rgba(168, 85, 247, 0.4);
+  border-radius: 8px;
+  background: rgba(168, 85, 247, 0.04);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.ocr-dropzone:hover, .ocr-dropzone.dragover {
+  border-color: var(--accent-purple);
+  background: rgba(168, 85, 247, 0.12);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+}
+
+.ocr-scan-laser-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00f0ff, #a855f7, transparent);
+  box-shadow: 0 0 8px #00f0ff;
+  animation: scanSweep 2s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes scanSweep {
+  0% { top: 5%; opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { top: 95%; opacity: 0.2; }
+}
+
+.ocr-sample-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.3);
+  transition: all 0.18s ease;
+}
+
+.ocr-sample-btn:hover {
+  border-color: var(--accent-purple);
+  background: rgba(168, 85, 247, 0.1);
+  transform: translateY(-1px);
 }

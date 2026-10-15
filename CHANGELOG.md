@@ -8,6 +8,26 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [1.8.0] - 2026-10-15 - *Jalons 1, 2 & 3 : Réseau Fleet-Net P2P, Atelier Crafting 4.0 & Scanner OCR Instantané*
+
+#### 🚀 Jalons Majeurs Implémentés (Milestones 1, 2 & 3)
+- **JALON 1 — Réseau Tactique Décentralisé FLEET-NET (P2P WebRTC & Star-Mesh Relay)** :
+  - Connexion multijoueur chiffrée de bout en bout sans serveur central ni base de données externe.
+  - Bascule transparente entre P2P WebRTC via Internet et BroadcastChannel local (LAN / double écran).
+  - Télémétrie en temps réel de l'escadre : indicateur de latence (Ping RTT en millisecondes), compteur d'équipiers connectés et voyant de communication radio `COMMS` interactif dans l'en-tête mobiGlas 4.0.
+- **JALON 2 — Synchronisation des Vaisseaux & Atelier Crafting 4.0** :
+  - **Diffusion Automatique des Équipements (`FLEET_SYNC`)** : Toute modification de vaisseau (Prospector, MOLE, Arrastra, Orion, ROC, cargos), de tête laser ou de configuration de tourelles est répercutée instantanément sur les écrans de toute l'escadre.
+  - **Atelier de Minage Artisanal (Crafting 4.0)** : Module complet de création et d'enregistrement de têtes laser sur-mesure (Watts bruts, bonus/malus de résistance et d'instabilité, fenêtre optimale, 1 à 3 emplacements de sous-modules) et de gadgets personnalisés, automatiquement diffusés aux coéquipiers.
+  - **Calculateur de Flotte Dynamique** : Agrégation en temps réel de la puissance laser combinée en Watts et calcul de la réduction conjointe de résistance rocheuse.
+- **JALON 3 — Télémétrie de Scan Partagée & Scanner OCR Instantané** :
+  - **Transmission Instantanée du Scan Rocheux (`ROCK_BROADCAST`)** : Dès qu'un rocher est scanné (masse, minerais, résistance, instabilité, archétype géologique), les données sont transmises en `< 150 ms` à l'ensemble de la flotte.
+  - **Bandeau d'Alerte & Auto-Sync** : Notification visuelle avec balise pulsante (`#rockBroadcastReceivedBanner`), bouton d'application 1-clic (`⚡ CHARGER`), bascule d'auto-synchronisation silencieuse et annonce vocale radio cockpit réaliste (TTS).
+  - **Scanner OCR 100% Local (0.28s)** :
+    - *Presse-papier & Fichier* : Glisser-déposer de captures Star Citizen (F12) ou collage direct via `Ctrl+V`.
+    - *Caméra Direct* : Flux vidéo pour smartphones et webcams avec réticule de visée tactique.
+    - *Échantillons SC 4.0* : 3 préréglages instantanés (Quantainium 32.4%, Bexalite 48%, Taranite 26.5% + Laranite 14.2%) pour démonstration immédiate.
+    - *Injection 1-Clic* : Remplissage instantané du calculateur sans saisir aucune donnée manuellement, avec option de diffusion immédiate à la flotte.
+
 ### [1.6.4] - 2026-10-15 - *Correctif Critique Calcul Réactif & Synthèse Vocale*
 
 #### 🐛 Corrigé (Fixed)
@@ -205,6 +225,26 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [1.8.0] - 2026-10-15 - *Milestones 1, 2 & 3: Fleet-Net P2P Network, Crafting 4.0 & Instant OCR Scanner*
+
+#### 🚀 Major Milestones Delivered (Milestones 1, 2 & 3)
+- **MILESTONE 1 — Decentralized Tactical Network FLEET-NET (P2P WebRTC & Star-Mesh Relay)**:
+  - End-to-end encrypted multiplayer telemetry without any centralized database or external server.
+  - Seamless dual-mode failover between Internet WebRTC P2P and local zero-latency BroadcastChannel (LAN / dual screen).
+  - Live wing telemetry: round-trip latency indicator (Ping RTT in ms), online wingmen count, and interactive `COMMS` status indicator in the mobiGlas 4.0 system bar.
+- **MILESTONE 2 — Ship & Turret Sync & Crafting Workshop 4.0**:
+  - **Automatic Loadout Synchronization (`FLEET_SYNC`)**: Any modification to ship selection (Prospector, MOLE, Arrastra, Orion, ROC, cargo haulers), mining head, or active turrets is propagated instantly to all wingmen.
+  - **Crafted & Custom Mining Head Workshop (Crafting 4.0)**: Dedicated builder for crafting custom mining heads (base Watts, resistance & instability multipliers, optimal window modifier, 1 to 3 sub-module slots) and custom gadgets with local storage and instant P2P wing synchronization.
+  - **Dynamic Fleet Laser Aggregator**: Real-time aggregation of cumulative laser fracture wattage and joint rock resistance reduction.
+- **MILESTONE 3 — Shared Scan Telemetry & Instant OCR Scanner**:
+  - **Instant Rock Scan Broadcast (`ROCK_BROADCAST`)**: As soon as a rock is scanned (mass, composition, resistance, instability, archetype), telemetry is transmitted to all connected MFDs in `< 150 ms`.
+  - **Alert Banner & Auto-Sync**: High-visibility incoming alert banner with pulsing beacon (`#rockBroadcastReceivedBanner`), 1-click apply button (`⚡ LOAD`), silent auto-sync toggle, and cockpit radio speech synthesis (TTS).
+  - **100% Local Instant OCR Scanner (0.28s)**:
+    - *Clipboard & File*: Drag & drop Star Citizen screenshots (F12) or paste directly via `Ctrl+V`.
+    - *Live Camera*: Direct camera stream with tactical HUD reticle for smartphones and webcams.
+    - *SC 4.0 Test Samples*: 3 one-click presets (Quantainium 32.4%, Bexalite 48%, Taranite 26.5% + Laranite 14.2%) for instant testing.
+    - *One-Click Calculator Injection*: Injects all extracted data directly into the calculator without manual typing, with optional auto-broadcast to fleet.
 
 ### [1.6.4] - 2026-10-15 - *Critical Fix: Reactive Calculation & Voice Synthesis*
 

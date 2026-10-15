@@ -1,10 +1,12 @@
-// Service Worker for AARON MFD - 100% Offline Capability (v1.6.4 Alpha 4.10)
-const CACHE_NAME = 'aaron-mfd-v1.6.4';
+// Service Worker for AARON MFD - 100% Offline Capability (v1.8.0 Alpha 4.10)
+const CACHE_NAME = 'aaron-mfd-v1.8.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './fleet-net.js',
+  './peerjs.min.js',
   './i18n.js',
   './mining-data.js',
   './manifest.json',
@@ -16,7 +18,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[AARON Service Worker] Caching app shell v1.6.4');
+      console.log('[AARON Service Worker] Caching app shell v1.8.0');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );

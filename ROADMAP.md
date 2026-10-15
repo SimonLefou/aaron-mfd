@@ -1,6 +1,7 @@
 # 🗺️ FEUILLE DE ROUTE OFFICIELLE (ROADMAP) — AARON MFD
 ## Système d'Exploitation Tactique, Logistique, Commercial & Flotte Multijoueur (*Star Citizen 4.0+*)
 
+> **Version active** : **v1.8.0** (Star Citizen Alpha 4.10) — **Jalons 1, 2 et 3 terminés & déployés** 🚀  
 > **Direction stratégique du logiciel** : Élever AARON MFD au rang de **plateforme intégrale de référence pour les opérations industrielles de Star Citizen**.
 > L'application réunit sous une même interface immersive (mobiGlas) l'ensemble des acteurs d'une opération : **éclaireurs, mineurs, transporteurs lourds, escorteurs de combat et gestionnaires de corporation**. Les calculs de puissance et de faisabilité, la synchronisation temps réel des vaisseaux, le partage instantané des scans de rochers, le transbordement de fret en vol, le suivi des ordres de raffinage, la cartographie GPS des filons et l'arbitrage commercial aux TDD sont orchestrés de manière fluide, 100% autonome et sans aucun serveur payant (P2P Serverless).
 
@@ -48,22 +49,25 @@ graph TD
 
 ---
 
-### 📡 JALON 1 — Couche Réseau P2P & Connexion d'Escadre (*AARON FLEET-NET*)
-*Objectif : Permettre à un groupe de s'interconnecter en moins de 5 secondes sans inscription.*
+### 📡 JALON 1 — Couche Réseau P2P & Connexion d'Escadre (*AARON FLEET-NET*) — [TERMINÉ / DISPONIBLE v1.8.0]
+*Objectif : Permettre à un groupe de s'interconnecter en moins de 5 secondes sans inscription, en local et à distance via Internet.*
 
 * **Système de Salons Rapides (Room Codes) :**
   * Génération automatique d'un identifiant d'escadre court et mémorisable (ex: `WING-4982` ou `STANTON-DELTA`).
   * Connexion par saisie du code ou via lien d'invitation 1-clic (`https://.../?fleet=WING-4982`).
-* **Architecture Réseau :**
-  * Nœud Hôte (Créateur de l'escadre) et Nœuds Pairs (Équipiers).
-  * Heartbeat / Ping temps réel pour surveiller la latence et la présence des pairs.
-* **Interface mobiGlas :**
-  * Panneau dédié dans la modale d'escouade : indicateur de statut (`DÉCONNECTÉ`, `RECHERCHE...`, `EN LIGNE [X pairs]`).
-  * Voyant radio dans l'en-tête système mobiGlas.
+* **Architecture Réseau Hybride (Internet + Local) :**
+  * **WebRTC DataChannels (Internet P2P)** : Canaux de données directs de navigateur à navigateur chiffrés, traversée NAT via serveurs STUN publics (Google STUN) et passerelle PeerJS intégrée localement.
+  * **BroadcastChannel (Local)** : Communication instantanée (< 1ms) inter-onglets et multi-écrans sur la même machine.
+  * Nœud Hôte (Créateur de l'escadre) et Nœuds Pairs (Ailiers) avec Star-Mesh Relay.
+  * Heartbeat / Ping temps réel pour surveiller la latence en millisecondes et la présence des pairs (timeouts > 8s).
+* **Interface mobiGlas & MFD :**
+  * Panneau dédié FLEET-NET dans la modale d'escouade : indicateur de statut (`SOLO (HORS-LIGNE)`, `CONNECTÉ (AARON FLEET-NET)`), diode pulsante verte.
+  * Télémétrie en direct : affichage du ping RTT (`XX ms`) et nombre de pairs en ligne.
+  * Voyant radio interactif `COMMS` dans l'en-tête système mobiGlas (`WING-XXXX [X pairs • Xms]`).
 
 ---
 
-### 🛸 JALON 2 — Synchronisation Temps Réel des Vaisseaux & Configurations
+### 🛸 JALON 2 — Synchronisation Temps Réel des Vaisseaux & Configurations — [TERMINÉ / DISPONIBLE v1.8.0]
 *Objectif : Quand un joueur modifie sa configuration, toute l'escadre est actualisée automatiquement.*
 
 * **Diffusion Automatique des Équipements :**
@@ -90,7 +94,7 @@ graph TD
 
 ---
 
-### 🪨 JALON 3 — Télémétrie de Scan Partagée & Scanner OCR Instantané
+### 🪨 JALON 3 — Télémétrie de Scan Partagée & Scanner OCR Instantané — [TERMINÉ / DISPONIBLE v1.8.0]
 *Objectif : Zéro saisie manuelle et mise à jour instantanée des MFD de la flotte dès qu'un rocher est scanné.*
 
 * **Transmission Instantanée du Scan :**
