@@ -8,6 +8,90 @@
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
 
+### [2.2.0] - 2026-10-16 - *Jalon 7 : Ordres de Raffinage, Inventaire de Guilde, Trésorerie & Trading Cargo*
+
+#### 🚀 Jalon Majeur Implémenté (Milestone 7)
+- **Inventaire Collaboratif & Stockpile Unifié de Guilde (*Guild Shared Stockpile*)** :
+  - Prise en charge unifiée des **minerais bruts/raffinés** et des **marchandises générales de fret** (Medical Supplies, Laranite, Titane, Scrap, Distilled Spirits, Maze, Slam, WiDoW, etc.).
+  - Centralisation et mutualisation en temps réel de tous les stocks dans l'ensemble des stations et avant-postes de Stanton et Pyro.
+  - Paquets WebRTC DataChannel ultra-légers `CORPO_STOCK_SYNC` et `CORPO_TRADE_SYNC` assurant une synchronisation sub-150ms entre tous les membres de la corporation connectés à Fleet-Net.
+  - Filtres multi-critères instantanés (par Station, par Minerai/Marchandise, par Statut logistique).
+  - Badges distinctifs `⛏️ MINERAI` et `📦 COMMODITY` avec prix d'achat unitaire, valeur estimée de revente et marge brute.
+  - Bouton 1-clic `📥 Déposer la soute actuelle en Stockpile` permettant de vider sa soute pour la mettre à disposition de la corporation, et bouton `➕ Nouveau Lot de Stockpile` avec sélection de catégorie et coût d'achat unitaire.
+  - Action logistique directe `🚜 Assigner C2/MAX` transférant en 1 clic un lot raffiné ou marchandise vers la grille physique du transporteur actif (Cargo Grid Master Jalon 5).
+- **Simulateur de Trading & Arbitrage Cargo (*Commodity Trade Run Simulator*)** :
+  - Nouvel onglet dédié `📈 TRADING & ROUTES CARGO` dans l'interface de guilde.
+  - Sélecteur de marchandises générales par famille (Médical, Métaux, Industriel, Consommables, Illicite / Vice).
+  - Raccourcis de capacité de soute pour tous les cargos (Cutlass Black 46 SCU, Freelancer MAX 120 SCU, Taurus 174 SCU, RAFT 192 SCU, Caterpillar 576 SCU, C2 Hercules 696 SCU).
+  - Préréglages de routes commerciales populaires de Stanton & Pyro (Deakins vers Orison, Arial vers Area18, Brio's Breaker Yard, Checkmate, etc.).
+  - Calcul dynamique en direct du **Capital Requis** (aUEC), **Bénéfice Net du Run**, **Marge par SCU**, **Retour sur Investissement (ROI %)** et indice de risque pirate (*Sûr, Modéré, Extrême*).
+  - **Financement direct sur la Trésorerie de Guilde** : Prélèvement automatique du capital requis comme avance de trésorerie avec enregistrement comptable au grand livre.
+  - **Dépôt 1-clic en Stockpile de Guilde** : Intégration immédiate de la cargaison achetée dans l'inventaire partagé avec synchronisation de flotte `CORPO_TRADE_SYNC`.
+- **Trésorerie de Guilde & Grand Livre des Coûts Partagés (*Corpo Treasury & Expense Ledger*)** :
+  - Gestion du solde de trésorerie corporative avec dépôts, retraits et synchronisation de flotte `CORPO_TREASURY_SYNC`.
+  - Centralisation collaborative de tous les frais opérationnels engagés par les membres de la flotte : frais de raffinage, carburant Quantum & Hydrogène, réparations & réarmement, modules & consommables, prime de risque escorte et avances de trading.
+  - Synchronisation temps réel via le paquet télémétrique `CORPO_EXPENSE_SYNC`.
+  - Calcul automatique du **Bénéfice Net Projeté de Guilde** (Recettes Brutes - Dépenses Totales).
+  - Bouton `📋 Exporter le Grand Livre (Discord)` générant un rapport officiel formaté prêt à coller dans Discord.
+- **Feuille de Répartition mo.Trader & Dividendes de Guilde (*Crew Split Sheet*)** :
+  - Répartition automatisée des gains d'opération : part de trésorerie corporative retenue à la source (0 à 50%), prime d'escorte de combat, commission de transport lourd, et solde net versé aux équipages.
+  - Ordres de virement direct `mo.Trader` copiables en 1 clic pour exécution immédiate dans l'application mobiGlas du jeu.
+- **Ergonomie Cockpit & Désencombrement MFD (Discord Voice)** :
+  - Retrait du widget Conseiller de Tir Conjoint (séquençage statique et boutons d'état radio) redondant avec les communications vocales naturelles sur Discord / TeamSpeak.
+  - Libération de l'espace vertical du panneau central `#panelTacticalAnalysis` pour offrir une visibilité maximale et sans défilement au Solveur d'Équipement Optimal 4.0, à la Jauge d'Arc de Faisabilité et au Simulateur de Sous-roches.
+- **Statuts Logistiques Allégés & Notifications Web Push Déportées** :
+  - Conception ciblée évitant la duplication des consoles de jeu pour se focaliser sur l'alerte déportée et la logistique.
+  - Minuteurs dynamiques pour chaque ordre avec calcul de progression et rendement.
+  - **Notifications Web Push natives de bureau & mobile** alertant les pilotes même lorsque l'application ou le navigateur est en arrière-plan dès qu'un lot de raffinage est prêt au chargement (`🔔 Raffinerie [Station] : Votre commande de [X] SCU de [Minerai] est prête au chargement !`).
+  - Annonce vocale par le cockpit TTS assistant et carillon sonore immersif.
+
+### [2.1.0] - 2026-10-15 - *Jalon 6 : Bourse Commerciale, API UEX Corp & Intelligence de Guilde*
+
+#### 🚀 Jalon Majeur Implémenté (Milestone 6)
+- **Intégration API Live UEX Corp & Cache Hors-Ligne (`uexcorp.space`)** :
+  - Synchronisation transparente avec l'API publique UEX Corp pour récupérer les cours réels d'achat et de vente des minerais dans tous les terminaux TDD et stations de Stanton, Pyro et Nyx.
+  - Système de **cache local hors-ligne (`aaron_mfd_uex_cache_v2`)** garantissant un fonctionnement 100% hors-ligne avec badge d'état dynamique (🟢 `UEX LIVE`, 🟡 `UEX CACHE`, 🟣 `UEX GUILDE`) et bouton de rafraîchissement manuel `SYNC`.
+- **Moteur d'Arbitrage Économique (Brut vs Raffiné)** :
+  - Comparateur en temps réel dans `#panelMarketHold` entre la vente brute immédiate et l'ensemble des procédés de raffinage (*Dinyx Solventation*, *Ferris Carbide*, *Cormack Method*, *Pyro-Burst*).
+  - Déduction des frais de procédé, application des bonus de rendement par station (ex: +10% Quantainium à ARC-L1), calcul du gain net en aUEC, du différentiel (+/- aUEC) et du retour sur investissement (ROI %).
+  - Recommandation optimale dynamique mise en avant dans le bandeau `#mktArbitrageBanner`.
+- **Calculateur de Tournée Commerciale Optimale (*Best Sales Locations Optimizer*)** :
+  - Analyse globale des stocks (soute du mineur ou soute du transporteur Cargo Grid Master) pour identifier les meilleurs terminaux d'achat classés par profit maximum et niveau de demande (Forte / Moyenne / Faible).
+  - Génération d'une **tournée commerciale optimisée** multi-arrêts avec total estimé et bouton 1-clic `📋 Copier la tournée` prêt à coller dans le chat en jeu ou Discord.
+- **Éclaireurs de Guilde & Crowdsourcing P2P (`CORPO_PRICE_UPDATE`)** :
+  - Formulaire rapide d'éclaireur dans l'onglet `📡 ÉCLAIREUR GUILDE` permettant de valider ou ajuster un cours constaté en direct à un terminal TDD.
+  - Diffusion instantanée (< 150 ms) à toute la flotte via WebRTC DataChannel avec badge de confirmation *"Éclaireur [Callsign]"* et journal d'activité d'escadre.
+
+### [2.0.0] - 2026-10-15 - *Jalon 5 : Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)*
+
+#### 🚀 Jalon Majeur Implémenté (Milestone 5)
+- **Flotte de Transporteurs Dédiés Authentiques (Star Citizen 4.0)** :
+  - Intégration de 10 vaisseaux cargos : Drake Cutlass Black (46 SCU), Crusader C1 Spirit (64 SCU), MISC Hull A (64 SCU), MISC Freelancer MAX (120 SCU), RSI Zeus Mk II CL (128 SCU), RSI Constellation Taurus (174 SCU), Argo RAFT (192 SCU), Drake Caterpillar (576 SCU), Crusader C2 Hercules (696 SCU), MISC Hull C (4 608 SCU).
+  - Spécifications complètes des rayons tracteurs dédiés S1/S2/S3 (force de 6 000 à 45 000 N), topologies physiques de grilles (interne, externe, modulaire, spindle) et calcul en temps réel de la capacité max en sacoches Prospector (8 SCU) et MOLE (12 SCU).
+- **Transbordement en Vol Ship-to-Ship via FLEET-NET** :
+  - Action mineur 1-clic **`📡 APPELER TRANSPORT DE FRET`** dans l'encadré des sacoches (`#saddlebagsControlBox`) pour diffuser les sacoches pleines ou le chargement en attente.
+  - Récupération en plein vol par les transporteurs au rayon tracteur (**`🧲 ARRIMAGE RAYON TRACTEUR`**), ce qui charge le fret sur la grille du transporteur et libère instantanément la soute du mineur sans retour à la station.
+- **Gestionnaire Visuel de Grille de Fret Physicalisée (Cargo Grid Master)** :
+  - Carte cockpit interactive `#cargoGridMasterCard` : sélecteur de transporteur, affichage visuel des blocs de conteneurs arrimés avec identification des minerais, badge d'avertissement d'instabilité du Quantainium brut, estimation de rentabilité brute et nette raffinée, et bouton de déchargement au terminal.
+- **Commission Transporteur Dédiée** :
+  - Curseur de commission de fret (0 à 35%) intégré dans la répartition des gains d'escouade (`#crewModal`), assurant une compensation équitable des pilotes de transport lourd au sein de l'opération.
+
+### [1.9.0] - 2026-10-15 - *Jalon 4 : Coordination Tactique, Solveur Optimal 4.0 & Escorte de Combat*
+
+#### 🚀 Jalon Majeur Implémenté (Milestone 4)
+- **Solveur de Loadout Optimal Avancé 4.0** :
+  - Algorithme d'optimisation prédictive simulant l'ensemble des têtes laser (Lancet, Helix, Arbor, Impact, Klein, têtes artisanales), sous-modules (Focus III, Surge, Brandt, Rieger-C3) et gadgets (Sabir 21, BoreMax, Stalwart) selon la masse, la résistance et l'instabilité de la roche cible.
+  - Onglets de configuration **Recommandation Solo** et **Escouade / Multi-équipage Requise**.
+  - Bouton **1-Clic `⚡ ÉQUIPER CE LOADOUT`** : assignation instantanée de la tête laser, des sous-modules et du gadget avec recalcule et diffusion synchrone `FLEET_SYNC` à l'escadre.
+- **Conseiller de Tir Conjoint & Séquençage Tactique** :
+  - Séquençage tactique en 3 phases synchronisées : Phase 1 (Affaiblissement résistance Lancet/Sabir < 20%), Phase 2 (Saturation thermique Helix), Phase 3 (Régulation zone verte 45-50%).
+  - Jauge de risque de surchauffe / explosion collective en temps réel (`#overchargeRiskVal` & `#overchargeRiskFill`).
+  - Signalement radio d'état de tir en direct (`VEILLE`, `CHARGE`, `ZONE VERTE`, `SURCHAUFFE`) synchronisé entre ailiers via Fleet-Net P2P.
+- **Module Sentinelle & Escorte de Combat (`RED ALERT`)** :
+  - Déclenchement d'**Alerte Rouge en 1 tap** depuis l'en-tête mobiGlas 4.0 ou classique.
+  - Bandeau d'urgence stroboscopique avec sirène sonore, annonce vocale d'urgence (TTS), calcul dynamique du vecteur de saut Quantum d'évacuation (OM ou station la plus proche selon le système stellaire) et bouton `ALL CLEAR`.
+  - Curseur de prime de risque d'escorte (0 à 35%) dans la modale d'équipage avec déduction automatique et transparence des gains pour les pilotes de chasseurs d'escorte.
+
 ### [1.8.0] - 2026-10-15 - *Jalons 1, 2 & 3 : Réseau Fleet-Net P2P, Atelier Crafting 4.0 & Scanner OCR Instantané*
 
 #### 🚀 Jalons Majeurs Implémentés (Milestones 1, 2 & 3)
@@ -225,6 +309,90 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 ## 🇬🇧 Release Notes & Changelog (English)
 
 This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+
+### [2.2.0] - 2026-10-16 - *Milestone 7: Refining Orders, Guild Stockpile, Treasury & Commodity Cargo Trading*
+
+#### 🚀 Major Milestone Delivered (Milestone 7)
+- **Unified Guild Stockpile & Fleet Logistics (`CORPO_STOCK_SYNC`)**:
+  - Unified support for both **minerals (raw/refined)** and **general commodities** (Medical Supplies, Laranite, Titanium, Scrap, Distilled Spirits, Maze, Slam, WiDoW, etc.).
+  - Real-time collective visibility and synchronization of all stocks across Stanton and Pyro stations and planetary outposts.
+  - Sub-150ms lightweight WebRTC DataChannel packet exchange (`CORPO_STOCK_SYNC` and `CORPO_TRADE_SYNC`) connecting all corporation wingmen seamlessly.
+  - Multi-criteria instant filtering (by Station, by Mineral/Commodity, and by Logistics Status).
+  - Distinctive visual badges (`⛏️ MINERAI` vs `📦 COMMODITY`) displaying unit purchase price, estimated resale value, and gross profit margin.
+  - 1-click `📥 Deposit Current Ship Hold to Stockpile` allowing miners to deposit extracted ore for guild logistics, plus `➕ New Stockpile Batch` with category and unit purchase cost inputs.
+  - Direct `🚜 Assign to C2/MAX` action transferring refined batches or commodities onto the physical cargo grid of the active hauler (Cargo Grid Master from Milestone 5).
+- **Commodity Trade Run Simulator & Cargo Arbitrage (`CORPO_TRADE_SYNC`)**:
+  - Dedicated sub-tab 5 **`📈 TRADING & ROUTES CARGO`** in the Guild Operations interface.
+  - Commodity catalog organized by category (Medical, Metals, Industrial, Consumables, Illicit / Vice).
+  - Quick cargo capacity buttons matching genuine ship holds (Cutlass Black 46 SCU, Freelancer MAX 120 SCU, Taurus 174 SCU, RAFT 192 SCU, Caterpillar 576 SCU, C2 Hercules 696 SCU).
+  - High-yield route presets across Stanton & Pyro (e.g., Deakins to Orison, Arial to Area18, Brio's Breaker Yard, Checkmate, etc.).
+  - Real-time dynamic calculations of **Capital Required** (aUEC), **Net Run Profit**, **Margin per SCU**, **Return on Investment (ROI %)**, and Piracy Risk Index (*Safe, Moderate, Extreme*).
+  - **1-Click Financing from Guild Treasury**: Automatic deduction of the required trade capital as an advance with full audit logging in the expense ledger.
+  - **1-Click Deposit to Guild Stockpile**: Direct transfer of the purchased cargo into the collective corporation inventory, broadcasted across Fleet-Net with `CORPO_TRADE_SYNC`.
+- **Corporation Treasury & Shared Expense Ledger (*Corpo Treasury & Expense Ledger*)**:
+  - Persistent guild treasury vault with deposit/withdrawal actions and real-time fleet synchronization via `CORPO_TREASURY_SYNC`.
+  - Centralized tracking of fleet operating expenses: refinery process fees, Quantum & Hydrogen fuel, ship repairs & re-arm, mining modules & consumables, combat escort risk pay, and trading capital advances.
+  - Real-time P2P synchronization with `CORPO_EXPENSE_SYNC` packets across Fleet-Net.
+  - Automatic calculation of **Projected Guild Net Profit** (Gross Asset Value minus Total Incurred Expenses).
+  - 1-click `📋 Export Ledger (Discord)` formatting a rich financial dispatch ready to post in corporation channels.
+- **mo.Trader Crew Split Sheet & Corporate Dividend Withholding**:
+  - Automated mission payout allocation: corporate guild dividend withholding (0 to 50%), combat escort security bonus, heavy hauler freight commission, and equal net distribution to crew members.
+  - 1-click copyable in-game `mo.Trader` wire transfer commands for instant execution inside the mobiGlas app.
+- **Cockpit Ergonomics & MFD Decluttering (Discord Voice)**:
+  - Removed the Joint Fire Coordinator card (static phase text and radio state sync buttons) which created unnecessary clutter and duplication with real-time natural voice communications on Discord / TeamSpeak.
+  - Reclaimed vertical space in the center tactical panel `#panelTacticalAnalysis` to provide uninterrupted, scroll-free visibility for the Optimal Loadout Solver 4.0, Curved Arc Feasibility Gauge, and Sub-chunks Simulator.
+- **Streamlined Logistics Status & Native Web Push Notifications**:
+  - Purposefully designed to eliminate in-game terminal duplication by focusing strictly on off-game desktop alerts and transport coordination.
+  - Live order timers with progress percentage and yield calculations.
+  - **Native Desktop & Mobile Web Push Notifications** alerting pilots even when the browser or app is running in the background as soon as a refinery work order is ready for loading (`🔔 Refinery [Station]: Your order of [X] SCU of [Mineral] is ready to load!`).
+  - Immersive cockpit TTS audio voice announcement and sound effect.
+
+### [2.1.0] - 2026-10-15 - *Milestone 6: Commodity Exchange, UEX Corp API & Guild Scouts*
+
+#### 🚀 Major Milestone Delivered (Milestone 6)
+- **Live UEX Corp API & Offline Cache (`uexcorp.space`)**:
+  - Seamless synchronization with UEX Corp public API fetching live buy/sell commodity prices across all TDD terminals and stations in Stanton, Pyro, and Nyx.
+  - Robust **offline local cache (`aaron_mfd_uex_cache_v2`)** guaranteeing 100% offline flight readiness with dynamic status badge (🟢 `UEX LIVE`, 🟡 `UEX CACHE`, 🟣 `UEX GUILDE`) and manual `SYNC` button.
+- **Economic Arbitrage Engine (Raw vs Refined)**:
+  - Real-time cockpit comparison in `#panelMarketHold` between immediate raw sale and all major refining processes (*Dinyx Solventation*, *Ferris Carbide*, *Cormack Method*, *Pyro-Burst*).
+  - Accurate deduction of refining fees, station yield bonuses (e.g. +10% Quantainium at ARC-L1), net aUEC payout, delta profit (+/- aUEC), and Return on Investment (ROI %).
+  - Dynamic optimal recommendation banner prominently highlighted in `#mktArbitrageBanner`.
+- **Optimal Trade Tour Route Calculator (*Best Sales Locations Optimizer*)**:
+  - Full-cargo analysis (miner hold or hauler hold) identifying top buying terminals ranked by profit margin and demand rating (High / Medium / Low).
+  - Generation of a streamlined **multi-stop sales route** with estimated total aUEC payout and 1-click **`📋 Copy Tour Route`** ready to share in game chat or Discord.
+- **Corpo Price Scouts & P2P Crowdsourcing (`CORPO_PRICE_UPDATE`)**:
+  - 1-tap price reporting form in the `📡 GUILD SCOUT` tab allowing pilots to confirm spot prices on-site at any TDD terminal.
+  - Sub-150ms real-time WebRTC broadcast to all wingmen with verified scout badges (*"Scout [Callsign]"*) and recent activity feed.
+
+### [2.0.0] - 2026-10-15 - *Milestone 5: Specialized Haulers & Freight Logistics (Cargo Refactor 4.0)*
+
+#### 🚀 Major Milestone Delivered (Milestone 5)
+- **Authentic 4.0 Cargo Hauler Fleet (Star Citizen 4.0)**:
+  - Full support for 10 freight haulers: Drake Cutlass Black (46 SCU), Crusader C1 Spirit (64 SCU), MISC Hull A (64 SCU), MISC Freelancer MAX (120 SCU), RSI Zeus Mk II CL (128 SCU), RSI Constellation Taurus (174 SCU), Argo RAFT (192 SCU), Drake Caterpillar (576 SCU), Crusader C2 Hercules (696 SCU), MISC Hull C (4,608 SCU).
+  - Dedicated tractor beam ratings S1/S2/S3 (6,000 to 45,000 N), physicalized grid topologies (internal, external, modular, spindle), and live max saddlebag capacity calculations for Prospector (8 SCU) and MOLE (12 SCU) containers.
+- **In-Space Ship-to-Ship Cargo Transfer via FLEET-NET**:
+  - Miner 1-click action **`📡 REQUEST CARGO PICKUP`** within the saddlebag control card (`#saddlebagsControlBox`) broadcasting floating pods to wing haulers.
+  - In-space retrieval via tractor beam (**`🧲 TRACTOR BEAM DOCK`**), instantly snapping containers to the hauler's physicalized grid and clearing miner hold capacity without returning to station.
+- **Physicalized Cargo Grid Master**:
+  - Interactive cockpit card `#cargoGridMasterCard`: hauler selector, visual box grid with ore badges, Quantainium instability warning, live raw and refined valuation, and station terminal cargo dump.
+- **Dedicated Hauler Commission Cut**:
+  - Freight hauler cut slider (0 to 35%) integrated into the crew split calculator (`#crewModal`), ensuring transparent compensation for heavy transport pilots.
+
+### [1.9.0] - 2026-10-15 - *Milestone 4: Tactical Coordination, Optimal Loadout Solver 4.0 & Combat Escort*
+
+#### 🚀 Major Milestone Delivered (Milestone 4)
+- **Advanced Optimal Loadout Solver 4.0**:
+  - Predictive algorithmic solver evaluating rock mass, resistance, and instability against all mining heads (Lancet, Helix, Arbor, Impact, Klein, crafted gear), sub-modules (Focus III, Surge, Brandt, Rieger-C3), and gadgets (Sabir 21, BoreMax, Stalwart).
+  - Dual modes: **Solo Recommendation** and **Squad / Multi-Crew Requirement**.
+  - **1-Click `⚡ EQUIP THIS LOADOUT`** button: instantaneously mounts optimal laser head, sub-modules, and gadget with automated recalculation and synchronous `FLEET_SYNC` wing broadcast.
+- **Joint Fire Coordinator & Tactical Stepped Sequencing**:
+  - 3-phase stepped beam protocols: Phase 1 (Lancet/Sabir resistance softening < 20%), Phase 2 (Helix thermal saturation), Phase 3 (Green zone regulation 45-50%).
+  - Real-time cumulative overcharge and thermal explosion risk gauge (`#overchargeRiskVal` & `#overchargeRiskFill`).
+  - Radio fire status sync buttons (`STANDBY`, `CHARGING`, `GREEN ZONE`, `OVERHEAT RISK`) broadcasted across Fleet-Net P2P.
+- **Sentinel & Combat Escort Module (`RED ALERT`)**:
+  - **1-Tap Red Alert** trigger located in mobiGlas 4.0 and classic cockpit headers.
+  - Urgent strobing warning banner with acoustic alarm siren, emergency cockpit voice callout (TTS), calculated emergency quantum jump escape vector (closest OM beacon / station based on star system), and `ALL CLEAR` stand-down button.
+  - Escort combat risk cut slider (0 to 35%) in the crew modal with net payout deductions clearly displayed for security fighter pilots.
 
 ### [1.8.0] - 2026-10-15 - *Milestones 1, 2 & 3: Fleet-Net P2P Network, Crafting 4.0 & Instant OCR Scanner*
 

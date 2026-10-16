@@ -1,5 +1,5 @@
-// Service Worker for AARON MFD - 100% Offline Capability (v1.8.0 Alpha 4.10)
-const CACHE_NAME = 'aaron-mfd-v1.8.0';
+// Service Worker for AARON MFD - 100% Offline Capability (v2.2.0 Alpha 4.10)
+const CACHE_NAME = 'aaron-mfd-v2.2.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -18,7 +18,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[AARON Service Worker] Caching app shell v1.8.0');
+      console.log('[AARON Service Worker] Caching app shell v2.2.0');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -62,9 +62,19 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.action === 'skipWaiting') {
-    self.skipWaiting();
-  }
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
+  );
 });
 

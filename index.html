@@ -116,7 +116,7 @@
         </svg>
       </div>
       <div>
-        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v1.8.0</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
+        <h1 class="brand-title">AARON <span style="color:var(--accent-cyan)">MFD</span> <span class="version-badge" id="btnVersionBadge" title="Voir les notes de version">v2.2.0</span> <span class="patch-badge" style="font-size:0.62rem; background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700; letter-spacing:0.5px;" data-i18n="gameVersionBadge">Alpha 4.10</span></h1>
         <span class="brand-subtitle" data-i18n="brandSubtitle">STANTON TACTICAL MINING OS</span>
       </div>
     </div>
@@ -198,14 +198,14 @@
         <span class="hud-badge" style="background:var(--accent-purple); color:#fff; font-size:0.6rem; padding:1px 4px; border-radius:4px;">F12</span>
       </button>
 
-      <!-- Refinery Orders Tracker Button -->
-      <button class="btn-icon" id="btnOpenRefinery" data-i18n-title="titleRefineryJobs" title="Suivi des commandes de raffinage en cours (Timers)">
+      <!-- Guild Stockpile & Refinery Orders Button -->
+      <button class="btn-icon" id="btnOpenRefinery" data-i18n-title="titleRefineryJobs" title="Stockpile de guilde, statuts raffinage et livre des dépenses">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M2 20h20"></path>
-          <path d="M5 20V8l5 4V4l9 7v9"></path>
-          <line x1="14" y1="12" x2="14" y2="12.01"></line>
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
         </svg>
-        <span data-i18n="refineryJobs">Raffinage</span>
+        <span data-i18n="stockpileBtnLabel">Stockpile</span>
         <span class="hud-badge" id="refineryBadge" style="display:none;">0</span>
       </button>
 
@@ -736,29 +736,6 @@
         <div class="panel-subtag" data-i18n="instantCalc">CALCUL IMMÉDIAT</div>
       </div>
 
-      <!-- COCKPIT MFD EXTENSION: ACTIVE LASER & MODULE STRIP -->
-      <div class="active-laser-strip" id="activeLaserDashStrip">
-        <div class="als-left">
-          <div class="als-laser-info">
-            <span class="als-ship-tag" id="alsShipTag">PROSPECTOR</span>
-            <span class="als-head-name" id="alsHeadName">Spiral I (S1)</span>
-          </div>
-          <div class="als-modules-list" id="alsModulesList">
-            <span class="als-module-badge">Focus III</span>
-            <span class="als-module-badge">Brandt</span>
-          </div>
-        </div>
-        <div class="als-right">
-          <div class="als-power-display">
-            <span class="als-power-val" id="alsPowerVal">2 400 W</span>
-            <span class="als-power-sub">PUISSANCE EFFECTIVE</span>
-          </div>
-          <button type="button" class="als-edit-btn" id="btnQuickEditLaser" data-i18n-title="directLaserEdit" title="Modifier le laser ou crafter">
-            ⚙ <span data-i18n="directLaserEdit">Modifier</span>
-          </button>
-        </div>
-      </div>
-
       <!-- GIANT VERDICT BOX -->
       <div class="verdict-box verdict-great" id="verdictBox">
         <div class="verdict-icon-badge" id="verdictIconBadge">💎</div>
@@ -856,21 +833,38 @@
         </button>
       </div>
 
-      <!-- COCKPIT MFD EXTENSION: OPTIMAL LOADOUT ADVISOR / SOLVER -->
+      <!-- COCKPIT MFD EXTENSION: OPTIMAL LOADOUT ADVISOR / SOLVER 4.0 (JALON 4) -->
       <div class="optimal-loadout-card" id="optimalLoadoutCard">
         <div class="olc-header">
           <div style="display:flex; align-items:center; gap:8px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
-            <span class="olc-title" data-i18n="optimalLoadoutTitle">SOLVEUR D'ÉQUIPEMENT OPTIMAL</span>
+            <span class="olc-title" data-i18n="optimalLoadoutTitle">SOLVEUR D'ÉQUIPEMENT OPTIMAL 4.0</span>
           </div>
           <span class="olc-feasibility-tag" id="olcFeasibilityTag">OPTIMAL</span>
         </div>
+        
+        <!-- Solver tabs: Solo vs Duo/Escadre -->
+        <div class="olc-tabs-nav" style="display:flex; gap:6px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(245,158,11,0.2);">
+          <button type="button" class="chip-btn active" id="tabOlcSolo" style="padding:2px 10px; font-size:0.7rem; border-color:var(--accent-amber); color:var(--accent-amber);" data-i18n="olcTabSolo">⚡ RECOMMANDATION SOLO</button>
+          <button type="button" class="chip-btn" id="tabOlcWing" style="padding:2px 10px; font-size:0.7rem;" data-i18n="olcTabWing">👥 DUO / MULTI-ÉQUIPAGE</button>
+        </div>
+
         <div class="olc-body" id="olcBody">
           <!-- Dynamic advice: recommended laser, modules, gadgets -->
         </div>
+
+        <!-- 1-Click Apply Optimal Loadout Action -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
+          <span style="font-size:0.68rem; color:var(--text-muted);" id="olcFreqSummary">Solveur thermique & laser SC 4.0</span>
+          <button type="button" class="chip-btn active" id="btnApplyOptimalLoadout" style="padding:4px 12px; font-size:0.72rem; font-weight:700; border-color:var(--accent-emerald); color:var(--accent-emerald);" data-i18n="btnApplyOptimalLoadout">
+            ⚡ ÉQUIPER CE LOADOUT
+          </button>
+        </div>
       </div>
+
+
 
     </section>
 
@@ -887,7 +881,7 @@
         <div class="panel-subtag" data-i18n="instantCalc">TEMPS RÉEL</div>
       </div>
 
-      <!-- COCKPIT MFD EXTENSION: LIVE STATION PRICE & BONUS COMPARATOR -->
+      <!-- COCKPIT MFD EXTENSION: BOURSE COMMERCIALE, ARBITRAGE & UEX CORP (JALON 6) -->
       <div class="station-price-comparator-card" id="stationPriceComparatorCard">
         <div class="spc-header">
           <div style="display:flex; align-items:center; gap:8px;">
@@ -895,12 +889,147 @@
               <line x1="12" y1="1" x2="12" y2="23"></line>
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
-            <span class="spc-title" data-i18n="liveStationPricesTitle">BOURSE DES STATIONS & MEILLEURS RENDEMENTS</span>
+            <span class="spc-title" id="spcTitle" data-i18n="mktHeaderTitle">BOURSE & ARBITRAGE UEX CORP</span>
           </div>
-          <span class="spc-ore-tag" id="spcOreTag">QT</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="uex-sync-badge live" id="uexSyncBadge" title="Statut de l'API de marché UEX Corp">
+              <span class="sync-dot"></span>
+              <span id="uexSyncText">UEX LIVE</span>
+            </span>
+            <button type="button" class="uex-refresh-btn" id="btnRefreshUex" data-i18n-title="uexRefreshTitle" title="Synchroniser les cours UEX Corp">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              </svg>
+              <span data-i18n="uexRefreshBtn">SYNC</span>
+            </button>
+            <span class="spc-ore-tag" id="spcOreTag">QT</span>
+          </div>
         </div>
-        <div class="spc-table-container" id="spcTableContainer">
-          <!-- Populated dynamically with top 3-4 stations, bonus % and net expected yield in aUEC -->
+
+        <!-- SUB-TABS: ARBITRAGE / TERMINAUX TDD / ECLAIREUR GUILDE -->
+        <div class="mkt-subtabs-bar" id="mktSubtabsBar">
+          <button type="button" class="mkt-subtab-btn active" id="btnMktTabArbitrage" data-mkt-tab="arbitrage">
+            <span>⚖️</span>
+            <span data-i18n="mktTabArbitrage">ARBITRAGE</span>
+          </button>
+          <button type="button" class="mkt-subtab-btn" id="btnMktTabTerminals" data-mkt-tab="terminals">
+            <span>🏛️</span>
+            <span data-i18n="mktTabTerminals">TERMINAUX TDD</span>
+          </button>
+          <button type="button" class="mkt-subtab-btn" id="btnMktTabScout" data-mkt-tab="scout">
+            <span>📡</span>
+            <span data-i18n="mktTabScout">ÉCLAIREUR GUILDE</span>
+          </button>
+        </div>
+
+        <!-- PANE 1: ARBITRAGE BRUT VS RAFFINÉ -->
+        <div class="mkt-pane active" id="mktPaneArbitrage">
+          <!-- Live Arbitrage Recommendation Pill -->
+          <div class="mkt-arbitrage-banner" id="mktArbitrageBanner">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:1rem;">🏆</span>
+              <div id="mktArbitrageAdviceText" style="font-size:0.75rem; color:#fff; font-family:var(--font-hud);">
+                Dinyx Solventation à ARC-L1 : +145 200 aUEC (+86%) vs Brut
+              </div>
+            </div>
+            <span class="mkt-badge-roi" id="mktArbitrageRoiBadge">+86% NET</span>
+          </div>
+
+          <!-- Methods Comparison Grid -->
+          <div class="mkt-methods-grid" id="mktMethodsGrid">
+            <!-- Rendered dynamically: Raw Direct vs Dinyx vs Ferris vs Cormack vs Pyroburst -->
+          </div>
+
+          <!-- Existing Station Price & Bonus Comparator List -->
+          <div class="spc-section-label" style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin:8px 0 4px 0;" data-i18n="spcTopStationsLabel">
+            Top Stations de Raffinage & Bonus :
+          </div>
+          <div class="spc-table-container" id="spcTableContainer">
+            <!-- Populated dynamically with top 3-4 stations, bonus % and net expected yield in aUEC -->
+          </div>
+        </div>
+
+        <!-- PANE 2: TERMINAUX TDD & TOURNÉE COMMERCIALE -->
+        <div class="mkt-pane" id="mktPaneTerminals" style="display:none;">
+          <!-- System Filter Pills -->
+          <div class="mkt-filter-bar">
+            <button type="button" class="mkt-filter-btn active" data-sys-filter="all" data-i18n="mktFilterAll">TOUS</button>
+            <button type="button" class="mkt-filter-btn" data-sys-filter="stanton" data-i18n="mktFilterStanton">STANTON</button>
+            <button type="button" class="mkt-filter-btn" data-sys-filter="pyro" data-i18n="mktFilterPyro">PYRO</button>
+            <button type="button" class="mkt-filter-btn" data-sys-filter="nyx" data-i18n="mktFilterNyx">NYX</button>
+          </div>
+
+          <!-- Best Terminals Ranked Table -->
+          <div class="mkt-terminals-table" id="mktTerminalsTable">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Recommended Sales Tour Box -->
+          <div class="mkt-tour-card" id="mktTourCard">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-family:var(--font-hud); font-size:0.75rem; color:var(--accent-cyan); font-weight:700;" data-i18n="mktTourTitle">
+                🧭 TOURNÉE COMMERCIALE RECOMMANDÉE
+              </div>
+              <span id="mktTourTotalPayout" style="font-family:var(--font-mono); font-size:0.82rem; font-weight:700; color:var(--accent-emerald);">~0 aUEC</span>
+            </div>
+            <div id="mktTourStopsContainer" style="font-size:0.73rem; color:var(--text-muted); line-height:1.4;">
+              <!-- Populated dynamically -->
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+              <button type="button" class="chip-btn" id="btnCopySalesTour" style="font-size:0.72rem; padding:3px 8px; border-color:var(--accent-cyan); color:var(--accent-cyan);" data-i18n="btnCopySalesTour">
+                📋 Copier la tournée
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 3: ÉCLAIREUR DE GUILDE (CORPO PRICE SCOUTS) -->
+        <div class="mkt-pane" id="mktPaneScout" style="display:none;">
+          <div class="mkt-scout-box">
+            <div style="font-size:0.73rem; color:var(--text-muted); margin-bottom:8px;" data-i18n="mktScoutDesc">
+              Posez-vous à un terminal TDD, validez le cours constaté et diffusez-le en 1 tap à toute la flotte.
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+              <div>
+                <label style="font-size:0.68rem; color:var(--text-muted);" data-i18n="mktScoutTerminalLabel">Terminal visité :</label>
+                <select id="selectScoutTerminal" class="hud-select-sm" style="width:100%;">
+                  <!-- Populated from MINING_DATA.tradeTerminals -->
+                </select>
+              </div>
+              <div>
+                <label style="font-size:0.68rem; color:var(--text-muted);" data-i18n="mktScoutMineralLabel">Minerai :</label>
+                <select id="selectScoutMineral" class="hud-select-sm" style="width:100%;">
+                  <!-- Populated from MINING_DATA.minerals -->
+                </select>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:6px; margin-bottom:8px; align-items:end;">
+              <div>
+                <label style="font-size:0.68rem; color:var(--text-muted);" data-i18n="mktScoutPriceLabel">Cours (aUEC/cSCU) :</label>
+                <input type="number" id="inputScoutPrice" class="hud-select-sm" style="width:100%;" value="268" min="1" max="1000">
+              </div>
+              <div>
+                <label style="font-size:0.68rem; color:var(--text-muted);" data-i18n="mktScoutDemandLabel">Demande :</label>
+                <select id="selectScoutDemand" class="hud-select-sm" style="width:100%;">
+                  <option value="high" data-i18n="demandHigh">Forte</option>
+                  <option value="medium" data-i18n="demandMedium">Moyenne</option>
+                  <option value="low" data-i18n="demandLow">Faible</option>
+                </select>
+              </div>
+              <button type="button" class="chip-btn active" id="btnBroadcastScoutPrice" style="padding:6px 10px; font-size:0.75rem; background:var(--accent-purple); color:#fff; font-weight:700; border-color:var(--accent-purple); height:30px;" data-i18n="btnBroadcastScoutPrice">
+                📡 Diffuser à la flotte
+              </button>
+            </div>
+            <!-- Recent Corpo Reports Feed -->
+            <div style="border-top:1px dashed rgba(255,255,255,0.08); padding-top:6px; margin-top:6px;">
+              <div style="font-size:0.68rem; color:var(--accent-cyan); font-weight:700;" data-i18n="mktScoutRecentTitle">
+                Rapports récents de l'escadre :
+              </div>
+              <div id="mktScoutFeed" style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; max-height:80px; overflow-y:auto;">
+                <div style="font-style:italic;" data-i18n="noRecentReports">Aucun rapport d'éclaireur récent pour le moment.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1022,6 +1151,93 @@
           </div>
           <div id="detachedBagsNotice" style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; line-height:1.4; border-top:1px dashed rgba(255,255,255,0.08); padding-top:6px;">
             <span id="detachedBagsText">0 sac(s) largué(s) dans l'espace.</span>
+          </div>
+        </div>
+
+        <!-- PHYSICALIZED CARGO GRID MASTER (JALON 5 - 4.0 CARGO REFACTOR) -->
+        <div class="cargo-grid-master-card" id="cargoGridMasterCard">
+          <div class="cargo-grid-master-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.15rem;">🧲</span>
+              <div>
+                <div class="cargo-master-title" data-i18n="cargoMasterTitle">GESTIONNAIRE DE SOUTE & FRET CARGO 4.0</div>
+                <div class="cargo-master-subtitle" data-i18n="cargoMasterSubtitle">Suivi de la capacité physique, conteneurs et rentabilité de la soute</div>
+              </div>
+            </div>
+            <span class="hauler-tractor-badge" id="haulerTractorSpecBadge">S2 Tractor • 12 000 N</span>
+          </div>
+
+          <!-- HAULER SELECTOR & GRID SPECS -->
+          <div class="cargo-hauler-select-row">
+            <label for="selectActiveHauler" style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;" data-i18n="haulerSelectLabel">Transporteur assigné :</label>
+            <select id="selectActiveHauler" class="hud-select-sm" style="flex:1; min-width:180px;">
+              <!-- Populated dynamically from MINING_DATA.supportShips -->
+            </select>
+          </div>
+
+          <div class="hauler-stats-bar" id="haulerStatsBar">
+            <div class="hauler-stat-pill">
+              <span class="pill-lbl">CAPACITÉ</span>
+              <span class="pill-val cyan" id="haulerCapacityDisplay">174 SCU</span>
+            </div>
+            <div class="hauler-stat-pill">
+              <span class="pill-lbl">TYPE GRILLE</span>
+              <span class="pill-val" id="haulerGridTypeDisplay">Interne Sécurisée</span>
+            </div>
+            <div class="hauler-stat-pill">
+              <span class="pill-lbl">MAX SACOCHES</span>
+              <span class="pill-val emerald" id="haulerMaxBagsDisplay">21 Prosp. / 14 MOLE</span>
+            </div>
+          </div>
+
+          <!-- HAULER HOLD CAPACITY BAR -->
+          <div style="margin: 10px 0 6px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px;">
+              <span style="color:var(--text-muted); font-family:var(--font-hud);">CHARGE ACTUELLE SUR GRILLE</span>
+              <span style="font-family:var(--font-mono); font-weight:700;" id="haulerHoldProgressLabel">0 / 174 SCU (0%)</span>
+            </div>
+            <div class="cargo-bar-container">
+              <div class="cargo-bar-segment" id="haulerBarFill" style="width:0%; background:var(--accent-amber);"></div>
+            </div>
+          </div>
+
+          <!-- PHYSICALIZED CARGO GRID VISUALIZER -->
+          <div class="cargo-grid-visual-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-hud); letter-spacing:0.5px;">CONTENEURS & SACOCHES ARRIVÉES :</span>
+              <span id="haulerQuantainiumAlert" class="quant-warning-badge" style="display:none;">⚠️ QUANTAINIUM INSTABLE</span>
+            </div>
+            <div class="cargo-visual-grid" id="haulerCargoVisualGrid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- HAULER VALUATION SUMMARY -->
+          <div class="hauler-valuation-row" id="haulerValuationRow">
+            <div class="h-val-item">
+              <span class="h-val-lbl">VALEUR BRUTE FRET :</span>
+              <span class="h-val-num amber" id="haulerRawValDisplay">0 aUEC</span>
+            </div>
+            <div class="h-val-item">
+              <span class="h-val-lbl">VALEUR ESTIMÉE RAFFINÉE :</span>
+              <span class="h-val-num emerald" id="haulerRefinedValDisplay">0 aUEC</span>
+            </div>
+            <button class="chip-btn" id="btnClearHaulerHold" style="font-size:0.72rem; padding:4px 8px; border-color:rgba(255,255,255,0.2);">
+              🗑️ Décharger soute
+            </button>
+          </div>
+
+          <!-- DIRECT FAST ACTIONS (SANS PROTOCOLE LOURD) -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; justify-content:flex-end;">
+            <button type="button" class="chip-btn" id="btnAddOneHaulerBag" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.72rem; padding:4px 8px;">
+              + 1 Sacoche (8 SCU)
+            </button>
+            <button type="button" class="chip-btn" id="btnAddBox32" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.72rem; padding:4px 8px;">
+              + Boîte 32 SCU
+            </button>
+            <button type="button" class="chip-btn" id="btnTransferHoldToHauler" style="border-color:var(--accent-emerald); color:var(--accent-emerald); font-size:0.72rem; padding:4px 8px;" title="Transférer la cargaison de ma soute vers ce transporteur">
+              📥 Transférer ma soute
+            </button>
           </div>
         </div>
 
@@ -1641,6 +1857,24 @@
           <input type="range" min="0" max="30" step="5" value="10" class="hud-slider" id="crewReserveSlider">
         </div>
 
+        <!-- ESCORT / SENTINEL COMBAT BONUS (JALON 4) -->
+        <div class="input-group" style="margin-bottom:10px;">
+          <div class="label-row">
+            <span data-i18n="escortCutLabel">🛡️ PRIME DE RISQUE ESCORTE & SENTINELLE</span>
+            <span class="label-val" id="escortCutDisplay">15 %</span>
+          </div>
+          <input type="range" min="0" max="35" step="5" value="15" class="hud-slider" id="escortCutSlider">
+        </div>
+
+        <!-- FREIGHT HAULER COMMISSION CUT (JALON 5) -->
+        <div class="input-group" style="margin-bottom:10px;">
+          <div class="label-row">
+            <span data-i18n="haulerCutLabel">📦 COMMISSION TRANSPORTEUR DE FRET</span>
+            <span class="label-val" id="haulerCutDisplay">15 %</span>
+          </div>
+          <input type="range" min="0" max="35" step="5" value="15" class="hud-slider" id="haulerCutSlider">
+        </div>
+
         <div class="metric-card" style="border-color:var(--accent-cyan); margin-bottom:8px;">
           <div class="metric-title" data-i18n="crewTotalValue">VALEUR TOTALE DE LA SOUTE ACTUELLE</div>
           <div class="metric-val cyan" id="crewTotalHoldValue">0 aUEC</div>
@@ -1651,6 +1885,12 @@
           <div class="metric-val emerald" id="crewSharePerMember">0 aUEC / membre</div>
           <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="crewReserveDeducted" data-i18n="shipReserveDeducted">
             Réserve vaisseau déduite
+          </div>
+          <div style="font-size:0.75rem; color:var(--accent-amber); margin-top:2px;" id="escortCutDeducted">
+            Prime escorte déduite : 0 aUEC
+          </div>
+          <div style="font-size:0.75rem; color:var(--accent-cyan); margin-top:2px;" id="haulerCutDeducted">
+            Commission transport déduite : 0 aUEC
           </div>
         </div>
       </div>
@@ -1991,63 +2231,558 @@
     </div>
   </div>
 
-  <!-- MODAL: REFINERY ORDERS TRACKER -->
+  <!-- MODAL: GUILD STOCKPILE & SHARED EXPENSE LEDGER (JALON 7) -->
   <div class="modal-overlay" id="refineryModal">
-    <div class="modal-content" style="max-width:680px;">
+    <div class="modal-content" style="max-width:760px;">
       <div class="modal-header">
         <div style="display:flex; align-items:center; gap:8px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2">
-            <path d="M2 20h20"></path>
-            <path d="M5 20V8l5 4V4l9 7v9"></path>
-            <line x1="14" y1="12" x2="14" y2="12.01"></line>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
-          <h2 style="font-family:var(--font-hud); font-size:1.1rem; color:var(--accent-amber);" data-i18n="refineryModalTitle">COMMANDES DE RAFFINAGE EN COURS</h2>
+          <div>
+            <h2 style="font-family:var(--font-hud); font-size:1.05rem; color:var(--accent-cyan); letter-spacing:0.5px;" data-i18n="guildStockpileModalTitle">STOCKPILE DE GUILDE & GRAND LIVRE DES DÉPENSES</h2>
+          </div>
         </div>
         <button class="btn-close-modal" id="btnCloseRefinery">&times;</button>
       </div>
 
-      <!-- REFINERY SUMMARY STATS -->
-      <div class="metrics-row" style="margin-bottom:14px;">
-        <div class="metric-card" style="border-color:var(--accent-amber);">
-          <div class="metric-title" data-i18n="refineryJobsCount">LOTS ACTIFS</div>
-          <div class="metric-val amber" id="refineryActiveCount">0 Lot(s)</div>
-        </div>
-        <div class="metric-card" style="border-color:var(--accent-emerald);">
-          <div class="metric-title" data-i18n="refineryTotalValue">VALEUR TOTALE EN RAFFINAGE</div>
-          <div class="metric-val emerald" id="refineryTotalValueDisplay">0 aUEC</div>
-        </div>
-      </div>
-
-      <!-- CREATE NEW REFINERY ORDER SECTION -->
-      <div class="refinery-new-order-card" style="background:rgba(255,255,255,0.02); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:12px; margin-bottom:16px;">
-        <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-amber); margin-bottom:8px;" data-i18n="refineryNewOrderTitle">
-          NOUVELLE COMMANDE (DEPUIS LA SOUTE)
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-          <div>
-            <label class="label-row" style="font-size:0.75rem;" data-i18n="selectStationLabel">Station de raffinage</label>
-            <select id="refineryOrderStationSelect" class="hud-select-full">
-              <!-- Populated with stations -->
-            </select>
-          </div>
-          <div>
-            <label class="label-row" style="font-size:0.75rem;" data-i18n="selectMethodLabel">Méthode de procédé</label>
-            <select id="refineryOrderMethodSelect" class="hud-select-full">
-              <!-- Populated with methods -->
-            </select>
-          </div>
-        </div>
-        <button class="btn-primary-action" id="btnConfirmRefineryJob" style="background:var(--accent-amber); color:#000;">
-          <span data-i18n="btnConfirmRefineryJob">LANCER LA COMMANDE DE RAFFINAGE</span>
+      <!-- MODAL SUB-TABS NAVIGATION (JALON 7) -->
+      <div class="stockpile-subtabs-bar" id="stockpileSubtabsBar">
+        <button type="button" class="stockpile-subtab-btn active" id="btnStockpileTabOverview" data-stockpile-tab="overview">
+          <span>📦</span>
+          <span data-i18n="tabStockpileOverview">STOCKPILE GUILDE</span>
+        </button>
+        <button type="button" class="stockpile-subtab-btn" id="btnStockpileTabRefining" data-stockpile-tab="refining">
+          <span>🔔</span>
+          <span data-i18n="tabStockpileRefining">STATUTS & PUSH NOTIFS</span>
+        </button>
+        <button type="button" class="stockpile-subtab-btn" id="btnStockpileTabExpenses" data-stockpile-tab="expenses">
+          <span>🧾</span>
+          <span data-i18n="tabStockpileExpenses">LIVRE DES DÉPENSES</span>
+        </button>
+        <button type="button" class="stockpile-subtab-btn" id="btnStockpileTabTreasury" data-stockpile-tab="treasury">
+          <span>💰</span>
+          <span data-i18n="tabStockpileTreasury">TRÉSORERIE & mo.TRADER</span>
+        </button>
+        <button type="button" class="stockpile-subtab-btn" id="btnStockpileTabTrading" data-stockpile-tab="trading">
+          <span>📈</span>
+          <span data-i18n="tabStockpileTrading">TRADING & ROUTES CARGO</span>
         </button>
       </div>
 
-      <!-- ACTIVE ORDERS LIST -->
-      <div style="font-family:var(--font-hud); font-size:0.85rem; color:#fff; margin-bottom:8px;" data-i18n="refineryActiveLotsTitle">
-        LOTS EN TRAITEMENT DANS STANTON
+      <!-- ======================================================== -->
+      <!-- PANE 1: GUILD SHARED STOCKPILE (JALON 7 HERO)            -->
+      <!-- ======================================================== -->
+      <div class="stockpile-pane active" id="paneStockpileOverview">
+        <!-- GUILD NET WORTH HERO CARD -->
+        <div class="guild-networth-card">
+          <div>
+            <div style="font-family:var(--font-hud); font-size:0.75rem; color:var(--accent-emerald); letter-spacing:1px; text-transform:uppercase;" data-i18n="stockpileNetWorthTitle">
+              VALEUR NETTE DU PATRIMOINE DE GUILDE
+            </div>
+            <div class="guild-nw-val" id="guildNetWorthDisplay">0 aUEC</div>
+            <div style="font-size:0.73rem; color:var(--text-muted);" data-i18n="stockpileNetWorthDesc">
+              Valeur brute des stocks déduite des dépenses engagées
+            </div>
+          </div>
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="stockpileTotalScu">VOLUME SCU</div>
+              <div style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--accent-cyan);" id="guildTotalScuDisplay">0.0 SCU</div>
+            </div>
+            <div>
+              <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="stockpileReadyLots">PRÊT AU FRET</div>
+              <div style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--accent-emerald);" id="guildReadyLotsDisplay">0 Lots</div>
+            </div>
+            <div>
+              <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="stockpileTotalExpenses">TOTAL DÉPENSES</div>
+              <div style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:#f87171;" id="guildExpenseTotalDisplay">-0 aUEC</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILTER AND STATUS PILLS BAR -->
+        <div class="stockpile-filter-bar">
+          <div class="stockpile-filter-group">
+            <label for="stockpileStationFilter" style="font-size:0.72rem; color:var(--text-muted);" data-i18n="lotStationLabel">Station :</label>
+            <select id="stockpileStationFilter" class="hud-select-sm" style="min-width:140px;">
+              <option value="all" data-i18n="filterAllStations">Toutes les stations</option>
+              <!-- Populated dynamically -->
+            </select>
+
+            <label for="stockpileMineralFilter" style="font-size:0.72rem; color:var(--text-muted); margin-left:6px;" data-i18n="lotMineralLabel">Minerai :</label>
+            <select id="stockpileMineralFilter" class="hud-select-sm" style="min-width:110px;">
+              <option value="all" data-i18n="filterAllMinerals">Tous les minerais</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <div class="stockpile-status-pills">
+            <button type="button" class="stock-pill-btn active" data-stock-filter="all" data-i18n="stockpileFilterAll">TOUS</button>
+            <button type="button" class="stock-pill-btn" data-stock-filter="refined_ready" data-i18n="stockpileFilterReady">🟢 PRÊT</button>
+            <button type="button" class="stock-pill-btn" data-stock-filter="refining" data-i18n="stockpileFilterRefining">🟡 EN RAFFINAGE</button>
+            <button type="button" class="stock-pill-btn" data-stock-filter="raw" data-i18n="stockpileFilterRaw">⚪ BRUT</button>
+          </div>
+        </div>
+
+        <!-- QUICK ACTION ROW -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="chip-btn" id="btnQuickDepositHold" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;" data-i18n="btnQuickDepositHold">
+              📥 Déposer la soute actuelle en Stockpile
+            </button>
+            <button type="button" class="chip-btn" id="btnToggleManualLotForm" data-i18n="btnManualDepositToggle">
+              ➕ Nouveau Lot de Stockpile
+            </button>
+          </div>
+          <button type="button" class="chip-btn" id="btnSyncStockpileFleet" style="border-color:var(--accent-purple); color:#d8b4fe;" data-i18n="btnSyncStockpileFleet">
+            📡 Diffuser le Stockpile à la Flotte
+          </button>
+        </div>
+
+        <!-- COLLAPSIBLE MANUAL LOT FORM -->
+        <div class="refinery-new-order-card" id="manualLotCard" style="display:none; background:rgba(255,255,255,0.02); border:1px solid rgba(0,240,255,0.25); border-radius:8px; padding:12px; margin-bottom:14px;">
+          <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan); margin-bottom:8px;" data-i18n="manualDepositTitle">
+            DÉPÔT D'UN LOT DE MINERAI OU MARCHANDISE AU STOCKPILE
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:10px;">
+            <div>
+              <label class="label-row" style="font-size:0.75rem;">Type de Cargaison :</label>
+              <select id="manualLotCategorySelect" class="hud-select-full">
+                <option value="mineral">⛏️ Minerai de Minage</option>
+                <option value="commodity">📦 Marchandise Trading</option>
+              </select>
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="lotStationLabel">Lieu / Station :</label>
+              <select id="manualLotStationSelect" class="hud-select-full">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="lotMineralLabel">Article / Produit :</label>
+              <select id="manualLotMineralSelect" class="hud-select-full">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="lotScuLabel">Volume (SCU) :</label>
+              <input type="number" id="manualLotScuInput" class="hud-input" placeholder="32.0" step="0.5" min="0.1" value="32.0">
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;">Coût Achat (aUEC/SCU) :</label>
+              <input type="number" id="manualLotBuyCostInput" class="hud-input" placeholder="0" min="0" step="0.1" value="0">
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="lotStatusLabel">Statut logistique :</label>
+              <select id="manualLotStatusSelect" class="hud-select-full">
+                <option value="refined_ready" data-i18n="lotStatusRefinedReady">🟢 Raffiné / Marchandise Prête</option>
+                <option value="refining" data-i18n="lotStatusRefining">🟡 En cours de raffinage</option>
+                <option value="raw" data-i18n="lotStatusRaw">⚪ Brut en dépôt</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary-action" id="btnSubmitManualStockLot" style="background:var(--accent-cyan); color:#000;">
+            <span data-i18n="btnAddStockLot">VALIDER LE DÉPÔT AU STOCKPILE</span>
+          </button>
+        </div>
+
+        <!-- BATCHES LIST IN GUILD STOCKPILE -->
+        <div class="stockpile-batches-list" id="guildStockpileList">
+          <!-- Rendered dynamically -->
+        </div>
       </div>
-      <div class="refinery-jobs-list" id="refineryJobsList">
-        <!-- Rendered dynamically -->
+
+      <!-- ======================================================== -->
+      <!-- PANE 2: REFINING STATUSES & WEB PUSH NOTIFICATIONS       -->
+      <!-- ======================================================== -->
+      <div class="stockpile-pane" id="paneStockpileRefining">
+        <!-- PUSH NOTIFICATION SETUP & DESKTOP ALERTS -->
+        <div class="push-notif-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.2rem;">🔔</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.88rem;">NOTIFICATIONS WEB PUSH DÉPORTÉES</strong>
+            </div>
+            <span class="push-status-badge prompt" id="pushStatusBadge">Vérification permissions...</span>
+          </div>
+          <p style="font-size:0.78rem; color:var(--text-muted); line-height:1.4; margin-bottom:10px;" data-i18n="pushNotifDesc">
+            Recevez une notification push sur PC ou mobile dès qu'une commande de raffinage est prête au chargement, même lorsque l'application est en arrière-plan.
+          </p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="chip-btn" id="btnRequestPushPerm" style="border-color:var(--accent-cyan); color:var(--accent-cyan);" data-i18n="btnEnablePushNotif">
+              🔔 Activer les notifications de bureau
+            </button>
+            <button type="button" class="chip-btn" id="btnTestPushAlert" data-i18n="btnTestPushNotif">
+              🔔 Tester l'alerte push
+            </button>
+          </div>
+        </div>
+
+        <!-- CREATE NEW REFINERY ORDER SECTION -->
+        <div class="refinery-new-order-card" style="background:rgba(255,255,255,0.02); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:12px; margin-bottom:16px;">
+          <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-amber); margin-bottom:8px;" data-i18n="refineryNewOrderTitle">
+            NOUVELLE COMMANDE (DEPUIS LA SOUTE)
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="selectStationLabel">Station de raffinage</label>
+              <select id="refineryOrderStationSelect" class="hud-select-full">
+                <!-- Populated with stations -->
+              </select>
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="selectMethodLabel">Méthode de procédé</label>
+              <select id="refineryOrderMethodSelect" class="hud-select-full">
+                <!-- Populated with methods -->
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary-action" id="btnConfirmRefineryJob" style="background:var(--accent-amber); color:#000;">
+            <span data-i18n="btnConfirmRefineryJob">LANCER LA COMMANDE DE RAFFINAGE</span>
+          </button>
+        </div>
+
+        <!-- ACTIVE ORDERS LIST -->
+        <div style="font-family:var(--font-hud); font-size:0.85rem; color:#fff; margin-bottom:8px;" data-i18n="refineryActiveLotsTitle">
+          LOTS EN TRAITEMENT DANS STANTON
+        </div>
+        <div class="refinery-jobs-list" id="refineryJobsList">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- PANE 3: CORPO EXPENSE LEDGER                             -->
+      <!-- ======================================================== -->
+      <div class="stockpile-pane" id="paneStockpileExpenses">
+        <!-- EXPENSES FINANCIAL SUMMARY -->
+        <div class="guild-networth-card" style="border-color:rgba(245,158,11,0.35); background:linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(180,83,9,0.15) 100%);">
+          <div>
+            <div style="font-family:var(--font-hud); font-size:0.75rem; color:var(--accent-amber); letter-spacing:1px; text-transform:uppercase;" data-i18n="ledgerExpensesTitle">
+              GRAND LIVRE DES DÉPENSES DE CORPORATION
+            </div>
+            <div class="guild-nw-val" id="expenseLedgerNetVal" style="color:var(--accent-amber);">0 aUEC</div>
+            <div style="font-size:0.73rem; color:var(--text-muted);" data-i18n="ledgerExpensesDesc">
+              Centralisation des coûts de guilde (frais de raffinage, carburant, réparations) déduits automatiquement des recettes.
+            </div>
+          </div>
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">TOTAL ENGAGÉ</div>
+              <div style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:#f87171;" id="expenseLedgerTotalVal">0 aUEC</div>
+            </div>
+            <div>
+              <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">RECETTES BRUTES</div>
+              <div style="font-family:var(--font-mono); font-size:1.15rem; font-weight:700; color:var(--accent-emerald);" id="expenseLedgerGrossVal">0 aUEC</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW EXPENSE LOGGING FORM -->
+        <div class="expense-input-card">
+          <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-amber); margin-bottom:8px;" data-i18n="btnAddExpense">
+            ➕ ENREGISTRER UNE DÉPENSE DE CORPORATION
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:10px;">
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="expenseCategoryLabel">Catégorie :</label>
+              <select id="expenseCategorySelect" class="hud-select-full">
+                <option value="refining" data-i18n="expenseCatRefining">🏭 Frais de Raffinage</option>
+                <option value="fuel" data-i18n="expenseCatFuel">⛽ Carburant (Quantum & Hydro)</option>
+                <option value="repairs" data-i18n="expenseCatRepairs">🛠️ Réparations & Réarmement</option>
+                <option value="gear" data-i18n="expenseCatGear">🚀 Modules & Consommables</option>
+                <option value="escort" data-i18n="expenseCatEscort">🛡️ Prime de Risque Escorte</option>
+                <option value="other" data-i18n="expenseCatOther">💼 Autre logistique</option>
+              </select>
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="expenseAmountLabel">Montant (aUEC) :</label>
+              <input type="number" id="expenseAmountInput" class="hud-input" placeholder="25000" min="0" step="1000">
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="expenseAuthorLabel">Engagé par :</label>
+              <input type="text" id="expenseAuthorInput" class="hud-input" placeholder="CITIZEN-1">
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="expenseLocationLabel">Lieu / Station :</label>
+              <input type="text" id="expenseLocationInput" class="hud-input" placeholder="ARC-L1 Wide Forest">
+            </div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <label class="label-row" style="font-size:0.75rem;" data-i18n="expenseNoteLabel">Motif / Note :</label>
+            <input type="text" id="expenseNoteInput" class="hud-input" placeholder="Frais de raffinage procédé Dinyx pour 64 SCU">
+          </div>
+          <button class="btn-primary-action" id="btnAddExpenseSubmit" style="background:var(--accent-amber); color:#000;">
+            <span data-i18n="btnAddExpense">ENREGISTRER LA DÉPENSE</span>
+          </button>
+        </div>
+
+        <!-- EXPENSE ITEMS LIST -->
+        <div class="expense-items-list" id="guildExpensesList">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- FOOTER EXPENSES CONTROLS -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:10px;">
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="chip-btn" id="btnCopyExpensesDiscord" style="border-color:var(--accent-cyan); color:var(--accent-cyan);" data-i18n="btnCopyExpensesDiscord">
+              📋 Exporter le Grand Livre (Discord)
+            </button>
+            <button type="button" class="chip-btn" id="btnSyncExpensesFleet" style="border-color:var(--accent-purple); color:#d8b4fe;">
+              📡 Synchroniser avec la Flotte
+            </button>
+          </div>
+          <button type="button" class="chip-btn" id="btnClearExpensesAll" style="border-color:rgba(239,68,68,0.4); color:#fca5a5;" data-i18n="btnClearExpenses">
+            🔄 Réinitialiser les dépenses
+          </button>
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- PANE 4: CORPO TREASURY, MO.TRADER & CRAFTING 4.0        -->
+      <!-- ======================================================== -->
+      <div class="stockpile-pane" id="paneStockpileTreasury">
+        <!-- TREASURY HERO CARD -->
+        <div class="guild-networth-card" style="border-color:rgba(250,204,21,0.35); background:linear-gradient(135deg, rgba(250,204,21,0.08) 0%, rgba(202,138,4,0.15) 100%); margin-bottom:14px;">
+          <div>
+            <div style="font-family:var(--font-hud); font-size:0.75rem; color:#facc15; letter-spacing:1px; text-transform:uppercase;" data-i18n="treasuryTitle">
+              TRÉSORERIE DE GUILDE & FEUILLE DE VIREMENT MO.TRADER
+            </div>
+            <div class="treasury-balance-val" id="treasuryBalanceVal">0 aUEC</div>
+            <div style="font-size:0.73rem; color:var(--text-muted);" data-i18n="treasuryDesc">
+              Compte commun d'organisation, retenue pour la caisse de guilde et feuille de virement directe pour l'application mo.Trader en jeu.
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div>
+              <label class="label-row" style="font-size:0.72rem; color:var(--text-muted);" data-i18n="treasuryTaxLabel">Retenue Corporation :</label>
+              <select id="treasuryTaxSelect" class="hud-select-sm" style="min-width:140px;">
+                <option value="0" data-i18n="treasuryTaxNone">0% - Aucun prélèvement</option>
+                <option value="5" data-i18n="treasuryTax5">5% - Contribution légère</option>
+                <option value="10" selected data-i18n="treasuryTax10">10% - Standard Corporation</option>
+                <option value="15" data-i18n="treasuryTax15">15% - Réserve renforcée</option>
+                <option value="20" data-i18n="treasuryTax20">20% - Fonds de guerre</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="chip-btn" id="btnDepositTreasury" style="border-color:#facc15; color:#fef08a;" data-i18n="btnDepositTreasury">
+                📥 Alimenter la caisse
+              </button>
+              <button type="button" class="chip-btn" id="btnWithdrawTreasury" style="border-color:rgba(255,255,255,0.2);" data-i18n="btnWithdrawTreasury">
+                📤 Décaisser
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MO.TRADER TRANSFER SHEET CARD -->
+        <div class="motrader-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <div>
+              <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-cyan);" data-i18n="moTraderSheetTitle">
+                FEUILLE DE VIREMENT MO.TRADER EN JEU
+              </div>
+              <div style="font-size:0.72rem; color:var(--text-muted);" data-i18n="moTraderSheetDesc">
+                Virements exacts à effectuer dans votre mobiGlas (F1 > mo.Trader) pour solder équitablement la session.
+              </div>
+            </div>
+            <button type="button" class="chip-btn" id="btnCopyMoTrader" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;" data-i18n="btnCopyMoTrader">
+              📋 Copier les virements mo.Trader (Discord / Chat)
+            </button>
+          </div>
+
+          <div class="motrader-table-container">
+            <table class="motrader-table">
+              <thead>
+                <tr>
+                  <th data-i18n="colPilot">Pilote / Rôle</th>
+                  <th data-i18n="colGrossShare">Part Brute</th>
+                  <th data-i18n="colCorpoTax">Retenue Guilde</th>
+                  <th data-i18n="colNetPayout">À Verser (Net)</th>
+                  <th data-i18n="colAction">Statut</th>
+                </tr>
+              </thead>
+              <tbody id="moTraderTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CRAFTING 4.0 PRODUCTION WISHLIST -->
+        <div class="crafting-goals-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <div>
+              <div style="font-family:var(--font-hud); font-size:0.85rem; color:var(--accent-purple);" data-i18n="craftingGoalsTitle">
+                CARNET D'OBJECTIFS D'ARTISANAT 4.0 (GUILDE)
+              </div>
+              <div style="font-size:0.72rem; color:var(--text-muted);" data-i18n="craftingGoalsDesc">
+                Objectifs collectifs de fabrication. Les jauges se remplissent automatiquement à mesure que les minerais requis sont déposés dans le Stockpile.
+              </div>
+            </div>
+            <button type="button" class="chip-btn" id="btnToggleAddGoalForm" style="border-color:var(--accent-purple); color:#d8b4fe;" data-i18n="btnAddCraftingGoal">
+              ➕ Nouvel Objectif d'Artisanat
+            </button>
+          </div>
+
+          <!-- COLLAPSIBLE ADD GOAL FORM -->
+          <div id="addCraftingGoalForm" style="display:none; background:rgba(0,0,0,0.25); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:10px; margin-bottom:12px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:8px;">
+              <div>
+                <label class="label-row" style="font-size:0.75rem;" data-i18n="goalItemLabel">Module / Équipement :</label>
+                <select id="craftingGoalItemSelect" class="hud-select-full">
+                  <option value="lancet_mk2">Lancet MH2 (Tête Minage S2)</option>
+                  <option value="helix_s2">Helix II (Tête Minage S2)</option>
+                  <option value="sabir_mod">Module Actif Sabir 21</option>
+                  <option value="surge_mod">Module Actif Surge</option>
+                  <option value="custom_saddlebags">Sacoches Amovibles Renforcées 32 SCU</option>
+                </select>
+              </div>
+              <div>
+                <label class="label-row" style="font-size:0.75rem;" data-i18n="goalTargetCountLabel">Quantité cible :</label>
+                <input type="number" id="craftingGoalCountInput" class="hud-input" min="1" max="100" value="2">
+              </div>
+            </div>
+            <button class="btn-primary-action" id="btnSubmitCraftingGoal" style="background:var(--accent-purple); color:#fff;">
+              <span data-i18n="btnAddCraftingGoal">AJOUTER L'OBJECTIF AU CARNET</span>
+            </button>
+          </div>
+
+          <!-- GOALS LIST CONTAINER -->
+          <div id="craftingGoalsList">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- FOOTER SYNC CONTROLS -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:10px; margin-top:10px;">
+            <button type="button" class="chip-btn" id="btnSyncTreasuryFleet" style="border-color:var(--accent-purple); color:#d8b4fe;">
+              📡 Synchroniser Trésorerie & Objectifs avec la Flotte
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- PANE 5: COMMODITY TRADING & CARGO ROUTES SOLVER          -->
+      <!-- ======================================================== -->
+      <div class="stockpile-pane" id="paneStockpileTrading">
+        <!-- HERO TRADE SIMULATOR CARD -->
+        <div class="trade-solver-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <div>
+              <div style="font-family:var(--font-hud); font-size:0.9rem; color:var(--accent-cyan); letter-spacing:0.8px;" data-i18n="tradeSolverTitle">
+                SIMULATEUR DE TRADING & CALCUL DE MARGE CARGO
+              </div>
+              <div style="font-size:0.73rem; color:var(--text-muted);" data-i18n="tradeSolverDesc">
+                Calcul du capital d'achat requis, marge brute par SCU, retour sur investissement (ROI) et indice de risque de piraterie.
+              </div>
+            </div>
+            <div id="tradeRiskBadgeContainer">
+              <span class="trade-risk-badge safe" id="tradeRiskBadge">🟢 Sécurisé (Armistice)</span>
+            </div>
+          </div>
+
+          <!-- ROUTE & COMMODITY SELECTION ROW -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="selectTradeRoute">Route Recommandée :</label>
+              <select id="tradePresetRouteSelect" class="hud-select-full">
+                <!-- Populated dynamically with popular routes -->
+              </select>
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="selectCustomCommodity">Marchandise :</label>
+              <select id="tradeCommoditySelect" class="hud-select-full">
+                <!-- Populated dynamically with general commodities -->
+              </select>
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.75rem;" data-i18n="cargoShipHold">Capacité Soute (SCU) :</label>
+              <input type="number" id="tradeCargoScuInput" class="hud-input" placeholder="696" min="1" step="1" value="696">
+            </div>
+          </div>
+
+          <!-- BUY/SELL TERMINALS AND PRICES ROW -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:14px;">
+            <div>
+              <label class="label-row" style="font-size:0.73rem;">Origine (Achat) :</label>
+              <input type="text" id="tradeOriginInput" class="hud-input" value="Deakins Research (Yela)">
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.73rem;">Destination (Vente) :</label>
+              <input type="text" id="tradeDestinationInput" class="hud-input" value="Lorville CBD (Hurston)">
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.73rem;">Prix Achat (aUEC/SCU) :</label>
+              <input type="number" id="tradeBuyPriceInput" class="hud-input" value="17.2" step="0.1" min="0.1">
+            </div>
+            <div>
+              <label class="label-row" style="font-size:0.73rem;">Prix Vente (aUEC/SCU) :</label>
+              <input type="number" id="tradeSellPriceInput" class="hud-input" value="19.8" step="0.1" min="0.1">
+            </div>
+          </div>
+
+          <!-- QUICK SHIP CAPACITY PRESETS -->
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+            <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Gabarits Cargo :</span>
+            <button type="button" class="stock-pill-btn trade-cap-btn" data-scu="46">Cutlass (46 SCU)</button>
+            <button type="button" class="stock-pill-btn trade-cap-btn" data-scu="64">Hull-A (64 SCU)</button>
+            <button type="button" class="stock-pill-btn trade-cap-btn" data-scu="120">RAFT (120 SCU)</button>
+            <button type="button" class="stock-pill-btn trade-cap-btn" data-scu="174">Constellation (174 SCU)</button>
+            <button type="button" class="stock-pill-btn trade-cap-btn" data-scu="576">Caterpillar (576 SCU)</button>
+            <button type="button" class="stock-pill-btn trade-cap-btn active" data-scu="696">C2 Hercules (696 SCU)</button>
+          </div>
+
+          <!-- FINANCIAL METRICS RESULT GRID -->
+          <div class="trade-metrics-grid">
+            <div class="trade-metric-box">
+              <span style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="capitalRequired">CAPITAL D'ACHAT</span>
+              <span class="trade-metric-val" id="tradeCapitalRequiredVal" style="color:#f87171;">0 aUEC</span>
+            </div>
+            <div class="trade-metric-box">
+              <span style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase;">RECETTE BRUTE</span>
+              <span class="trade-metric-val" id="tradeGrossReturnVal" style="color:var(--accent-emerald);">0 aUEC</span>
+            </div>
+            <div class="trade-metric-box">
+              <span style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="netRunProfit">BÉNÉFICE NET</span>
+              <span class="trade-metric-val" id="tradeNetProfitVal" style="color:var(--accent-cyan); font-weight:800;">0 aUEC</span>
+            </div>
+            <div class="trade-metric-box">
+              <span style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="marginPerScu">MARGE / SCU</span>
+              <span class="trade-metric-val" id="tradeMarginPerScuVal" style="color:#facc15;">0 aUEC</span>
+            </div>
+            <div class="trade-metric-box">
+              <span style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase;" data-i18n="roiPercent">RENTABILITÉ (ROI)</span>
+              <span class="trade-metric-val" id="tradeRoiPercentVal" style="color:var(--accent-purple);">0.0%</span>
+            </div>
+          </div>
+
+          <!-- ACTION BUTTONS ROW -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:12px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:10px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="chip-btn" id="btnFinanceTradeTreasury" style="border-color:#facc15; color:#fef08a;" data-i18n="btnFinanceFromTreasury">
+                🏦 Financer l'achat depuis la Trésorerie
+              </button>
+              <button type="button" class="chip-btn" id="btnAddTradeToStockpile" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-weight:700;" data-i18n="btnAddTradeToStockpile">
+                📥 Ajouter la cargaison achetée au Stockpile
+              </button>
+            </div>
+            <button type="button" class="chip-btn" id="btnSyncTradeFleet" style="border-color:var(--accent-purple); color:#d8b4fe;">
+              📡 Diffuser la Route à la Flotte
+            </button>
+          </div>
+        </div>
+
+        <!-- POPULAR ROUTES QUICK PICKER -->
+        <div style="font-family:var(--font-hud); font-size:0.85rem; color:#fff; margin-bottom:6px;">
+          ROUTES COMMERCIALES DU MOMENT (STANTON & PYRO)
+        </div>
+        <div class="trade-routes-grid" id="popularTradeRoutesGrid">
+          <!-- Populated dynamically -->
+        </div>
       </div>
     </div>
   </div>
@@ -2662,10 +3397,10 @@
         <div class="changelog-card">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill" style="background:rgba(0,240,255,0.15); border-color:var(--accent-cyan); color:var(--accent-cyan);">JALON 1 • v1.7.0</span>
+              <span class="version-tag-pill" style="background:rgba(0,240,255,0.15); border-color:var(--accent-cyan); color:var(--accent-cyan);">JALON 1 • v1.8.0</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Couche Réseau P2P & Codes d'Escadre (AARON FLEET-NET)</strong>
             </div>
-            <span class="changelog-date" style="color:var(--accent-cyan);">PROCHAIN JALON</span>
+            <span class="changelog-date" style="color:var(--accent-emerald);">DISPONIBLE (v1.8.0)</span>
           </div>
           <ul class="changelog-list">
             <li>
@@ -2683,10 +3418,10 @@
         <div class="changelog-card">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill" style="background:rgba(0,240,255,0.15); border-color:var(--accent-cyan); color:var(--accent-cyan);">JALON 2 • v1.7.0</span>
+              <span class="version-tag-pill" style="background:rgba(0,240,255,0.15); border-color:var(--accent-cyan); color:var(--accent-cyan);">JALON 2 • v1.8.0</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Synchronisation Temps Réel des Vaisseaux & Configurations</strong>
             </div>
-            <span class="changelog-date" style="color:var(--accent-cyan);">PROCHAIN JALON</span>
+            <span class="changelog-date" style="color:var(--accent-emerald);">DISPONIBLE (v1.8.0)</span>
           </div>
           <ul class="changelog-list">
             <li>
@@ -2725,10 +3460,10 @@
         <div class="changelog-card">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill" style="background:rgba(239,68,68,0.15); border-color:#f87171; color:#f87171;">JALON 4 • v1.8.0</span>
+              <span class="version-tag-pill" style="background:rgba(239,68,68,0.15); border-color:#f87171; color:#f87171;">JALON 4 • v1.9.0</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Coordination Tactique de Tir & Alerte Sentinelle d'Escorte</strong>
             </div>
-            <span class="changelog-date" style="color:#f87171;">PRÉVU v1.8.0</span>
+            <span class="changelog-date" style="color:var(--accent-emerald);">DISPONIBLE (v1.9.0)</span>
           </div>
           <ul class="changelog-list">
             <li>
@@ -2749,7 +3484,7 @@
               <span class="version-tag-pill" style="background:rgba(245,158,11,0.15); border-color:var(--accent-amber); color:var(--accent-amber);">JALON 5 • v2.0.0</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Transport Spécialisé & Transbordement de Sacs en Vol</strong>
             </div>
-            <span class="changelog-date" style="color:var(--accent-amber);">PRÉVU v2.0.0</span>
+            <span class="changelog-date" style="color:var(--accent-emerald);">DISPONIBLE (v2.0.0)</span>
           </div>
           <ul class="changelog-list">
             <li>
@@ -2767,10 +3502,10 @@
         <div class="changelog-card">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill" style="background:rgba(16,185,129,0.15); border-color:var(--accent-emerald); color:var(--accent-emerald);">JALON 6 • v2.0.0</span>
+              <span class="version-tag-pill" style="background:rgba(16,185,129,0.15); border-color:var(--accent-emerald); color:var(--accent-emerald);">JALON 6 • v2.1.0</span>
               <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Bourse Commerciale des Matériaux & Optimisation Ventes TDD</strong>
             </div>
-            <span class="changelog-date" style="color:var(--accent-emerald);">PRÉVU v2.0.0</span>
+            <span class="changelog-date" style="color:var(--accent-emerald);">DISPONIBLE (v2.1.0)</span>
           </div>
           <ul class="changelog-list">
             <li>
@@ -2788,19 +3523,23 @@
         <div class="changelog-card">
           <div class="changelog-card-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="version-tag-pill" style="background:rgba(56,189,248,0.15); border-color:#38bdf8; color:#38bdf8;">JALON 7 • v2.5.0</span>
-              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Gestionnaire d'Ordres de Raffinage & Notifications Push Déportées</strong>
+              <span class="version-tag-pill" style="background:rgba(16,185,129,0.15); border-color:var(--accent-emerald); color:var(--accent-emerald);">JALON 7 • v2.2.0</span>
+              <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">Ordres de Raffinage & Inventaire Partagé de Guilde</strong>
             </div>
-            <span class="changelog-date" style="color:#38bdf8;">PRÉVU v2.5.0</span>
+            <span class="changelog-date" style="color:var(--accent-emerald);">DISPONIBLE (v2.2.0)</span>
           </div>
           <ul class="changelog-list">
             <li>
-              <span class="badge-tag new">RAFFINAGE</span>
-              <span><strong>Suivi Multi-Commandes</strong> : Enregistrement de vos ordres (Dinyx, Ferron, etc.) avec compte à rebours, rendement estimé et inventaire des lots en stock dans les stations.</span>
+              <span class="badge-tag new">STOCKPILE</span>
+              <span><strong>Inventaire Partagé & Patrimoine (Fleet-Net)</strong> : Centralisation en temps réel des stocks de minerais bruts, en raffinage et raffinés de guilde (<code>CORPO_STOCK_SYNC</code>) avec calcul en direct de la Valeur Nette de Guilde en aUEC.</span>
+            </li>
+            <li>
+              <span class="badge-tag new">DÉPENSES</span>
+              <span><strong>Grand Livre des Coûts Partagés (Corpo Expense Ledger)</strong> : Enregistrement collaboratif des frais engagés (raffinage, quantum fuel, réparations) déduits automatiquement des recettes brutes avec export Discord.</span>
             </li>
             <li>
               <span class="badge-tag new">PUSH</span>
-              <span><strong>Notifications Web Push</strong> : Alerte automatique sur smartphone ou PC (même navigateur fermé) quand votre cargaison raffinée est prête à être récupérée.</span>
+              <span><strong>Notifications Web Push Déportées & Statut Logistique</strong> : Statut logistique allégé évitant les doublons en jeu et alertes push système sur smartphone ou PC pour le chargement des transporteurs C2/Caterpillar.</span>
             </li>
           </ul>
         </div>
@@ -2895,16 +3634,17 @@
         <span class="dock-label" data-i18n="dockLoadout">LOADOUT</span>
       </button>
 
-      <!-- 3. Refinery Jobs App -->
-      <button class="dock-item" id="dockBtnRefinery" data-dock-target="refinery" title="Suivi des Raffineries">
+      <!-- 3. Guild Stockpile & Refinery App -->
+      <button class="dock-item" id="dockBtnRefinery" data-dock-target="refinery" title="Stockpile de Guilde & Raffinage">
         <div class="dock-circle">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M2 20h20"></path>
-            <path d="M5 20V8l5 4V4l9 7v9"></path>
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
           <span class="dock-badge" id="dockRefineryBadge" style="display:none;">0</span>
         </div>
-        <span class="dock-label" data-i18n="dockRefinery">RAFFINAGE</span>
+        <span class="dock-label" data-i18n="stockpileBtnLabel">STOCKPILE</span>
       </button>
 
       <!-- 4. Starmap & Halo Routes App -->
@@ -2983,7 +3723,7 @@
   <!-- FOOTER -->
   <footer class="hud-footer">
     <div class="footer-links">
-      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v1.8.0)</span>
+      <span class="footer-link" id="btnOpenChangelog" data-i18n="changelogLink">📜 Notes de version (v2.1.0)</span>
       <span>•</span>
       <span class="footer-link" id="btnOpenRoadmapFooter" style="color:var(--accent-cyan); font-weight:700;" data-i18n="roadmapLink">🗺️ Feuille de route</span>
       <span>•</span>
@@ -2991,13 +3731,13 @@
       <span>•</span>
       <span class="footer-link" id="btnResetSession" data-i18n="reset">🔄 Réinitialiser</span>
       <span>•</span>
-      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v1.8.0)</span>
+      <span class="footer-link" id="btnForceRefresh" style="color:var(--accent-amber); font-weight:700;" data-i18n="forceUpdateBtn">⚡ Vider le Cache (v2.1.0)</span>
     </div>
-    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v1.8.0 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
+    <div id="footerDisclaimerText" data-i18n="footerDisclaimer">AARON MFD v2.1.0 (Star Citizen Alpha 4.10) • Outil autonome non affilié à Cloud Imperium Games • Fonctionne 100% hors-ligne</div>
   </footer>
 
   <!-- WebRTC Internet P2P Engine (PeerJS) -->
   <script src="peerjs.min.js"></script>
-  <script type="module" src="app.js?v=1.8.0"></script>
+  <script type="module" src="app.js?v=2.1.0"></script>
 </body>
 </html>

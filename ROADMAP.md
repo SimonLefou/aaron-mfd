@@ -1,9 +1,9 @@
 # 🗺️ FEUILLE DE ROUTE OFFICIELLE (ROADMAP) — AARON MFD
 ## Système d'Exploitation Tactique, Logistique, Commercial & Flotte Multijoueur (*Star Citizen 4.0+*)
 
-> **Version active** : **v1.8.0** (Star Citizen Alpha 4.10) — **Jalons 1, 2 et 3 terminés & déployés** 🚀  
-> **Direction stratégique du logiciel** : Élever AARON MFD au rang de **plateforme intégrale de référence pour les opérations industrielles de Star Citizen**.
-> L'application réunit sous une même interface immersive (mobiGlas) l'ensemble des acteurs d'une opération : **éclaireurs, mineurs, transporteurs lourds, escorteurs de combat et gestionnaires de corporation**. Les calculs de puissance et de faisabilité, la synchronisation temps réel des vaisseaux, le partage instantané des scans de rochers, le transbordement de fret en vol, le suivi des ordres de raffinage, la cartographie GPS des filons et l'arbitrage commercial aux TDD sont orchestrés de manière fluide, 100% autonome et sans aucun serveur payant (P2P Serverless).
+> **Version active** : **v2.2.0** (Star Citizen Alpha 4.10) — **Jalons 1, 2, 3, 4, 5, 6 et 7 terminés & déployés** 🚀  
+> **Direction stratégique du logiciel** : Élever AARON MFD au rang de **plateforme intégrale de référence pour les opérations industrielles et commerciales de Star Citizen**.
+> L'application réunit sous une même interface immersive (mobiGlas) l'ensemble des acteurs d'une opération : **éclaireurs, mineurs, transporteurs lourds, traders de fret, escorteurs de combat et trésoriers de guilde**. Les calculs de puissance et de faisabilité, la synchronisation temps réel des vaisseaux, le partage instantané des scans de rochers, le transbordement de fret en vol, le suivi des ordres de raffinage, la cartographie GPS des filons, l'arbitrage commercial aux TDD, la trésorerie de corporation et la simulation de routes de trading cargo sont orchestrés de manière fluide, 100% autonome et sans aucun serveur payant (P2P Serverless).
 
 ---
 
@@ -39,12 +39,15 @@
 graph TD
     M1["Jalon 1 : Réseau P2P<br/>(Codes WING-XXXX)"] --> M2["Jalon 2 : Synchro Vaisseaux<br/>(Loadouts, Lasers, Soutes)"]
     M2 --> M3["Jalon 3 : Scan Partagé & OCR<br/>(Diffusion instantanée & Caméra F12)"]
-    M3 --> M4["Jalon 4 : Tir Collectif & Loadout Finder<br/>(Solveur optimal, Alerte Rouge & Profit Split)"]
+    M3 --> M4["Jalon 4 : Coordination & Loadout Finder<br/>(Solveur optimal, Alerte Rouge & Profit Split)"]
     M4 --> M5["Jalon 5 : Logistique & Fret Cargo<br/>(Transbordement sacs SCU & Transporteurs)"]
     M5 --> M6["Jalon 6 : Bourse TDD & API UEX Corp<br/>(Prix live, Vente optimale & Arbitrage brut/raffiné)"]
-    M6 --> M7["Jalon 7 : Ordres de Raffinage & Inventaire Corpo<br/>(Portefeuille minier & Notifications Push)"]
-    M7 --> M8["Jalon 8 : GPS, Cartographie & Crafting 4.0<br/>(Where to mine, Triangulation OM & Blueprints)"]
-    M8 --> M9["Jalon 9 : Écosystème Corpo & Hardware<br/>(Webhooks Discord & Profils Stream Deck)"]
+    M6 --> M7["Jalon 7 : Ordres de Raffinage & Inventaire Corpo<br/>(Stockpile, Trésorerie & Trading Cargo)"]
+    M7 --> M8["Jalon 8 : Gouvernance, Sécurité (RBAC) & Config Guilde<br/>(v2.3.0)"]
+    M8 --> M9["Jalon 9 : Hub d'Opérations, Roster & Navigation Multi-Métiers<br/>(v2.4.0)"]
+    M9 --> M10["Jalon 10 : Activités Stratégiques de Flotte & mo.Trader<br/>(v2.5.0)"]
+    M10 --> M11["Jalon 11 : GPS, Cartographie & Crafting 4.0<br/>(Where to mine, Triangulation OM & Blueprints v2.8.0)"]
+    M11 --> M12["Jalon 12 : Serveur Dédié 24/7, Discord & Stream Deck<br/>(Hub 24/7, Webhooks & Hardware v3.0.0)"]
 ```
 
 ---
@@ -111,15 +114,14 @@ graph TD
 
 ---
 
-### ⚡ JALON 4 — Coordination Tactique, Solveur Optimal & Escorte
+### ⚡ JALON 4 — Coordination Tactique, Solveur Optimal & Escorte — [TERMINÉ / DISPONIBLE v1.9.0]
 *Objectif : Coordonner le tir conjoint des lasers, recommander le meilleur loadout et sécuriser la flottille.*
 
 * **Solveur de Loadout Optimal (*Optimal Loadout Finder*) :**
   *(Algorithme prédictif de puissance et résistances)*
   * Pour un rocher donné particulièrement résistant, l'algorithme calcule et suggère immédiatement la configuration exacte de lasers et de modules à équiper (ex: *« Pour cette roche de 8 200 kg à 58% de résistance : Équiper Lancet MH1 + 2x Focus III + 1x Surge »* ou *« Duo requis : 1x Lancet + 1x Helix »*).
-* **Conseiller de Tir Conjoint :**
-  * Séquençage tactique : affaiblissement de résistance au Lancet puis déclenchement de la puissance brute Helix.
-  * Calcul de la fenêtre thermique et alerte de surcharge collective.
+* **Optimisation Ergonomique Cockpit & Discord Voice :**
+  * Retrait des étapes textuelles de tir conjoint manuelles (doublons avec les communications vocales Discord en vol) pour maximiser la lisibilité du Solveur d'Équipement Optimal 4.0 et de la jauge de fracturation.
 * **Module Sentinelle & Escorte de Combat (`RED ALERT`) :**
   * Affichage simplifié pour les pilotes de chasseurs de protection (Gladius, Scorpius, Vanguard, F7C).
   * **Bouton d'Alerte Rouge en 1 tap** : alarme sonore d'attaque pirate envoyée en direct avec vecteur de repli Quantum d'urgence.
@@ -127,21 +129,25 @@ graph TD
 
 ---
 
-### 📦 JALON 5 — Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)
+### 📦 JALON 5 — Transport Spécialisé & Logistique de Fret (*Cargo Refactor 4.0*) — [TERMINÉ / DISPONIBLE v2.0.0]
 *Objectif : Coordonner le transbordement de minerai en plein espace et gérer les soutes des transporteurs lourds.*
 
-* **Flotte de Transporteurs Dédiés :**
-  * Drake Cutlass Black (46 SCU), RSI Zeus Mk II CL (128 SCU), MISC Freelancer MAX (120 SCU), Argo RAFT (96 SCU - conteneurs 32 SCU détachables rapides).
-  * RSI Constellation Taurus (174 SCU), Drake Caterpillar (576 SCU), Crusader C2 Hercules (696 SCU), MISC Hull A (64 SCU), MISC Hull C (4 608 SCU).
-* **Transbordement en Vol (Ship-to-Ship Saddlebag Transfer) :**
-  * Dans Star Citizen Alpha 3.24+, les sacs de minage (*saddlebags*) du Prospector (4x 8 SCU) et du MOLE (8x 12 SCU) sont détachables au rayon tracteur.
-  * **Demande de Récupération (`PICKUP_REQUEST`)** : le mineur annonce ses sacs prêts ; le transporteur valide la prise en charge, ce qui vide la soute du mineur sur place sans retour station.
+* **Flotte de 10 Transporteurs Dédiés Authentiques (Star Citizen 4.0) :**
+  * Drake Cutlass Black (46 SCU, rayon S1), Crusader C1 Spirit (64 SCU, rayon S2), MISC Hull A (64 SCU), MISC Freelancer MAX (120 SCU, rayon S1), RSI Zeus Mk II CL (128 SCU, rayon S2).
+  * RSI Constellation Taurus (174 SCU, tourelle tractrice S2 ventrale motorisée), Argo RAFT (192 SCU, grue électromagnétique S3 de déchargement rapide), Drake Caterpillar (576 SCU, 2x postes tracteurs de coursive), Crusader C2 Hercules (696 SCU, 2x postes avant/arrière), MISC Hull C (4 608 SCU, arrimage orbital).
+  * Spécifications complètes des rayons tracteurs (taille S1/S2/S3, force en Newtons 6 000 à 45 000 N), topologies de grille (interne, externe, modulaire, spindle) et calcul automatique de la capacité max en sacoches Prospector (8 SCU) et MOLE (12 SCU).
+* **Transbordement en Vol (Ship-to-Ship Saddlebag Transfer) via FLEET-NET :**
+  * Dans Star Citizen Alpha 3.24/4.0+, les sacs de minage (*saddlebags*) du Prospector (4x 8 SCU) et du MOLE (8x 12 SCU) sont détachables au rayon tracteur.
+  * **Demande de Récupération (`CARGO_PICKUP_REQUEST`)** : le mineur clique sur `📡 APPELER TRANSPORT DE FRET` ; les transporteurs de l'escadre reçoivent l'alerte en direct avec détails des minerais et volume SCU.
+  * **Validation & Prise en Charge (`CARGO_PICKUP_ACCEPT`)** : le transporteur clique sur `🧲 ARRIMAGE RAYON TRACTEUR`, ce qui arrime les sacs sur sa grille physique et vide instantanément la soute du mineur sans retour à la station.
 * **Gestionnaire Visuel de Soute (Cargo Grid Master) :**
-  * Répartition des conteneurs standardisés (1 à 32 SCU) et compteurs de volatilité pour les matériaux instables (Quantainium brut).
+  * Carte cockpit interactive `#cargoGridMasterCard` : sélecteur de transporteur actif, jauge de remplissage physique, visualisation des blocs de conteneurs arrimés par minerai, badge d'avertissement d'instabilité du Quantainium brut, estimation financière en temps réel (brut & raffiné) et bouton de déchargement au terminal.
+* **Commission Transporteur Dédiée :**
+  * Curseur de commission de fret (0 à 35%) intégré dans la répartition des gains d'escouade (`#crewModal`), permettant une rémunération équitable des pilotes de transport lourd.
 
 ---
 
-### 📈 JALON 6 — Bourse Commerciale, API UEX Corp & Intelligence de Guilde
+### 📈 JALON 6 — Bourse Commerciale, API UEX Corp & Intelligence de Guilde [TERMINÉ / DISPONIBLE v2.1.0]
 *Objectif : Maximiser les bénéfices financiers grâce aux cours du marché en direct, au partage collaboratif au sein de la corporation et à l'optimisation des trajets.*
 
 * **Intégration API Live UEX Corp (*Live Price Integration*) :**
@@ -160,24 +166,120 @@ graph TD
 
 ---
 
-### ⏱️ JALON 7 — Ordres de Raffinage & Inventaire Partagé de Guilde
-*Objectif : Suivre le portefeuille d'actifs miniers individuel et mutualiser les stocks et dépenses à l'échelle de toute la corporation.*
+### ⏱️ JALON 7 — Ordres de Raffinage & Inventaire Partagé de Guilde (✅ Implémenté v2.2.0) — Trésorerie & Trading Cargo
+*Objectif : Suivre le portefeuille d'actifs miniers individuel, mutualiser les stocks de fret (minerais + marchandises générales), gérer la trésorerie corporative et simuler les runs de trading cargo.*
 
-* **Inventaire Collaboratif & Stockpile de Guilde (*Guild Shared Stockpile*) :**
-  *(Innovation exclusive AARON MFD)*
-  * **Inventaire de guilde partagé en temps réel** : Chaque fois qu'un mineur dépose du minerai en raffinerie ou qu'un transporteur stocke des caisses SCU dans un hangar de guilde, l'inventaire est synchronisé sur les MFD de toute la corporation (`CORPO_STOCK_SYNC`).
+* **Inventaire Collaboratif & Stockpile Unifié de Guilde (*Guild Shared Stockpile*) :**
+  *(Innovation exclusive AARON MFD — Minerais & Marchandises Générales)*
+  * **Inventaire de guilde partagé en temps réel** : Chaque fois qu'un mineur dépose du minerai en raffinerie ou qu'un transporteur stocke des caisses SCU de minerais ou de marchandises générales (Medical Supplies, Laranite, Titanium, Scrap, Distilled Spirits, Maze, Slam, etc.) dans un hangar, l'inventaire est synchronisé sur les MFD de toute la corporation (`CORPO_STOCK_SYNC`).
   * **Visibilité logistique totale** : N'importe quel membre ou responsable logistique voit en direct les réserves globales :  
-    *Exemple : « ARC-L1 : 256 SCU Quantainium raffiné (prêt au transport C2) » • « HUR-L1 : 512 SCU Laranite »*.
-  * **Livre des coûts partagés de corporation (*Corpo Expense Ledger*)** : Centralisation des frais engagés (frais de raffinage payés, carburant des transporteurs, réparations) déduits automatiquement des recettes brutes pour une répartition équitable.
-  * Calcul en direct de la **valeur nette totale du patrimoine minier de la guilde (Guild Net Worth en aUEC)**.
+    *Exemple : « ARC-L1 : 256 SCU Quantainium raffiné » • « Orison : 576 SCU Medical Supplies (Coût 16.5 aUEC, Revente 24.2 aUEC, Marge +4,435k aUEC) »*.
+  * **Badges distinctifs** : Différenciation visuelle instantanée `⛏️ MINERAI` et `📦 COMMODITY` avec prix d'achat unitaire, valeur estimée de revente et marge brute.
+  * Calcul en direct de la **valeur nette totale du patrimoine de la guilde (Guild Net Worth en aUEC)** déduite des dépenses.
 * **Gestionnaire d'Ordres de Raffinage & Notifications Push :**
+  * **Statut logistique allégé** : Évite les doublons avec les consoles de jeu en proposant un statut clair (*Brut stocké, En cours de raffinage, Raffiné prêt au transport*).
   * Minuteur dynamique et décompte précis (heures/minutes) pour chaque ordre de raffinage en cours.
   * **Notifications Web Push déportées** sur smartphone ou PC (même navigateur fermé) :  
     `🔔 Raffinerie ARC-L1 : Votre commande de 64 SCU de Quantainium est prête au chargement !`
+* **Trésorerie de Guilde & Grand Livre des Dépenses (*Guild Treasury & Expense Ledger*) :**
+  * Solde de trésorerie de guilde persistant et synchronisé via `CORPO_TREASURY_SYNC`.
+  * Centralisation des dépenses engagées (frais de raffinage, carburant, réparations, consommables, avances cargo) synchronisées via `CORPO_EXPENSE_SYNC`.
+  * Dépôts de capitaux, retraits de trésorerie et export du grand livre officiel formaté pour Discord.
+* **Feuille de Répartition mo.Trader & Dividendes de Guilde (*Crew Split Sheet*) :**
+  * Répartition automatisée des gains d'opération : part de trésorerie corporative retenue à la source (0 à 50%), prime d'escorte de combat, commission de transport lourd, et solde net versé aux équipages.
+  * Ordres de virement direct `mo.Trader` copiables en 1 clic pour exécution immédiate dans l'application mobiGlas du jeu.
+* **Simulateur de Trading & Routes Cargo (*Commodity Trading & Arbitrage*) :**
+  * Sélection de marchandises générales classées par catégorie (Médical, Métaux, Industriel, Consommables, Illicite / Vice).
+  * Préréglages de routes commerciales populaires de Stanton & Pyro (ex: Deakins vers Orison, Arial vers Area18, Brio's Breaker Yard, Checkmate, etc.).
+  * Préréglages de capacité de soute pour tous les cargos (Cutlass Black 46 SCU jusqu'au C2 Hercules 696 SCU).
+  * Calcul en direct du capital requis (aUEC), bénéfice net du run, marge par SCU, retour sur investissement (% ROI) et indice de risque pirate (Sûr, Modéré, Extrême).
+  * **Financement direct sur la Trésorerie de Guilde** : Prélèvement automatique du capital requis comme avance de trésorerie avec enregistrement comptable au grand livre.
+  * **Dépôt 1-clic en Stockpile de Guilde** : Intégration immédiate de la cargaison achetée dans l'inventaire partagé avec synchronisation de flotte `CORPO_TRADE_SYNC`.
 
 ---
 
-### 📍 JALON 8 — Cartographie "Where to Mine", GPS & Crafting 4.0
+### 🔐 JALON 8 — Gouvernance, Sécurité (RBAC) & Configuration de Guilde (v2.3.0)
+*Objectif : Poser les fondations de l'organisation : authentification chiffrée, gestion des permissions par rôle, profil corporatif et passerelle Discord.*
+
+* **Architecture Hybride Décentralisée (Phase 1 Local ➔ Phase 2 Serveur 24/7) :**
+  * **Phase 1 (Local Immédiat — Souverain & 0€ de serveur)** :
+    * Authentification locale sécurisée par mot de passe / clé de guilde et dérivation cryptographique locale (PBKDF2 / WebCrypto).
+    * Persistance chiffrée dans le navigateur (`IndexedDB` / `localStorage`).
+    * Synchronisation instantanée des paramètres de guilde et des droits via le réseau P2P WebRTC DataChannel (*AARON FLEET-NET*).
+  * **Phase 2 (Évolution Serveur Dédié 24/7)** :
+    * Passerelle API backend légère (`server.js` Node/Express ou connecteur cloud gratuit Supabase/PostgreSQL) pour persistance 24/7 sans dépendre de l'ordinateur de l'hôte.
+* **Système de Permissions & Rôles Hiérarchiques (RBAC - Role-Based Access Control) :**
+  * Connexion membre par mot de passe / code de guilde avec attribution de rôle :
+    * 👑 **Amirauté / Commandement** : Création/suppression d'opérations, accès total à la trésorerie de guilde, validation des comptes finaux et gestion des autorisations.
+    * 📋 **Chefs d'Opérations (Flight Leads)** : Planification des missions, assignation des postes de vol, supervision de la flotte et validation du rapport de mission.
+    * 💰 **Trésoriers & Logisticiens Fret** : Approbation des avances financières de trading, gestion du stockpile et enregistrement des frais logistiques.
+    * 🚀 **Membres Actifs (Pilotes Industriels & Escorte)** : Inscription aux opérations, déclaration de vaisseau actif, prise en charge de lots de fret et participation aux dividendes.
+    * 🔰 **Recrues & Invités** : Accès en consultation, participation aux opérations sous supervision d'un officier.
+* **Panneau de Configuration & Administration de Guilde (*Guild Settings & Security Deck*) :**
+  * 🏷️ **Identité & Profil Corporation** : Nom officiel de la guilde, tag court/ticker (ex: `[CORP]`), logo, système d'attache (Stanton/Pyro), station QG de ralliement principale (ex: *ARC-L1 Wide Forest Station*) et message du jour de l'Amirauté (MoTD).
+  * 🔑 **Sécurité, Mots de Passe & Passphrases** : Configuration du mot de passe Maître (Amirauté), code d'accès Officiers et code d'invitation Membres/Recrues. Dérivation cryptographique locale (WebCrypto) et bascule transparente vers le serveur dédié 24/7.
+  * ⚖️ **Politique Financière par Défaut** : Taux par défaut de retenue corporative sur les ventes (ex: 10% à 20%), grille tarifaire des primes d'escorte de combat, barème des commissions transporteurs et seuil d'alerte de réserve minimale de trésorerie.
+  * 👥 **Registre des Membres & Attribution des Rôles** : Liste des pilotes enregistrés, promotion/rétrogradation de rangs (RBAC), gestion des indicatifs radio (Callsigns) et révocation d'accès en 1 clic.
+  * 💾 **Souveraineté des Données & Sauvegardes** : Export 1-clic de la base de données guilde complète en fichier JSON chiffré (membres, stocks, trésorerie, historique d'opérations) et restauration instantanée sur tout nouvel appareil ou serveur.
+* **Passerelle Discord & Widget de Présence en Direct :**
+  * Configuration de l'identifiant Discord Server ID pour afficher en temps réel dans AARON MFD les membres connectés et les salons vocaux actifs.
+  * Bouton permanent `💬 DISCORD OFFICIEL` pour intégrer les recrues et invités en 1 clic.
+
+---
+
+### 📋 JALON 9 — Hub d'Opérations, Roster de Flotte & Navigation Multi-Spécialités (v2.4.0)
+*Objectif : Coordonner la mobilisation de flotte avec une ergonomie optimisée par métier, sans surcharge visuelle.*
+
+* **Navigation Ergonomique à Double Niveau (Onglets Croisés Opérations × Spécialités) :**
+  * **Niveau 1 (Sélecteur d'Opérations)** : Barre supérieure permettant de basculer instantanément entre le Hub Global (`🌐 Toutes les Ops`), les opérations actives en direct (`⛏️ OP-STANTON-HARVEST 🟢`), les opérations planifiées (`🚜 CONVOI-PYRO ⏳`) et le créateur de mission (`➕ Nouvelle Opération`).
+  * **Niveau 2 (Postes de Travail par Spécialité au sein de l'Opération)** :
+    * 📊 **Briefing & Roster** : Objectifs collectifs (SCU / aUEC), jauge d'avancement live, liste des inscrits et assignations de flotte.
+    * ⛏️ **Minage & Extraction** : Scans partagés Fleet-Net, solveur de loadout optimal, alerte d'instabilité Quantainium et appel transport 1-clic.
+    * 🚜 **Fret & Logistique** : Grilles physiques SCU (Cargo Grid Master), transbordement en vol, stocks raffinés en stations et trajets de déchargement.
+    * 📈 **Trading & Arbitrage Cargo** : Simulateur de run, capital requis, avances de trésorerie et surveillance des cours TDD UEX Corp.
+    * 🛡️ **Sécurité & Escorte** : Alerte Rouge pirate instantanée, radar sentinelle, vecteurs de repli Quantum d'urgence et prime horaire de combat.
+    * 💰 **Comptabilité & mo.Trader (Officiers)** : Grand livre des frais réels engagés, déduction des avances et de la part de guilde, bordereau de virement `mo.Trader` 1-clic.
+  * **Aiguillage Automatique par Rôle (*Smart Role Switch*)** : À l'inscription, le membre qui s'enregistre comme Transporteur est automatiquement dirigé vers l'onglet Fret, le pilote de chasse vers l'onglet Sécurité, et le mineur vers l'onglet Minage, avec liberté de naviguer entre tous les onglets.
+* **Gestionnaire d'Opérations & Missions de Flotte (*Guild Operations Dispatch*) :**
+  * Création de missions typées avec nom de code officiel (ex: *OP-STANTON-HARVEST*, *OPERATION SILENT-RUNNER*) :
+    * ⛏️ **Extraction Minière** (Objectifs en SCU, ciblage filons Quantainium/Bexalite).
+    * 🚜 **Convois Logistiques de Fret** (Transport sécurisé de raffinats inter-stations).
+    * 📈 **Trading & Runs Cargo** (Achat de commodités financé par la trésorerie).
+    * 🔧 **Récupération / Salvage** (Opérations de recyclage Reclaimer/Vulture).
+    * 🛡️ **Escorte Armée & Patrouilles de Sécurité** (Sécurisation des zones à risque de Pyro).
+  * Fiche d'opération détaillée : Date/heure, système stellaire (Stanton/Pyro/Nyx), point de rassemblement, avance budgétaire allouée, pourcentage de retenue corpo pour la caisse commune (ex: 10-20%).
+* **Roster de Flotte & Inscription Interactive des Membres :**
+  * Module de réponse 1-clic pour les membres : sélection de son rôle tactique et déclaration de son vaisseau mobilisé (MOLE, Prospector, C2, Taurus, Gladius, etc.).
+  * **Jauge globale de mobilisation de flotte en direct** : calcul automatique de la capacité cargo cumulée mobilisée (SCU), de la puissance laser globale (Watts) et du nombre de chasseurs d'escorte assignés.
+* **Diffusion 1-Clic de Missions vers Discord avec Deep Links (`#annonces-missions`) :**
+  * Génération d'un Embed Discord riche aux couleurs de la mission avec objectifs, rôles recherchés et conditions financières.
+  * **Lien d'Inscription Direct 1-Clic (*Deep Linking*)** : URL personnalisée (`https://.../?op=OP-HARVEST-12`) ouvrant instantanément AARON MFD sur l'opération pour déclarer son vaisseau et son rôle en 2 secondes depuis un smartphone ou un PC.
+
+---
+
+### ⚔️ JALON 10 — Activités Stratégiques de Flotte, Assurance & Clôture mo.Trader (v2.5.0)
+*Objectif : Piloter les grandes activités d'organisation, sécuriser le matériel et automatiser la redistribution des richesses.*
+
+* **Tableau de Bord Stratégique du Chef de Guilde (*Fleet Commander Strategic Deck*) :**
+  *(Les 6 grands types d'activités à haute valeur opérationnelle pilotés par l'Amirauté et les Flight Leads)* :
+  1. ⛏️ **Campagnes d'Extraction en Essaim (*Industrial Swarm Operations*)** : Jauge d'objectif global en SCU/aUEC, gestion de la tournante logistique des navettes cargo (*Shuttle Runs*), suivi de la saturation en sacoches larguées en plein espace et sélection de la raffinerie au meilleur rendement selon l'horaire de fin de session.
+  2. 🚜 **Convois Sécurisés & Traversées Hostiles (Stanton ➔ Pyro)** : Calculateur de ratio de menace basé sur la valeur totale transportée, dimensionnement automatique de l'escorte requise (chasseurs/SCU), plan de vol à sauts décalés (éclaireur à 1 saut d'avance) et déclenchement d'Alerte Rouge coordonnée.
+  3. 📈 **Arbitrage Spéculatif & Caisse de Guerre (*War Chest Trading*)** : Avances de trésorerie de guilde débloquées pour runs de fret massifs à fort effet de levier (ex: 2.5M aUEC financés pour remplir un C2 de Medical Supplies / Laranite), détection d'opportunités de revente TDD et prélèvement d'un dividende corporatif pour alimenter le fonds de réserve.
+  4. 🔧 **Grands Chantiers d'Artisanat 4.0 (*Corpo Blueprint Wishlists*)** : Lancement de projets de fabrication collective (ex: équiper les MOLE de l'organisation en têtes laser artisanales Tier 3), ventilation automatique des minerais requis, barres de progression partagées et système de points de contribution pour les mineurs déposants avec mise à jour automatique Discord (`#besoins-crafting`).
+  5. 🧲 **Chantiers de Salvage & Pillage d'Épaves (*Wreck Recovery Ops*)** : Moisson coordonnée de RMC (*Recycled Material Composite*) et *Construction Materials* (CM) par Reclaimers/Vultures, et registre des composants militaires de valeur récupérés (boucliers Grade A, armes S5) pour réarmer la flotte de combat de la guilde.
+  6. 🛡️ **Caisse d'Assurance de Flotte & Primes de Combat (*Fleet Insurance & Loss Compensation*)** : Déclaration d'incident en 1 clic (chasseur d'escorte abattu ou cargaison perdue), indemnisation prioritaire des pertes matérielles sur la trésorerie commune avant le calcul du profit net des survivants.
+* **Conduite Temps Réel de Mission & Alertes Logistiques :**
+  * Cycle de vie dynamique : `PLANIFIÉE` ➔ `EN COURS (LIVE)` ➔ `DÉBRIEFING` ➔ `CLÔTURÉE`.
+  * Agrégation continue des dépenses engagées (carburant, réarmement, raffinage) et des recettes de vente.
+  * Notifications automatiques dans Discord (`#logistique-fret`) dès que des sacs miniers sont largués en plein espace ou que des lots raffinés sont prêts au déchargement pour les transporteurs C2/Taurus.
+* **Clôture Financière Automatisée & Bordereaux mo.Trader 1-Clic :**
+  * Déduction automatique de l'avance de trésorerie, remboursement des frais réels et prélèvement de la réserve de guilde.
+  * Génération de la **Feuille de Virement `mo.Trader`** : bordereau officiel avec ordres de transfert individuels copiables en 1 clic pour exécution immédiate dans le mobiGlas du jeu.
+  * Publication officielle du bilan de clôture sur Discord (`#comptabilité-tresorerie`).
+
+---
+
+### 📍 JALON 11 — Cartographie "Where to Mine", GPS & Crafting 4.0 (v2.8.0)
 *Objectif : Savoir où trouver chaque minerai, marquer ses gisements et suivre ses besoins de fabrication.*
 
 * **Guide des Gisements & Probabilités (*Resource Location Data / Where to Mine*) :**
@@ -194,14 +296,16 @@ graph TD
 
 ---
 
-### 🤖 JALON 9 — Écosystème Corporation & Matériel Dédié (Discord & Stream Deck)
-*Objectif : Faciliter le partage corporatif et l'utilisation physique à côté des joysticks HOTAS.*
+### 🤖 JALON 12 — Écosystème Serveur Dédié 24/7, Discord & Hardware Stream Deck (v3.0.0)
+*Objectif : Faciliter le partage corporatif, la persistance 24/7 sur serveur et l'utilisation physique à côté des joysticks HOTAS.*
 
+* **Mode Serveur Dédié 24/7 & Synchronisation Permanente :**
+  * Possibilité de déployer AARON MFD sur un serveur Linux/Docker ou cloud pour offrir à toute la corporation un hub permanent accessible même machine locale éteinte.
 * **Intégration Webhook Discord Automatique (Corpo Dispatch) :**
   * Configuration simple de l'URL Webhook Discord de la corporation.
   * À la clôture d'une opération ou d'une vente TDD, génération automatique d'un rapport officiel richement formaté avec visuels :
     * Vaisseaux et équipages mobilisés.
-    * Quantités de minerais extraits et raffinés.
+    * Quantités de minerais extraits, transportés et vendus.
     * Chiffre d'affaires brut, frais déduits et solde net versé à chaque pilote.
     * Contribution créditée à la trésorerie de guilde.
 * **Intégration Matérielle & Stream Deck (Hardware Interlink) :**
@@ -304,25 +408,42 @@ Les messages échangés via WebRTC DataChannels sont au format JSON ultra-léger
 
 ## 📋 Matrice des Fonctionnalités par Version
 
-| Fonctionnalité | v1.6.4 (Actuel) | v1.7.0 (Jalons 1 & 2) | v1.8.0 (Jalons 3 & 4) | v2.0.0 (Jalons 5 & 6) | v2.5.0 (Jalons 7 & 8) | v3.0.0 (Jalon 9) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| Calculateur Solo Tactique & PWA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Simulation Multi-Tourelles MOLE | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Connexion P2P WebRTC (*FLEET-NET*) | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
-| Synchronisation Auto des Vaisseaux | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
-| Diffusion des Scans de Roches | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
-| Solveur Optimal Loadout Finder | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
-| Scanner OCR par Caméra / F12 | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
-| Alerte Rouge & Rôle Escorte Chasse | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
-| Transbordement en Vol & Soutes SCU | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
-| Bourse Commerciale & API UEX Corp | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
-| Optimiseur de Ventes Globales | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
-| Suivi Raffinage & Notifications Push | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
-| Portefeuille Minier & Stocks Guilde | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
-| Guide "Where to Mine" & GPS Pyro | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
-| Wishlist Crafting & Blueprints 4.0 | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
-| Webhook Discord Automatique Corpo | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu |
-| Intégration Stream Deck / Hardware | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu |
+| Fonctionnalité | v1.6.4 (Base) | v1.8.0 (Jalons 1, 2 & 3) | v1.9.0 (Jalon 4) | v2.0.0 (Jalon 5) | v2.1.0 (Jalon 6) | v2.2.0 (Actuel - Jalon 7) | v2.3.0 (Jalon 8) | v2.4.0 (Jalon 9) | v2.5.0 (Jalon 10) | v2.8.0 (Jalon 11) | v3.0.0 (Jalon 12) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Calculateur Solo Tactique & PWA Offline | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Simulation Multi-Tourelles MOLE / Arrastra / Orion | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Connexion P2P WebRTC & Local (*FLEET-NET*) | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Synchronisation Auto des Vaisseaux & Loadouts | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Atelier Minier Artisanal (*Crafting 4.0*) | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Diffusion P2P des Scans de Roches (*ROCK_BROADCAST*) | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Scanner OCR Instantané (*F12, Caméra & Presets*) | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Solveur de Loadout Optimal 4.0 (*Solo & Escadre*) | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Module Sentinelle & Alerte Rouge Escorte (*RED ALERT*) | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Prime de Risque d'Escorte de Combat (*Crew Split*) | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Flotte de Transporteurs 4.0 Authentique (10 vaisseaux) | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Transbordement en Vol & Sacs Détachables SCU (*Fleet-Net*) | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Gestionnaire Visuel de Soute Cargo 4.0 (*Tractor Beam*) | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Commission Transporteur Dédiée (*Crew Split*) | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Bourse Commerciale Live & API UEX Corp | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Optimiseur de Ventes & Arbitrage Brut/Raffiné | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Suivi Raffinage & Notifications Push | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Portefeuille Minier, Stocks & Trésorerie Guilde | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Simulateur de Trading & Arbitrage Cargo | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Authentification Guilde & Permissions Rôles (RBAC) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
+| Panneau de Configuration & Administration Guilde | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
+| Passerelle Discord (Widget Présence Live) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
+| Architecture Hybride (Local P2P ➔ Serveur Dédié) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ | ✅ |
+| Gestionnaire d'Opérations (Minage, Fret, Trading) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
+| Navigation Ergonomique Multi-Spécialités | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
+| Inscription Membres Roster & Mobilisation Flotte | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
+| Diffusion Missions Discord & Deep Links (?op=XXX) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ | ✅ |
+| Activités Stratégiques Flotte (Essaim, Convois, Caisse) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
+| Caisse d'Assurance Flotte & Pertes Matérielles | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
+| Suivi Temps Réel de Mission & Alertes Logistiques | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
+| Clôture Financière Automatisée & Bordereau mo.Trader | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ | ✅ |
+| Guide "Where to Mine", GPS & Blueprints | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu | ✅ |
+| Mode Serveur Dédié 24/7 & Webhooks Discord | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu |
+| Intégration Stream Deck / Hardware | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 🚀 Prévu |
 
 ---
 

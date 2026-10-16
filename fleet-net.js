@@ -34,6 +34,15 @@ export class AaronFleetNet {
     this.onPeerJoin = options.onPeerJoin || (() => {});
     this.onPeerLeave = options.onPeerLeave || (() => {});
     this.onRockBroadcast = options.onRockBroadcast || (() => {});
+    this.onRedAlert = options.onRedAlert || (() => {});
+    this.onJointFireSync = options.onJointFireSync || (() => {});
+    this.onCargoPickupRequest = options.onCargoPickupRequest || (() => {});
+    this.onCargoPickupAccept = options.onCargoPickupAccept || (() => {});
+    this.onCorpoPriceUpdate = options.onCorpoPriceUpdate || (() => {});
+    this.onCorpoStockSync = options.onCorpoStockSync || (() => {});
+    this.onCorpoExpenseSync = options.onCorpoExpenseSync || (() => {});
+    this.onCorpoTreasurySync = options.onCorpoTreasurySync || (() => {});
+    this.onCorpoTradeSync = options.onCorpoTradeSync || (() => {});
   }
 
   // Generate a NATO / Star Citizen style room code (e.g. WING-4982)
@@ -468,6 +477,105 @@ export class AaronFleetNet {
         break;
       }
 
+      case 'RED_ALERT': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onRedAlert) {
+          this.onRedAlert(packet.alert, packet.callsign || 'Ailier');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'JOINT_FIRE_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onJointFireSync) {
+          this.onJointFireSync(packet.fireData, packet.callsign || 'Ailier');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CARGO_PICKUP_REQUEST': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCargoPickupRequest) {
+          this.onCargoPickupRequest(packet.pickupRequest, packet.callsign || 'Mineur');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CARGO_PICKUP_ACCEPT': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCargoPickupAccept) {
+          this.onCargoPickupAccept(packet.pickupAccept, packet.callsign || 'Transporteur');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_PRICE_UPDATE': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCorpoPriceUpdate) {
+          this.onCorpoPriceUpdate(packet.priceUpdate, packet.callsign || 'Éclaireur');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_STOCK_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCorpoStockSync) {
+          this.onCorpoStockSync(packet.stockSync, packet.callsign || 'Mineur');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_EXPENSE_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCorpoExpenseSync) {
+          this.onCorpoExpenseSync(packet.expenseSync, packet.callsign || 'Trésorier');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_TREASURY_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCorpoTreasurySync) {
+          this.onCorpoTreasurySync(packet.treasurySync, packet.callsign || 'Trésorier');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_TRADE_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCorpoTradeSync) {
+          this.onCorpoTradeSync(packet.tradeSync, packet.callsign || 'Négociant');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
       default: {
         // Pass through custom telemetry packets (FLEET_SYNC, etc.)
         if (this.peers.has(packet.senderId)) {
@@ -548,6 +656,141 @@ export class AaronFleetNet {
         senderId: this.peerId,
         callsign: this.callsign,
         rock: rockData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Red Alert (Pirate Attack / Emergency Jump) (Jalon 4)
+  broadcastRedAlert(alertData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'RED_ALERT',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        alert: alertData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Joint Fire Sequencing & Overcharge Status (Jalon 4)
+  broadcastJointFireSync(fireData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'JOINT_FIRE_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        fireData: fireData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Cargo Pickup Request (Miner drops saddlebags in space) (Jalon 5)
+  broadcastCargoPickupRequest(pickupData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CARGO_PICKUP_REQUEST',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        pickupRequest: pickupData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Cargo Pickup Acceptance (Hauler tractors bags into hold) (Jalon 5)
+  broadcastCargoPickupAccept(acceptData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CARGO_PICKUP_ACCEPT',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        pickupAccept: acceptData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Corpo Scout Price Update (Jalon 6)
+  broadcastCorpoPriceUpdate(priceUpdate) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_PRICE_UPDATE',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        priceUpdate: priceUpdate,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Guild Stockpile Sync (Jalon 7)
+  broadcastCorpoStockSync(stockSyncData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_STOCK_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        stockSync: stockSyncData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Guild Expense Sync (Jalon 7)
+  broadcastCorpoExpenseSync(expenseSyncData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_EXPENSE_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        expenseSync: expenseSyncData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Guild Treasury & mo.Trader Split Sync
+  broadcastCorpoTreasurySync(treasurySyncData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_TREASURY_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        treasurySync: treasurySyncData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Guild Commodity Trading & Route Sync
+  broadcastCorpoTradeSync(tradeSyncData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_TRADE_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        tradeSync: tradeSyncData,
         timestamp: Date.now()
       });
       return true;

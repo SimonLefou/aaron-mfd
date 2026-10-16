@@ -91,41 +91,211 @@ export const MINING_DATA = {
     {
       id: 'cutlass_black',
       name: 'Drake Cutlass Black',
+      manufacturer: 'Drake Interplanetary',
       type_fr: 'Support Polyvalent & Cargo (46 SCU)',
       type_en: 'Utility & Cargo Support (46 SCU)',
       scu: 46,
       laserSize: 0,
       laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S1',
+        power: '6 000 N',
+        desc_fr: 'Tourelle tractrice arrière T3',
+        desc_en: 'Rear T3 Tractor Beam Turret'
+      },
+      gridType: 'internal',
+      prospectorBagsMax: 5,
+      moleBagsMax: 3,
+      isCargoSupport: true
+    },
+    {
+      id: 'c1_spirit',
+      name: 'Crusader C1 Spirit',
+      manufacturer: 'Crusader Industries',
+      type_fr: 'Transporteur Léger Rapide (64 SCU)',
+      type_en: 'Fast Light Hauler (64 SCU)',
+      scu: 64,
+      laserSize: 0,
+      laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S2',
+        power: '10 000 N',
+        desc_fr: 'Rayon tracteur de queue T3 intégré',
+        desc_en: 'Integrated Tail T3 Tractor Beam'
+      },
+      gridType: 'internal',
+      prospectorBagsMax: 8,
+      moleBagsMax: 5,
+      isCargoSupport: true
+    },
+    {
+      id: 'hull_a',
+      name: 'MISC Hull A',
+      manufacturer: 'MISC',
+      type_fr: 'Transporteur Externe Dédié (64 SCU)',
+      type_en: 'External Dedicated Hauler (64 SCU)',
+      scu: 64,
+      laserSize: 0,
+      laserSlots: 0,
+      tractorBeam: {
+        hasTractor: false,
+        size: 'FPS / Manuel',
+        power: 'MaxLift / ATLS',
+        desc_fr: 'Manipulation manuelle / FPS requise',
+        desc_en: 'Manual / FPS manipulation required'
+      },
+      gridType: 'external',
+      prospectorBagsMax: 8,
+      moleBagsMax: 5,
       isCargoSupport: true
     },
     {
       id: 'freelancer_max',
       name: 'MISC Freelancer MAX',
+      manufacturer: 'MISC',
       type_fr: 'Transporteur Cargo Moyen (120 SCU)',
       type_en: 'Medium Freight Support (120 SCU)',
       scu: 120,
       laserSize: 0,
       laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S1',
+        power: '6 000 N',
+        desc_fr: 'Tourelle tractrice arrière',
+        desc_en: 'Rear Tractor Turret'
+      },
+      gridType: 'internal',
+      prospectorBagsMax: 15,
+      moleBagsMax: 10,
+      isCargoSupport: true
+    },
+    {
+      id: 'zeus_cl',
+      name: 'RSI Zeus Mk II CL',
+      manufacturer: 'Roberts Space Industries',
+      type_fr: 'Cargo Moyen Haute Sécurité (128 SCU)',
+      type_en: 'High Security Medium Cargo (128 SCU)',
+      scu: 128,
+      laserSize: 0,
+      laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S2',
+        power: '12 000 N',
+        desc_fr: 'Rayon tracteur de soute dédié',
+        desc_en: 'Dedicated Cargo Tractor Beam'
+      },
+      gridType: 'internal',
+      prospectorBagsMax: 16,
+      moleBagsMax: 10,
+      isCargoSupport: true
+    },
+    {
+      id: 'raft',
+      name: 'Argo RAFT',
+      manufacturer: 'Argo Astronautics',
+      type_fr: 'Convoyeur Industriel à Pinces (192 SCU)',
+      type_en: 'Industrial Crane Hauler (192 SCU)',
+      scu: 192,
+      laserSize: 0,
+      laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S3',
+        power: '24 000 N',
+        desc_fr: 'Grue électromagnétique T4 de déchargement rapide',
+        desc_en: 'Heavy T4 Electromagnetic Fast-Unload Crane'
+      },
+      gridType: 'external',
+      prospectorBagsMax: 24,
+      moleBagsMax: 16,
       isCargoSupport: true
     },
     {
       id: 'taurus',
       name: 'RSI Constellation Taurus',
-      type_fr: 'Support Cargo Lourd (174 SCU)',
-      type_en: 'Heavy Cargo Support (174 SCU)',
+      manufacturer: 'Roberts Space Industries',
+      type_fr: 'Support Cargo Lourd & Blindé (174 SCU)',
+      type_en: 'Heavy Armored Cargo Support (174 SCU)',
       scu: 174,
       laserSize: 0,
       laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S2',
+        power: '12 000 N',
+        desc_fr: 'Tourelle tractrice ventrale T3 motorisée',
+        desc_en: 'Motorized Ventral T3 Tractor Turret'
+      },
+      gridType: 'internal',
+      prospectorBagsMax: 21,
+      moleBagsMax: 14,
+      isCargoSupport: true
+    },
+    {
+      id: 'caterpillar',
+      name: 'Drake Caterpillar',
+      manufacturer: 'Drake Interplanetary',
+      type_fr: 'Cargo Lourd Modulaire à Portes Latérales (576 SCU)',
+      type_en: 'Modular Heavy Side-Door Cargo (576 SCU)',
+      scu: 576,
+      laserSize: 0,
+      laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S2',
+        power: '12 000 N x2',
+        desc_fr: '2x Postes tracteurs de coursive',
+        desc_en: '2x Catwalk Tractor Stations'
+      },
+      gridType: 'internal_modular',
+      prospectorBagsMax: 72,
+      moleBagsMax: 48,
       isCargoSupport: true
     },
     {
       id: 'c2',
       name: 'Crusader C2 Hercules',
-      type_fr: 'Super-Transporteur Cargo (696 SCU)',
-      type_en: 'Heavy Freight Transport (696 SCU)',
+      manufacturer: 'Crusader Industries',
+      type_fr: 'Super-Transporteur Cargo Traversant (696 SCU)',
+      type_en: 'Through-Bay Heavy Freight Transport (696 SCU)',
       scu: 696,
       laserSize: 0,
       laserSlots: 0,
+      tractorBeam: {
+        hasTractor: true,
+        size: 'S2',
+        power: '12 000 N x2',
+        desc_fr: 'Deux postes de rayon tracteur avant/arrière',
+        desc_en: 'Dual Front/Rear Tractor Stations'
+      },
+      gridType: 'internal',
+      prospectorBagsMax: 87,
+      moleBagsMax: 58,
+      isCargoSupport: true
+    },
+    {
+      id: 'hull_c',
+      name: 'MISC Hull C',
+      manufacturer: 'MISC',
+      type_fr: 'Titan Fret Orbital à Fuseaux (4 608 SCU)',
+      type_en: 'Orbital Spindle Freight Titan (4,608 SCU)',
+      scu: 4608,
+      laserSize: 0,
+      laserSlots: 0,
+      tractorBeam: {
+        hasTractor: false,
+        size: 'Spindle Auto',
+        power: 'Arrimage Orbital',
+        desc_fr: 'Docking orbital / Spindles automatiques',
+        desc_en: 'Orbital Docking / Automated Spindles'
+      },
+      gridType: 'orbital_spindle',
+      prospectorBagsMax: 576,
+      moleBagsMax: 384,
       isCargoSupport: true
     }
   ],
@@ -1345,5 +1515,398 @@ export const MINING_DATA = {
       desc_fr: 'Halogénure de cuivre des zones désertiques et systèmes frontières. Bonne rentabilité industrielle.',
       desc_en: 'Copper halide mineral from desert zones and frontier systems. High industrial yield.'
     }
+  ],
+
+  // ==========================================
+  // JALON 6: BOURSE COMMERCIALE & TERMINAUX TDD (STANTON / PYRO / NYX)
+  // Données de référence hors-ligne SC 4.0 & UEX Corp
+  // ==========================================
+  tradeTerminals: [
+    {
+      id: 'stanton_area18_tdd',
+      name: 'Area18 TDD (ArcCorp)',
+      system: 'stanton',
+      sector: 'ArcCorp',
+      location_fr: 'Riker Memorial Spaceport / Place Centrale, ArcCorp',
+      location_en: 'Riker Memorial Spaceport / Central Plaza, ArcCorp',
+      type: 'tdd',
+      quantumJumps: 0, // Base hub
+      demandRating: 'high',
+      isTdd: true,
+      priceModifiers: {
+        quantainium: { refinedPrice: 268, rawPrice: 128, demand: 'high' },
+        bexalite: { refinedPrice: 182, rawPrice: 88, demand: 'high' },
+        laranite: { refinedPrice: 132, rawPrice: 65, demand: 'medium' },
+        taranite: { refinedPrice: 160, rawPrice: 80, demand: 'high' },
+        borase: { refinedPrice: 118, rawPrice: 58, demand: 'high' },
+        agricium: { refinedPrice: 90, rawPrice: 44, demand: 'medium' },
+        gold: { refinedPrice: 82, rawPrice: 39, demand: 'medium' },
+        stileron: { refinedPrice: 320, rawPrice: 155, demand: 'extreme' } // Importation exclusive rare
+      }
+    },
+    {
+      id: 'stanton_newbabbage_tdd',
+      name: 'New Babbage TDD (microTech)',
+      system: 'stanton',
+      sector: 'microTech',
+      location_fr: 'The Commons / Promenade Commerciale, microTech',
+      location_en: 'The Commons / Commercial Promenade, microTech',
+      type: 'tdd',
+      quantumJumps: 1,
+      demandRating: 'high',
+      isTdd: true,
+      priceModifiers: {
+        quantainium: { refinedPrice: 262, rawPrice: 126, demand: 'high' },
+        taranite: { refinedPrice: 168, rawPrice: 84, demand: 'high' },
+        bexalite: { refinedPrice: 178, rawPrice: 86, demand: 'high' },
+        laranite: { refinedPrice: 130, rawPrice: 64, demand: 'medium' },
+        agricium: { refinedPrice: 94, rawPrice: 46, demand: 'high' },
+        gold: { refinedPrice: 84, rawPrice: 40, demand: 'medium' },
+        borase: { refinedPrice: 115, rawPrice: 56, demand: 'medium' },
+        stileron: { refinedPrice: 310, rawPrice: 150, demand: 'high' }
+      }
+    },
+    {
+      id: 'stanton_lorville_cbd',
+      name: 'Lorville Central Business District (Hurston)',
+      system: 'stanton',
+      sector: 'Hurston',
+      location_fr: 'Tour Centrale Hurston Dynamics / CBD, Hurston',
+      location_en: 'Hurston Dynamics Central Tower / CBD, Hurston',
+      type: 'cbd',
+      quantumJumps: 1,
+      demandRating: 'high',
+      isTdd: true,
+      priceModifiers: {
+        laranite: { refinedPrice: 138, rawPrice: 68, demand: 'high' }, // Métal industriel n°1 chez Hurston
+        gold: { refinedPrice: 88, rawPrice: 42, demand: 'high' },
+        agricium: { refinedPrice: 92, rawPrice: 45, demand: 'high' },
+        quantainium: { refinedPrice: 254, rawPrice: 122, demand: 'medium' },
+        bexalite: { refinedPrice: 172, rawPrice: 83, demand: 'medium' },
+        taranite: { refinedPrice: 158, rawPrice: 77, demand: 'medium' },
+        titanium: { refinedPrice: 12, rawPrice: 6, demand: 'high' }
+      }
+    },
+    {
+      id: 'stanton_orison_tdd',
+      name: 'Orison Cloudview TDD (Crusader)',
+      system: 'stanton',
+      sector: 'Crusader',
+      location_fr: 'Cloudview Center / Plateforme Industrielle, Crusader',
+      location_en: 'Cloudview Center / Industrial Platform, Crusader',
+      type: 'tdd',
+      quantumJumps: 1,
+      demandRating: 'medium',
+      isTdd: true,
+      priceModifiers: {
+        quantainium: { refinedPrice: 260, rawPrice: 125, demand: 'high' },
+        hephaestanite: { refinedPrice: 42, rawPrice: 21, demand: 'high' },
+        bexalite: { refinedPrice: 175, rawPrice: 84, demand: 'medium' },
+        laranite: { refinedPrice: 130, rawPrice: 64, demand: 'medium' },
+        taranite: { refinedPrice: 160, rawPrice: 79, demand: 'medium' },
+        beryl: { refinedPrice: 32, rawPrice: 16, demand: 'medium' }
+      }
+    },
+    {
+      id: 'stanton_arcl1_admin',
+      name: 'ARC-L1 Wide Forest Admin & Hub',
+      system: 'stanton',
+      sector: 'ArcCorp',
+      location_fr: 'Pont Cargo & Terminal Administratif ARC-L1',
+      location_en: 'Cargo Deck & Admin Terminal ARC-L1',
+      type: 'admin',
+      quantumJumps: 0,
+      demandRating: 'medium',
+      isTdd: false,
+      priceModifiers: {
+        quantainium: { refinedPrice: 245, rawPrice: 125, demand: 'high' },
+        bexalite: { refinedPrice: 168, rawPrice: 84, demand: 'medium' },
+        laranite: { refinedPrice: 122, rawPrice: 60, demand: 'medium' }
+      }
+    },
+    {
+      id: 'stanton_crul1_admin',
+      name: 'CRU-L1 Ambitious Dream Admin',
+      system: 'stanton',
+      sector: 'Crusader',
+      location_fr: 'Pont de Raffinage & Comptoir Commercial CRU-L1',
+      location_en: 'Refinery Deck & Trade Kiosk CRU-L1',
+      type: 'admin',
+      quantumJumps: 1,
+      demandRating: 'medium',
+      isTdd: false,
+      priceModifiers: {
+        quantainium: { refinedPrice: 246, rawPrice: 125, demand: 'medium' },
+        taranite: { refinedPrice: 154, rawPrice: 76, demand: 'medium' },
+        bexalite: { refinedPrice: 169, rawPrice: 84, demand: 'medium' }
+      }
+    },
+    {
+      id: 'pyro_checkmate_admin',
+      name: 'Checkmate Station Trade Deck (Pyro)',
+      system: 'pyro',
+      sector: 'Pyro I-II',
+      location_fr: 'Hangar Central & Bourse Franche Checkmate',
+      location_en: 'Central Hangar & Free Market Exchange Checkmate',
+      type: 'outlaw',
+      quantumJumps: 2,
+      demandRating: 'high',
+      isTdd: false,
+      priceModifiers: {
+        stileron: { refinedPrice: 295, rawPrice: 145, demand: 'high' },
+        riccite: { refinedPrice: 238, rawPrice: 118, demand: 'high' },
+        quantainium: { refinedPrice: 278, rawPrice: 135, demand: 'high' },
+        lindinium: { refinedPrice: 155, rawPrice: 78, demand: 'high' },
+        bexalite: { refinedPrice: 184, rawPrice: 89, demand: 'medium' }
+      }
+    },
+    {
+      id: 'pyro_ruin_station',
+      name: 'Ruin Station • Terminus (Pyro VI)',
+      system: 'pyro',
+      sector: 'Terminus',
+      location_fr: 'Profondeurs de l\'astéroïde Ruin Station',
+      location_en: 'Asteroid Core Caverns, Ruin Station',
+      type: 'outlaw',
+      quantumJumps: 3,
+      demandRating: 'high',
+      isTdd: false,
+      priceModifiers: {
+        stileron: { refinedPrice: 310, rawPrice: 152, demand: 'extreme' },
+        quantainium: { refinedPrice: 285, rawPrice: 138, demand: 'high' },
+        riccite: { refinedPrice: 245, rawPrice: 122, demand: 'high' },
+        taranite: { refinedPrice: 175, rawPrice: 85, demand: 'medium' }
+      }
+    },
+    {
+      id: 'pyro_orbituary_trade',
+      name: 'Orbituary Trade Platform (Pyro)',
+      system: 'pyro',
+      sector: 'Pyro IV',
+      location_fr: 'Pont de Décharge & Comptoir Minier Orbituary',
+      location_en: 'Unload Deck & Mining Exchange Orbituary',
+      type: 'outlaw',
+      quantumJumps: 2,
+      demandRating: 'medium',
+      isTdd: false,
+      priceModifiers: {
+        riccite: { refinedPrice: 240, rawPrice: 120, demand: 'high' },
+        lindinium: { refinedPrice: 152, rawPrice: 76, demand: 'medium' },
+        quantainium: { refinedPrice: 270, rawPrice: 130, demand: 'medium' }
+      }
+    },
+    {
+      id: 'nyx_levski_customs',
+      name: 'Levski Customs & Free Trade (Delamar)',
+      system: 'nyx',
+      sector: 'Delamar',
+      location_fr: 'Bourse de Commerce Indépendante de Levski',
+      location_en: 'Levski Independent Commodity Exchange',
+      type: 'admin',
+      quantumJumps: 2,
+      demandRating: 'high',
+      isTdd: false,
+      priceModifiers: {
+        bexalite: { refinedPrice: 185, rawPrice: 90, demand: 'high' },
+        borase: { refinedPrice: 122, rawPrice: 61, demand: 'high' },
+        taranite: { refinedPrice: 166, rawPrice: 82, demand: 'high' },
+        quantainium: { refinedPrice: 258, rawPrice: 126, demand: 'medium' },
+        sadaryx: { refinedPrice: 215, rawPrice: 105, demand: 'high' }
+      }
+    }
+  ],
+
+  // Configuration de l'intégration API UEX Corp & Cache
+  uexConfig: {
+    publicEndpoint: 'https://api.uexcorp.space/2.0/commodities_prices',
+    commoditiesListEndpoint: 'https://api.uexcorp.space/2.0/commodities',
+    cacheStorageKey: 'aaron_mfd_uex_cache_v2',
+    cacheExpiryMinutes: 30,
+    apiTimeoutMs: 3500
+  },
+
+  // Marchandises Générales & Fret Cargo (Hors Minage)
+  generalCommodities: [
+    {
+      id: 'medical_supplies',
+      name_fr: 'Fournitures Médicales (Med Supplies)',
+      name_en: 'Medical Supplies',
+      category: 'medical',
+      baseBuy: 17.4,
+      baseSell: 19.8,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'laranite',
+      name_fr: 'Laranite (Fret Cargo)',
+      name_en: 'Laranite (Cargo)',
+      category: 'metals',
+      baseBuy: 27.5,
+      baseSell: 31.4,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'titanium',
+      name_fr: 'Titane Industriel (Titanium)',
+      name_en: 'Industrial Titanium',
+      category: 'industrial',
+      baseBuy: 7.1,
+      baseSell: 8.8,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'diamond',
+      name_fr: 'Diamant Industriel (Diamond)',
+      name_en: 'Industrial Diamond',
+      category: 'industrial',
+      baseBuy: 6.4,
+      baseSell: 7.9,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'distilled_spirits',
+      name_fr: 'Alcools Distillés (Distilled Spirits)',
+      name_en: 'Distilled Spirits',
+      category: 'consumables',
+      baseBuy: 4.8,
+      baseSell: 6.3,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'scrap',
+      name_fr: 'Ferraille & Débris (Scrap)',
+      name_en: 'Scrap Metal',
+      category: 'industrial',
+      baseBuy: 1.4,
+      baseSell: 2.2,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'agri_supplies',
+      name_fr: 'Ravitaillement Agricole (Agri-Supplies)',
+      name_en: 'Agricultural Supplies',
+      category: 'consumables',
+      baseBuy: 1.1,
+      baseSell: 1.6,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'stims',
+      name_fr: 'Stimulants Médicaux (Stims)',
+      name_en: 'Medical Stims',
+      category: 'medical',
+      baseBuy: 3.2,
+      baseSell: 4.2,
+      isIllegal: false,
+      unitWeightKg: 100
+    },
+    {
+      id: 'maze',
+      name_fr: 'Maze (Substance Contrôlée)',
+      name_en: 'Maze (Illicit)',
+      category: 'illicit',
+      baseBuy: 90.0,
+      baseSell: 118.0,
+      isIllegal: true,
+      unitWeightKg: 100
+    },
+    {
+      id: 'slam',
+      name_fr: 'Slam (Substance Contrôlée)',
+      name_en: 'Slam (Illicit)',
+      category: 'illicit',
+      baseBuy: 140.0,
+      baseSell: 178.0,
+      isIllegal: true,
+      unitWeightKg: 100
+    },
+    {
+      id: 'widow',
+      name_fr: 'WiDoW (Substance Contrôlée)',
+      name_en: 'WiDoW (Illicit)',
+      category: 'illicit',
+      baseBuy: 110.0,
+      baseSell: 142.0,
+      isIllegal: true,
+      unitWeightKg: 100
+    }
+  ],
+
+  // Routes Commerciales Populaires & Spéculatives (Star Citizen 4.0+)
+  popularTradeRoutes: [
+    {
+      id: 'route_med_hurston',
+      name: 'Med Supplies • Deakins ➔ Lorville CBD',
+      commodityId: 'medical_supplies',
+      origin: 'Deakins Research (Yela)',
+      destination: 'Lorville CBD (Hurston)',
+      buyPrice: 17.2,
+      sellPrice: 19.8,
+      risk: 'safe',
+      marginPerScu: 260
+    },
+    {
+      id: 'route_laranite_arccorp',
+      name: 'Laranite • Mining Area 045 ➔ Area18 TDD',
+      commodityId: 'laranite',
+      origin: 'Mining Area 045 (Wala)',
+      destination: 'Area18 TDD (ArcCorp)',
+      buyPrice: 27.6,
+      sellPrice: 31.4,
+      risk: 'safe',
+      marginPerScu: 380
+    },
+    {
+      id: 'route_titanium_arial',
+      name: 'Titanium • Bezdek ➔ Lorville CBD',
+      commodityId: 'titanium',
+      origin: 'HDMS Bezdek (Arial)',
+      destination: 'Lorville CBD (Hurston)',
+      buyPrice: 7.1,
+      sellPrice: 8.8,
+      risk: 'moderate',
+      marginPerScu: 170
+    },
+    {
+      id: 'route_scrap_brios',
+      name: 'Scrap • ARC-L1 ➔ Brio\'s Breaker Yard',
+      commodityId: 'scrap',
+      origin: 'ARC-L1 Wide Forest',
+      destination: 'Brio\'s Breaker Yard (Clio)',
+      buyPrice: 1.4,
+      sellPrice: 2.2,
+      risk: 'extreme',
+      marginPerScu: 80
+    },
+    {
+      id: 'route_spirits_orison',
+      name: 'Spirits • Hickes ➔ Orison Cloudview',
+      commodityId: 'distilled_spirits',
+      origin: 'Hickes Research (Cellin)',
+      destination: 'Orison Cloudview Center',
+      buyPrice: 4.8,
+      sellPrice: 6.3,
+      risk: 'safe',
+      marginPerScu: 150
+    },
+    {
+      id: 'route_maze_pyro',
+      name: 'Maze • Jumptown ➔ Ruin Station (Pyro)',
+      commodityId: 'maze',
+      origin: 'Laboratoire Jumptown (Yela)',
+      destination: 'Ruin Station (Pyro)',
+      buyPrice: 90.0,
+      sellPrice: 118.0,
+      risk: 'extreme',
+      marginPerScu: 2800
+    }
   ]
 };
+

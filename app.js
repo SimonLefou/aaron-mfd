@@ -61,6 +61,71 @@ const state = {
   ocrCameraStream: null,
   ocrCameraFacingMode: 'environment',
 
+  // Jalon 4: Coordination Tactique, Solveur Optimal & Escorte
+  redAlertActive: false,
+  escortCutPct: parseFloat(localStorage.getItem('aaron_mfd_escort_cut') || '15'),
+  optimalLoadoutTab: 'solo', // 'solo' | 'wing'
+  lastOptimalRecommendation: null,
+  jointFireState: 'standby', // 'standby' | 'charging' | 'green' | 'overheat'
+  wingFireStates: {},
+
+  // Jalon 5: Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)
+  activeHaulerId: localStorage.getItem('aaron_mfd_active_hauler') || 'taurus',
+  haulerHoldBags: JSON.parse(localStorage.getItem('aaron_mfd_hauler_hold') || '[]'),
+  pendingCargoPickups: [],
+  haulerCutPct: parseFloat(localStorage.getItem('aaron_mfd_hauler_cut') || '15'),
+
+  // Jalon 6: Bourse Commerciale, Arbitrage & UEX Corp
+  activeMktTab: 'arbitrage', // 'arbitrage' | 'terminals' | 'scout'
+  mktSystemFilter: 'all', // 'all' | 'stanton' | 'pyro' | 'nyx'
+  uexMarketStatus: 'cached', // 'live' | 'cached' | 'corpo'
+  uexLastSyncTimestamp: Date.now(),
+  customTerminalPrices: JSON.parse(localStorage.getItem('aaron_mfd_corpo_prices') || '{}'),
+  recentScoutReports: [],
+  currentSalesTour: null,
+
+  // Jalon 7: Stockpile de Guilde, Statuts Raffinage & Grand Livre des Dépenses
+  activeStockpileTab: 'overview', // 'overview' | 'refining' | 'expenses'
+  guildStockpile: [],
+  guildExpenses: [],
+  stockpileFilterStation: 'all',
+  stockpileFilterMineral: 'all',
+  stockpileFilterStatus: 'all',
+  pushNotificationEnabled: false,
+
+  // Jalon 7: Guild Treasury, mo.Trader Split & Crafting 4.0
+  guildTreasuryBalance: parseInt(localStorage.getItem('aaron_mfd_guild_treasury') || '250000', 10),
+  guildCorpoTaxPct: parseInt(localStorage.getItem('aaron_mfd_guild_tax_pct') || '10', 10),
+  guildPayoutStatuses: JSON.parse(localStorage.getItem('aaron_mfd_guild_payout_statuses') || '{}'),
+  guildCraftingGoals: JSON.parse(localStorage.getItem('aaron_mfd_guild_crafting_goals') || 'null') || [
+    {
+      id: 'goal-lancet',
+      itemId: 'lancet_mk2',
+      name: 'Lancet MH2 Custom (Tête S2)',
+      targetCount: 2,
+      requiredMinerals: [
+        { mineralId: 'quantainium', neededScu: 32 },
+        { mineralId: 'bexalite', neededScu: 16 },
+        { mineralId: 'taranite', neededScu: 8 }
+      ]
+    },
+    {
+      id: 'goal-sabir',
+      itemId: 'sabir_mod',
+      name: 'Module Actif Sabir 21 (x8)',
+      targetCount: 8,
+      requiredMinerals: [
+        { mineralId: 'borase', neededScu: 24 },
+        { mineralId: 'laranite', neededScu: 12 }
+      ]
+    }
+  ],
+
+  // Jalon 7: Commodity Trading & Cargo Routes
+  selectedTradeRouteId: 'route_med_hurston',
+  activeCargoCommodityId: 'medical_supplies',
+  customTradeRuns: JSON.parse(localStorage.getItem('aaron_mfd_custom_trade_runs') || '[]'),
+
   // Argo MOLE & Multi-turrets settings (all ships with 1, 2, or 3 turrets)
   moleActiveTurrets: 2, // 1 (solo), 2 (duo), 3 (trio)
   turretsByShip: {
@@ -155,12 +220,127 @@ const state = {
 // ==========================================
 const CHANGELOG_DATA = [
   {
-    version: 'v1.8.0',
+    version: 'v2.2.0',
     isCurrent: true,
-    title_fr: 'Jalons 1, 2 & 3 : Réseau Fleet-Net P2P, Crafting 4.0 & Scanner OCR Instantané',
-    title_en: 'Milestones 1, 2 & 3: Fleet-Net P2P Network, Crafting 4.0 & Instant OCR Scanner',
+    title_fr: 'Jalon 7 : Ordres de Raffinage & Inventaire Partagé de Guilde',
+    title_en: 'Milestone 7: Refining Orders & Guild Shared Stockpile',
     date_fr: 'Version Actuelle (Alpha 4.10)',
     date_en: 'Current Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Inventaire Collaboratif & Stockpile de Guilde (Fleet-Net)</strong> : Mutualisation en temps réel des stocks de minerais bruts, en cours de raffinage et raffinés prêts à l\'enlèvement à travers toutes les stations de Stanton et Pyro. Synchronisation instantanée WebRTC via le paquet <code>CORPO_STOCK_SYNC</code>.',
+        text_en: '<strong>Guild Shared Stockpile & Fleet Logistics (Fleet-Net)</strong>: Real-time pooling and visibility of raw, refining and ready-to-haul refined mineral batches across Stanton & Pyro stations. Instant sub-150ms WebRTC sync via <code>CORPO_STOCK_SYNC</code> packets.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Calculateur de Valeur Nette de Guilde (Guild Net Worth)</strong> : Évaluation financière en direct du patrimoine minier de la corporation en aUEC basée sur les cours de marché UEX Corp, déduite des dépenses engagées.',
+        text_en: '<strong>Live Guild Net Worth Calculator</strong>: Real-time valuation of total corporation mineral assets in aUEC dynamically tracked against UEX Corp live market prices minus incurred fleet expenses.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Grand Livre des Dépenses Partagées (Corpo Expense Ledger)</strong> : Enregistrement centralisé et collaboratif des frais engagés (frais de raffinage, carburant Quantum, réparations, primes d\'escorte) pour un calcul transparent du bénéfice net réel de l\'opération et export 1-clic Discord.',
+        text_en: '<strong>Shared Corpo Expense Ledger</strong>: Centralized tracking of fleet operating expenses (refinery fees, quantum fuel, ship repairs, escort pay) automatically deducted from gross revenue for transparent crew splits with 1-click Discord export.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Statuts Logistiques Allégés & Notifications Web Push Déportées</strong> : Évite tout doublon avec les kiosques de jeu en proposant un statut logistique clair ("En raffinage" / "Prêt au transport") couplé à des notifications Push système sur PC et mobile dès qu\'un lot est prêt à être chargé dans un transporteur C2/Caterpillar.',
+        text_en: '<strong>Streamlined Refining Status & Desktop/Mobile Push Notifications</strong>: Avoids redundant in-game clutter by providing a clear logistics status ("In Refinery" / "Ready to Haul") paired with native Web Push notifications alerting pilots on PC & smartphone when batches are ready for C2/Caterpillar hauling.'
+      }
+    ]
+  },
+  {
+    version: 'v2.1.0',
+    isCurrent: false,
+    title_fr: 'Jalon 6 : Bourse Commerciale, API UEX Corp & Intelligence de Guilde',
+    title_en: 'Milestone 6: Commodity Exchange, UEX Corp API & Guild Scouts',
+    date_fr: 'Version Précédente',
+    date_en: 'Previous Version',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Intégration API Live UEX Corp & Cache Hors-Ligne</strong> : Connexion transparente à l\'API publique UEX Corp (<code>uexcorp.space</code>) pour récupérer les cours réels d\'achat et vente des minerais dans les terminaux TDD et stations de Stanton, Pyro et Nyx. Cache local persistant permettant un fonctionnement 100% hors-ligne avec badge d\'état dynamique (UEX LIVE / UEX CACHE / UEX GUILDE).',
+        text_en: '<strong>Live UEX Corp API & Offline Cache</strong>: Seamless integration with UEX Corp public API (<code>uexcorp.space</code>) fetching spot commodity prices across TDD terminals in Stanton, Pyro and Nyx. Persistent local cache for 100% offline operations with dynamic status badge (UEX LIVE / UEX CACHE / UEX GUILDE).'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Moteur d\'Arbitrage Économique (Brut vs Raffiné)</strong> : Comparateur en temps réel entre la vente brute immédiate et l\'ensemble des procédés de raffinage (Dinyx, Ferris Carbide, Cormack, Pyro-Burst) avec déduction des frais, calcul du rendement bonus de station, gain net en aUEC et ROI (+%).',
+        text_en: '<strong>Economic Arbitrage Engine (Raw vs Refined)</strong>: Real-time visual comparison between immediate raw sale and all refining methods (Dinyx, Ferris, Cormack, Pyro-Burst) accounting for refinery fees, station bonuses, net payout, and ROI percentage.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Calculateur de Tournée Commerciale Optimale</strong> : Analyse globale de la cargaison du mineur ou du transporteur et génération automatique d\'une tournée de vente multi-arrêts classée par profit maximum avec bouton 1-clic <code>📋 Copier la tournée</code> pour le chat ou Discord.',
+        text_en: '<strong>Optimal Trade Tour Route Calculator</strong>: Whole-hold cargo analysis and automatic multi-stop sales route planning maximizing total revenue with 1-click <code>📋 Copy Tour Route</code> for game chat or Discord.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Éclaireurs de Guilde & Crowdsourcing P2P (Fleet-Net)</strong> : Mise à jour collaborative des cours en 1 tap lors de la visite d\'un terminal TDD. Diffusion instantanée du paquet <code>CORPO_PRICE_UPDATE</code> à toute la flotte via WebRTC (< 150 ms) avec badge d\'éclaireur vérifié.',
+        text_en: '<strong>Corpo Price Scouts & P2P Crowdsourcing (Fleet-Net)</strong>: 1-tap collaborative spot price verification at TDD terminals. Instant sub-150ms broadcast of <code>CORPO_PRICE_UPDATE</code> packets across WebRTC to all wingmen with verified scout badges.'
+      }
+    ]
+  },
+  {
+    version: 'v2.0.0',
+    isCurrent: false,
+    title_fr: 'Jalon 5 : Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)',
+    title_en: 'Milestone 5: Specialized Haulers & Freight Logistics (Cargo Refactor 4.0)',
+    date_fr: 'Version Précédente',
+    date_en: 'Previous Version',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Flotte de Transporteurs 4.0 Authentique</strong> : Intégration de 10 transporteurs de fret (Constellation Taurus 174 SCU, RAFT 192 SCU, Caterpillar 576 SCU, C2 Hercules 696 SCU, Freelancer MAX 120 SCU, Hull A 64 SCU, Zeus Mk II CL 128 SCU, Cutlass Black 46 SCU, Hull C 4 608 SCU) avec rayons tracteurs dédiés S1/S2/S3 (6 000 à 45 000 N), topologies de grille (interne, externe, modulaire, spindle) et calcul des limites de sacoches Prospector & MOLE.',
+        text_en: '<strong>Authentic 4.0 Cargo Hauler Fleet</strong>: Comprehensive support for 10 freight haulers (Taurus 174 SCU, RAFT 192 SCU, Caterpillar 576 SCU, C2 696 SCU, Freelancer MAX 120 SCU, Hull A 64 SCU, Zeus CL 128 SCU, Cutlass Black 46 SCU, Hull C 4,608 SCU) with dedicated S1/S2/S3 tractor beams (6,000 to 45,000 N), physicalized grid topologies, and max saddlebag capacities.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Arrimage Ship-to-Ship en Plein Espace (Fleet-Net)</strong> : Bouton mineur <code>📡 APPELER TRANSPORT DE FRET</code> pour diffuser une demande d\'arrimage. Récupération instantanée par les transporteurs au rayon tracteur (<code>🧲 ARRIMAGE</code>), libérant automatiquement la soute et les sacoches du mineur sans retour en station.',
+        text_en: '<strong>In-Space Ship-to-Ship Cargo Transfer (Fleet-Net)</strong>: Miner 1-click action <code>📡 REQUEST CARGO PICKUP</code> to broadcast floating saddlebags. Instant recovery by wing haulers via tractor beam (<code>🧲 DOCK</code>), liberating miner hold capacity on the fly.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Gestionnaire de Grille de Fret Physicalisée (Cargo Grid Master)</strong> : Visualisation temps réel des conteneurs et sacoches arrimés sur la grille, indicateur d\'instabilité critique pour le Quantainium, estimation financière brute/raffinée et déchargement station 1-clic.',
+        text_en: '<strong>Physicalized Cargo Grid Master</strong>: Real-time visual display of physicalized cargo boxes & saddlebags, Quantainium instability alert badge, live raw/refined valuation, and station terminal cargo dump.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Commission Transporteur Dédiée</strong> : Curseur de répartition des gains (0 à 35%) pour rémunérer équitablement les pilotes de transport lourd au sein de l\'escadre.',
+        text_en: '<strong>Dedicated Hauler Commission Cut</strong>: Squad profit split slider (0-35%) to fairly compensate heavy cargo transport pilots.'
+      }
+    ]
+  },
+  {
+    version: 'v1.9.0',
+    isCurrent: false,
+    title_fr: 'Jalon 4 : Coordination Tactique, Solveur Optimal 4.0 & Escorte de Combat',
+    title_en: 'Milestone 4: Tactical Coordination, Optimal Loadout Solver 4.0 & Combat Escort',
+    date_fr: 'Version Actuelle (Alpha 4.10)',
+    date_en: 'Current Version (Alpha 4.10)',
+    items: [
+      {
+        tag: 'new',
+        text_fr: '<strong>Solveur de Loadout Optimal 4.0</strong> : Calcul prédictif automatique du meilleur loadout (tête laser, sous-modules, gadgets de surface) selon la masse et la résistance de la roche. Recommandation Solo et Escadre avec bouton 1-clic <code>⚡ ÉQUIPER CE LOADOUT</code> synchronisé avec la flotte.',
+        text_en: '<strong>Optimal Loadout Solver 4.0</strong>: Automated predictive calculation of optimal mining head, sub-modules, and surface gadget based on rock mass & resistance. Solo & Wing recommendations with 1-click <code>⚡ EQUIP THIS LOADOUT</code> synced with the fleet.'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Conseiller de Tir Conjoint & Séquençage</strong> : Protocole en 3 phases tactiques (Affaiblissement Lancet < 20%, Saturation Helix, Régulation zone verte 45-50%). Jauge de risque de surchauffe collective en temps réel et boutons de signalement radio (VEILLE, CHARGE, ZONE VERTE, SURCHAUFFE).',
+        text_en: '<strong>Joint Fire Coordinator & Stepped Sequencing</strong>: 3-phase tactical protocol (Lancet softening < 20%, Helix saturation, Green zone regulation 45-50%). Real-time cumulative overcharge risk gauge and live radio state sync buttons (STANDBY, CHARGING, GREEN ZONE, OVERHEAT).'
+      },
+      {
+        tag: 'new',
+        text_fr: '<strong>Module Sentinelle & Escorte (RED ALERT)</strong> : Déclenchement d\'alerte pirate en 1 tap avec sirène sonore d\'urgence, annonce vocale (TTS), calcul automatique du vecteur de repli Quantum (OM ou station la plus proche) et curseur de prime d\'escorte de combat (0-35%).',
+        text_en: '<strong>Sentinel & Escort Module (RED ALERT)</strong>: 1-tap pirate red alert trigger with emergency audio siren, cockpit voice callout (TTS), automatic quantum jump vector escape calculation (closest OM / station), and escort risk cut slider (0-35%).'
+      }
+    ]
+  },
+  {
+    version: 'v1.8.0',
+    isCurrent: false,
+    title_fr: 'Jalons 1, 2 & 3 : Réseau Fleet-Net P2P, Crafting 4.0 & Scanner OCR Instantané',
+    title_en: 'Milestones 1, 2 & 3: Fleet-Net P2P Network, Crafting 4.0 & Instant OCR Scanner',
+    date_fr: 'Version précédente (Alpha 4.10)',
+    date_en: 'Previous Version (Alpha 4.10)',
     items: [
       {
         tag: 'new',
@@ -595,6 +775,14 @@ class SoundFX {
     this.playBeep(880, 'square', 0.12);
     setTimeout(() => this.playBeep(440, 'square', 0.16), 140);
   }
+
+  playAlarm() {
+    if (!state.audioEnabled) return;
+    this.playBeep(920, 'sawtooth', 0.14);
+    setTimeout(() => this.playBeep(680, 'sawtooth', 0.14), 150);
+    setTimeout(() => this.playBeep(920, 'sawtooth', 0.14), 300);
+    setTimeout(() => this.playBeep(680, 'sawtooth', 0.14), 450);
+  }
 }
 
 const sfx = new SoundFX();
@@ -739,18 +927,35 @@ const DOM = {
   whereToMineCard: document.getElementById('whereToMineCard'),
   wtmMineralBadge: document.getElementById('wtmMineralBadge'),
   wtmSpotsList: document.getElementById('wtmSpotsList'),
-  activeLaserDashStrip: document.getElementById('activeLaserDashStrip'),
-  alsShipTag: document.getElementById('alsShipTag'),
-  alsHeadName: document.getElementById('alsHeadName'),
-  alsModulesList: document.getElementById('alsModulesList'),
-  alsPowerVal: document.getElementById('alsPowerVal'),
-  btnQuickEditLaser: document.getElementById('btnQuickEditLaser'),
   optimalLoadoutCard: document.getElementById('optimalLoadoutCard'),
   olcFeasibilityTag: document.getElementById('olcFeasibilityTag'),
   olcBody: document.getElementById('olcBody'),
   stationPriceComparatorCard: document.getElementById('stationPriceComparatorCard'),
   spcOreTag: document.getElementById('spcOreTag'),
   spcTableContainer: document.getElementById('spcTableContainer'),
+  uexSyncBadge: document.getElementById('uexSyncBadge'),
+  uexSyncText: document.getElementById('uexSyncText'),
+  btnRefreshUex: document.getElementById('btnRefreshUex'),
+  btnMktTabArbitrage: document.getElementById('btnMktTabArbitrage'),
+  btnMktTabTerminals: document.getElementById('btnMktTabTerminals'),
+  btnMktTabScout: document.getElementById('btnMktTabScout'),
+  mktPaneArbitrage: document.getElementById('mktPaneArbitrage'),
+  mktPaneTerminals: document.getElementById('mktPaneTerminals'),
+  mktPaneScout: document.getElementById('mktPaneScout'),
+  mktArbitrageBanner: document.getElementById('mktArbitrageBanner'),
+  mktArbitrageAdviceText: document.getElementById('mktArbitrageAdviceText'),
+  mktArbitrageRoiBadge: document.getElementById('mktArbitrageRoiBadge'),
+  mktMethodsGrid: document.getElementById('mktMethodsGrid'),
+  mktTerminalsTable: document.getElementById('mktTerminalsTable'),
+  mktTourStopsContainer: document.getElementById('mktTourStopsContainer'),
+  mktTourTotalPayout: document.getElementById('mktTourTotalPayout'),
+  btnCopySalesTour: document.getElementById('btnCopySalesTour'),
+  selectScoutTerminal: document.getElementById('selectScoutTerminal'),
+  selectScoutMineral: document.getElementById('selectScoutMineral'),
+  inputScoutPrice: document.getElementById('inputScoutPrice'),
+  selectScoutDemand: document.getElementById('selectScoutDemand'),
+  btnBroadcastScoutPrice: document.getElementById('btnBroadcastScoutPrice'),
+  mktScoutFeed: document.getElementById('mktScoutFeed'),
 
   // Cockpit Voice (TTS) & Radar Decoder Triggers
   btnVoiceTTS: document.getElementById('btnVoiceTTS'),
@@ -863,7 +1068,7 @@ const DOM = {
   breakTreeExtractedTotal: document.getElementById('breakTreeExtractedTotal'),
   btnFinishBreakTree: document.getElementById('btnFinishBreakTree'),
 
-  // Refinery Modal
+  // Refinery & Guild Stockpile Modal (Jalon 7)
   refineryModal: document.getElementById('refineryModal'),
   btnCloseRefinery: document.getElementById('btnCloseRefinery'),
   refineryActiveCount: document.getElementById('refineryActiveCount'),
@@ -872,6 +1077,87 @@ const DOM = {
   refineryOrderMethodSelect: document.getElementById('refineryOrderMethodSelect'),
   btnConfirmRefineryJob: document.getElementById('btnConfirmRefineryJob'),
   refineryJobsList: document.getElementById('refineryJobsList'),
+
+  // Jalon 7: Guild Stockpile & Shared Expense Ledger
+  stockpileSubtabsBar: document.getElementById('stockpileSubtabsBar'),
+  btnStockpileTabOverview: document.getElementById('btnStockpileTabOverview'),
+  btnStockpileTabRefining: document.getElementById('btnStockpileTabRefining'),
+  btnStockpileTabExpenses: document.getElementById('btnStockpileTabExpenses'),
+  paneStockpileOverview: document.getElementById('paneStockpileOverview'),
+  paneStockpileRefining: document.getElementById('paneStockpileRefining'),
+  paneStockpileExpenses: document.getElementById('paneStockpileExpenses'),
+  guildNetWorthDisplay: document.getElementById('guildNetWorthDisplay'),
+  guildTotalScuDisplay: document.getElementById('guildTotalScuDisplay'),
+  guildReadyLotsDisplay: document.getElementById('guildReadyLotsDisplay'),
+  guildExpenseTotalDisplay: document.getElementById('guildExpenseTotalDisplay'),
+  stockpileStationFilter: document.getElementById('stockpileStationFilter'),
+  stockpileMineralFilter: document.getElementById('stockpileMineralFilter'),
+  btnQuickDepositHold: document.getElementById('btnQuickDepositHold'),
+  btnToggleManualLotForm: document.getElementById('btnToggleManualLotForm'),
+  btnSyncStockpileFleet: document.getElementById('btnSyncStockpileFleet'),
+  manualLotCard: document.getElementById('manualLotCard'),
+  manualLotStationSelect: document.getElementById('manualLotStationSelect'),
+  manualLotMineralSelect: document.getElementById('manualLotMineralSelect'),
+  manualLotScuInput: document.getElementById('manualLotScuInput'),
+  manualLotStatusSelect: document.getElementById('manualLotStatusSelect'),
+  btnSubmitManualStockLot: document.getElementById('btnSubmitManualStockLot'),
+  guildStockpileList: document.getElementById('guildStockpileList'),
+  pushStatusBadge: document.getElementById('pushStatusBadge'),
+  btnRequestPushPerm: document.getElementById('btnRequestPushPerm'),
+  btnTestPushAlert: document.getElementById('btnTestPushAlert'),
+  expenseLedgerNetVal: document.getElementById('expenseLedgerNetVal'),
+  expenseLedgerTotalVal: document.getElementById('expenseLedgerTotalVal'),
+  expenseLedgerGrossVal: document.getElementById('expenseLedgerGrossVal'),
+  expenseCategorySelect: document.getElementById('expenseCategorySelect'),
+  expenseAmountInput: document.getElementById('expenseAmountInput'),
+  expenseAuthorInput: document.getElementById('expenseAuthorInput'),
+  expenseLocationInput: document.getElementById('expenseLocationInput'),
+  expenseNoteInput: document.getElementById('expenseNoteInput'),
+  btnAddExpenseSubmit: document.getElementById('btnAddExpenseSubmit'),
+  guildExpensesList: document.getElementById('guildExpensesList'),
+  btnCopyExpensesDiscord: document.getElementById('btnCopyExpensesDiscord'),
+  btnSyncExpensesFleet: document.getElementById('btnSyncExpensesFleet'),
+  btnClearExpensesAll: document.getElementById('btnClearExpensesAll'),
+
+  // Jalon 7: Guild Treasury, mo.Trader Split & Crafting 4.0
+  btnStockpileTabTreasury: document.getElementById('btnStockpileTabTreasury'),
+  paneStockpileTreasury: document.getElementById('paneStockpileTreasury'),
+  treasuryBalanceVal: document.getElementById('treasuryBalanceVal'),
+  treasuryTaxSelect: document.getElementById('treasuryTaxSelect'),
+  btnDepositTreasury: document.getElementById('btnDepositTreasury'),
+  btnWithdrawTreasury: document.getElementById('btnWithdrawTreasury'),
+  btnCopyMoTrader: document.getElementById('btnCopyMoTrader'),
+  moTraderTableBody: document.getElementById('moTraderTableBody'),
+  btnToggleAddGoalForm: document.getElementById('btnToggleAddGoalForm'),
+  addCraftingGoalForm: document.getElementById('addCraftingGoalForm'),
+  craftingGoalItemSelect: document.getElementById('craftingGoalItemSelect'),
+  craftingGoalCountInput: document.getElementById('craftingGoalCountInput'),
+  btnSubmitCraftingGoal: document.getElementById('btnSubmitCraftingGoal'),
+  craftingGoalsList: document.getElementById('craftingGoalsList'),
+  btnSyncTreasuryFleet: document.getElementById('btnSyncTreasuryFleet'),
+
+  // Jalon 7: Commodity Trading & Cargo Routes
+  btnStockpileTabTrading: document.getElementById('btnStockpileTabTrading'),
+  paneStockpileTrading: document.getElementById('paneStockpileTrading'),
+  tradePresetRouteSelect: document.getElementById('tradePresetRouteSelect'),
+  tradeCommoditySelect: document.getElementById('tradeCommoditySelect'),
+  tradeCargoScuInput: document.getElementById('tradeCargoScuInput'),
+  tradeOriginInput: document.getElementById('tradeOriginInput'),
+  tradeDestinationInput: document.getElementById('tradeDestinationInput'),
+  tradeBuyPriceInput: document.getElementById('tradeBuyPriceInput'),
+  tradeSellPriceInput: document.getElementById('tradeSellPriceInput'),
+  tradeRiskBadge: document.getElementById('tradeRiskBadge'),
+  tradeCapitalRequiredVal: document.getElementById('tradeCapitalRequiredVal'),
+  tradeGrossReturnVal: document.getElementById('tradeGrossReturnVal'),
+  tradeNetProfitVal: document.getElementById('tradeNetProfitVal'),
+  tradeMarginPerScuVal: document.getElementById('tradeMarginPerScuVal'),
+  tradeRoiPercentVal: document.getElementById('tradeRoiPercentVal'),
+  btnFinanceTradeTreasury: document.getElementById('btnFinanceTradeTreasury'),
+  btnAddTradeToStockpile: document.getElementById('btnAddTradeToStockpile'),
+  btnSyncTradeFleet: document.getElementById('btnSyncTradeFleet'),
+  popularTradeRoutesGrid: document.getElementById('popularTradeRoutesGrid'),
+  manualLotCategorySelect: document.getElementById('manualLotCategorySelect'),
+  manualLotBuyCostInput: document.getElementById('manualLotBuyCostInput'),
 
   // Flight Ledger Modal
   ledgerModal: document.getElementById('ledgerModal'),
@@ -1060,6 +1346,67 @@ const DOM = {
   btnCancelOcr: document.getElementById('btnCancelOcr'),
   btnApplyOcrData: document.getElementById('btnApplyOcrData'),
 
+  // Jalon 4: Coordination Tactique, Solveur Optimal & Escorte
+  btnMgRedAlert: document.getElementById('btnMgRedAlert'),
+  btnRedAlertTrigger: document.getElementById('btnRedAlertTrigger'),
+  redAlertBanner: document.getElementById('redAlertBanner'),
+  redAlertTitle: document.getElementById('redAlertTitle'),
+  redAlertDesc: document.getElementById('redAlertDesc'),
+  redAlertEscapeVector: document.getElementById('redAlertEscapeVector'),
+  btnDeployEscortCombat: document.getElementById('btnDeployEscortCombat'),
+  btnDismissRedAlert: document.getElementById('btnDismissRedAlert'),
+
+  // Solveur Optimal 4.0
+  tabOlcSolo: document.getElementById('tabOlcSolo'),
+  tabOlcWing: document.getElementById('tabOlcWing'),
+  btnApplyOptimalLoadout: document.getElementById('btnApplyOptimalLoadout'),
+  olcFreqSummary: document.getElementById('olcFreqSummary'),
+
+  // Conseiller de Tir Conjoint
+  jointFireCard: document.getElementById('jointFireCard'),
+  jointFirePhaseTag: document.getElementById('jointFirePhaseTag'),
+  fireStep1: document.getElementById('fireStep1'),
+  fireStep1Desc: document.getElementById('fireStep1Desc'),
+  fireStep2: document.getElementById('fireStep2'),
+  fireStep2Desc: document.getElementById('fireStep2Desc'),
+  fireStep3: document.getElementById('fireStep3'),
+  fireStep3Desc: document.getElementById('fireStep3Desc'),
+  overchargeRiskVal: document.getElementById('overchargeRiskVal'),
+  overchargeRiskFill: document.getElementById('overchargeRiskFill'),
+  btnFireStateStandby: document.getElementById('btnFireStateStandby'),
+  btnFireStateCharging: document.getElementById('btnFireStateCharging'),
+  btnFireStateGreen: document.getElementById('btnFireStateGreen'),
+  btnFireStateOverheat: document.getElementById('btnFireStateOverheat'),
+
+  // Prime d'Escorte Combat
+  escortCutSlider: document.getElementById('escortCutSlider'),
+  escortCutDisplay: document.getElementById('escortCutDisplay'),
+  escortCutDeducted: document.getElementById('escortCutDeducted'),
+
+  // Jalon 5: Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)
+  btnBroadcastPickupRequest: document.getElementById('btnBroadcastPickupRequest'),
+  cargoGridMasterCard: document.getElementById('cargoGridMasterCard'),
+  selectActiveHauler: document.getElementById('selectActiveHauler'),
+  haulerTractorSpecBadge: document.getElementById('haulerTractorSpecBadge'),
+  haulerCapacityDisplay: document.getElementById('haulerCapacityDisplay'),
+  haulerGridTypeDisplay: document.getElementById('haulerGridTypeDisplay'),
+  haulerMaxBagsDisplay: document.getElementById('haulerMaxBagsDisplay'),
+  haulerHoldProgressLabel: document.getElementById('haulerHoldProgressLabel'),
+  haulerBarFill: document.getElementById('haulerBarFill'),
+  haulerQuantainiumAlert: document.getElementById('haulerQuantainiumAlert'),
+  haulerCargoVisualGrid: document.getElementById('haulerCargoVisualGrid'),
+  haulerRawValDisplay: document.getElementById('haulerRawValDisplay'),
+  haulerRefinedValDisplay: document.getElementById('haulerRefinedValDisplay'),
+  btnClearHaulerHold: document.getElementById('btnClearHaulerHold'),
+  btnAddOneHaulerBag: document.getElementById('btnAddOneHaulerBag'),
+  btnAddBox32: document.getElementById('btnAddBox32'),
+  btnTransferHoldToHauler: document.getElementById('btnTransferHoldToHauler'),
+  pendingPickupsCount: document.getElementById('pendingPickupsCount'),
+  pendingPickupsList: document.getElementById('pendingPickupsList'),
+  haulerCutSlider: document.getElementById('haulerCutSlider'),
+  haulerCutDisplay: document.getElementById('haulerCutDisplay'),
+  haulerCutDeducted: document.getElementById('haulerCutDeducted'),
+
   // Callsign Modal
   callsignModal: document.getElementById('callsignModal'),
   callsignModalInput: document.getElementById('callsignModalInput'),
@@ -1148,6 +1495,10 @@ function init() {
   initCraftingWorkshop();
   initFleetNet();
   initOcrScanner();
+  initTacticalCoordinator();
+  initCargoGridMaster();
+  initMarketAndArbitrage();
+  initGuildStockpileAndExpenses();
   loadSavedSession();
   loadSavedLoadout();
   loadRefineryJobs();
@@ -2772,9 +3123,8 @@ function calculateAll() {
 
   // 11. Cockpit MFD Telemetry Extensions (High-density telemetry)
   updateWhereToMineBox(mineral);
-  updateActiveLaserStrip(ship, totalLaserPower, activeLaserDescList);
-  updateOptimalLoadoutAdvisor(mass, effectiveResistance, totalLaserPower, ship, mineral, powerRatio);
-  updateStationPriceComparison(mineral, pureSCU, refinedPrice);
+  updateOptimalLoadoutAdvisor(mass, effectiveResistance, effectiveInstability, totalLaserPower, ship, mineral, powerRatio);
+  updateStationPriceComparison(mineral, pureSCU, refinedPrice, rawPrice);
   updateScanSubtabBadges(state.selectedArchetype, mineral);
   triggerAutoBroadcastDebounced();
 }
@@ -2825,105 +3175,926 @@ function updateWhereToMineBox(mineral) {
   }).join('');
 }
 
-function updateActiveLaserStrip(ship, totalLaserPower, activeLaserDescList) {
-  if (!DOM.activeLaserDashStrip) return;
-  if (DOM.alsShipTag) {
-    DOM.alsShipTag.textContent = (ship.shortName || ship.name || 'SHIP').toUpperCase();
-  }
+function computeOptimalLoadout(mode = 'solo', mass, baseResistance, baseInstability, ship) {
+  const compatibleLasers = [
+    ...MINING_DATA.lasers,
+    ...(state.customLasers || [])
+  ].filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
 
-  if (DOM.alsHeadName) {
-    if (ship.id === 'mole' && state.moleActiveTurrets > 1) {
-      DOM.alsHeadName.textContent = `MOLE (${state.moleActiveTurrets} tourelles)`;
-    } else {
-      DOM.alsHeadName.textContent = state.selectedLaser ? state.selectedLaser.name : 'Laser MH1';
+  const candidateModules = MINING_DATA.modules.filter(m => m.id !== 'none');
+  const candidateGadgets = [
+    ...MINING_DATA.gadgets,
+    ...(state.customGadgets || [])
+  ].filter(g => g.id !== 'none');
+
+  const maxSlots = ship.moduleSlots || 0;
+
+  let bestLaser = compatibleLasers[0] || MINING_DATA.lasers[0];
+  let bestModules = [];
+  let bestGadget = null;
+  let bestScore = -Infinity;
+  let bestRatio = 0;
+  let bestReqW = 1;
+  let bestTotW = 0;
+  let bestEffRes = baseResistance;
+  let bestEffInst = baseInstability;
+
+  for (const laser of compatibleLasers) {
+    const gadgetsToTest = [null, ...candidateGadgets];
+    for (const gadget of gadgetsToTest) {
+      const moduleSets = [];
+      if (maxSlots === 0) {
+        moduleSets.push([]);
+      } else if (maxSlots === 1) {
+        moduleSets.push([]);
+        candidateModules.forEach(m => moduleSets.push([m]));
+      } else if (maxSlots === 2) {
+        moduleSets.push([]);
+        candidateModules.forEach(m => moduleSets.push([m]));
+        const surge = candidateModules.find(m => m.id === 'surge');
+        const focus = candidateModules.find(m => m.id === 'focus_3');
+        const rieger = candidateModules.find(m => m.id === 'rieger_c3');
+        const brandt = candidateModules.find(m => m.id === 'brandt');
+        if (focus && surge) moduleSets.push([focus, surge]);
+        if (rieger && surge) moduleSets.push([rieger, surge]);
+        if (focus && brandt) moduleSets.push([focus, brandt]);
+      } else {
+        moduleSets.push([]);
+        candidateModules.forEach(m => moduleSets.push([m]));
+        const surge = candidateModules.find(m => m.id === 'surge');
+        const focus = candidateModules.find(m => m.id === 'focus_3');
+        const rieger = candidateModules.find(m => m.id === 'rieger_c3');
+        const brandt = candidateModules.find(m => m.id === 'brandt');
+        if (focus && surge && rieger) moduleSets.push([focus, surge, rieger]);
+        if (focus && brandt && surge) moduleSets.push([focus, brandt, surge]);
+      }
+
+      for (const mSet of moduleSets) {
+        const modResMod = mSet.reduce((acc, m) => acc + (m.resMod || 0), 0);
+        const modInstMod = mSet.reduce((acc, m) => acc + (m.instMod || 0), 0);
+        const modPwrMod = mSet.reduce((acc, m) => acc + (m.powerMod || 0), 0);
+
+        const gadResMod = gadget ? (gadget.resMod || 0) : 0;
+        const gadInstMod = gadget ? (gadget.instMod || 0) : 0;
+
+        const effRes = Math.max(0, baseResistance * (1 + (laser.resistanceMod || 0) + gadResMod + modResMod));
+        const effInst = Math.max(0, baseInstability * (1 + (laser.instabilityMod || 0) + gadInstMod + modInstMod));
+
+        const reqW = (mass * 0.32) * (1 + (effRes / 100));
+        const totW = (laser.power || 0) * (1 + modPwrMod);
+        const ratio = totW / Math.max(1, reqW);
+
+        let score = 0;
+        if (ratio >= 1.05) {
+          score = 1000 - Math.abs(ratio - 1.25) * 80 - effInst * 1.5;
+        } else {
+          score = ratio * 600 - effInst * 2;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestLaser = laser;
+          bestModules = mSet;
+          bestGadget = gadget;
+          bestRatio = ratio;
+          bestReqW = reqW;
+          bestTotW = totW;
+          bestEffRes = effRes;
+          bestEffInst = effInst;
+        }
+      }
     }
   }
 
-  if (DOM.alsModulesList) {
-    const mods = (state.selectedModules || []).filter(Boolean);
-    if (mods.length > 0) {
-      DOM.alsModulesList.innerHTML = mods.map(m => `<span class="als-module-badge">${m.name}</span>`).join('');
-    } else {
-      DOM.alsModulesList.innerHTML = `<span class="als-module-badge" style="opacity:0.6;">0 module</span>`;
-    }
-  }
-
-  if (DOM.alsPowerVal) {
-    const locale = getLocale();
-    DOM.alsPowerVal.textContent = `${totalLaserPower.toLocaleString(locale)} W`;
-  }
+  return {
+    mode,
+    laser: bestLaser,
+    modules: bestModules,
+    gadget: bestGadget,
+    powerRatio: bestRatio,
+    requiredPower: Math.round(bestReqW),
+    totalPower: Math.round(bestTotW),
+    effectiveResistance: Math.round(bestEffRes),
+    effectiveInstability: Math.round(bestEffInst)
+  };
 }
 
-function updateOptimalLoadoutAdvisor(mass, effResistance, totalLaserPower, ship, mineral, powerRatio) {
+function updateOptimalLoadoutAdvisor(mass, effResistance, effInstability, totalLaserPower, ship, mineral, powerRatio) {
   if (!DOM.optimalLoadoutCard || !DOM.olcBody || !DOM.olcFeasibilityTag) return;
   const isEn = state.currentLang === 'en';
   const locale = getLocale();
+  const mode = state.optimalLoadoutTab || 'solo';
+
+  const rec = computeOptimalLoadout(mode, mass, state.resistance, state.instability, ship);
+  state.lastOptimalRecommendation = rec;
 
   let tagClass = 'optimal';
   let tagText = isEn ? 'OPTIMAL' : 'OPTIMAL';
-  let tips = [];
 
-  if (powerRatio >= 1.05) {
+  if (mode === 'wing') {
+    tagClass = 'wing';
+    tagText = isEn ? 'WING COORD' : 'COORDINATION ESCADRE';
+  } else if (rec.powerRatio >= 1.05) {
     tagClass = 'optimal';
-    tagText = isEn ? 'READY TO FRACTURE' : 'PRÊT À FRACTURER';
-    tips.push({
-      icon: '✅',
-      text: isEn 
-        ? `Sufficient power output (${totalLaserPower.toLocaleString(locale)} W). Stable optimal window.`
-        : `Puissance amplement suffisante (${totalLaserPower.toLocaleString(locale)} W). Fenêtre verte facilement saturable.`
-    });
-  } else if (powerRatio >= 0.85) {
+    tagText = isEn ? 'FRACTURE READY' : 'PRÊT À FRACTURER';
+  } else if (rec.powerRatio >= 0.85) {
     tagClass = 'warning';
     tagText = isEn ? 'BORDERLINE' : 'LIMITE';
-    tips.push({
-      icon: '⚠️',
-      text: isEn
-        ? `Power is close to threshold. Recommend mounting a Sabir 21 gadget (-50% res.) or a Surge module.`
-        : `Puissance limite pour cette masse (${mass.toLocaleString(locale)} kg). Conseil Tactique : posez un gadget Sabir 21 (-50% rés.) ou déclenchez un module Surge.`
-    });
   } else {
     tagClass = 'danger';
-    tagText = isEn ? 'UNDERPOWERED' : 'INSUFFISANT';
-    const deficitW = Math.round(totalLaserPower * (1 - powerRatio) / (powerRatio || 1));
-    tips.push({
-      icon: '🚨',
-      text: isEn
-        ? `Deficit of ~${deficitW.toLocaleString(locale)} W. Switch to Lancet-MH2 / Helix or attach BoreMax gadget (-75% res).`
-        : `Déficit d'environ ~${deficitW.toLocaleString(locale)} W. Recommandation : équipez une tête Lancet / Helix, un gadget BoreMax (-75% rés.) ou activez une 2e tourelle en escouade.`
-    });
-  }
-
-  // Resistance tip
-  if (effResistance > 50) {
-    tips.push({
-      icon: '🛡️',
-      text: isEn
-        ? `High rock resistance (${effResistance}%). Opt for a Lancet head (-75% resistance bonus).`
-        : `Forte résistance géologique (${effResistance}%). Privilégiez une tête Lancet ou un gadget OptiMax.`
-    });
+    tagText = isEn ? 'WING REQUIRED' : 'ESCADRE REQUISE';
   }
 
   DOM.olcFeasibilityTag.className = `olc-feasibility-tag ${tagClass}`;
   DOM.olcFeasibilityTag.textContent = tagText;
 
-  DOM.olcBody.innerHTML = tips.map(tip => `
-    <div class="olc-tip-item">
-      <span class="olc-tip-icon">${tip.icon}</span>
-      <span>${tip.text}</span>
+  const laserName = rec.laser.name;
+  const modulesDesc = rec.modules.length > 0 
+    ? rec.modules.map(m => getLocalized(m, 'name')).join(' + ')
+    : (isEn ? 'None (Raw Head)' : 'Aucun (Tête brute)');
+  const gadgetDesc = rec.gadget 
+    ? getLocalized(rec.gadget, 'name')
+    : (isEn ? 'Optional / None' : 'Optionnel / Aucun');
+
+  let html = `
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px; font-size:0.75rem;">
+      <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px; border-left:2px solid var(--accent-cyan);">
+        <div style="font-size:0.65rem; color:var(--text-muted); font-family:var(--font-hud);">${isEn ? 'RECOMMENDED HEAD' : 'TÊTE CONSEILLÉE'}</div>
+        <div style="font-weight:700; color:var(--text-bright);">${laserName}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px; border-left:2px solid var(--accent-amber);">
+        <div style="font-size:0.65rem; color:var(--text-muted); font-family:var(--font-hud);">${isEn ? 'SURFACE GADGET' : 'GADGET DE SURFACE'}</div>
+        <div style="font-weight:700; color:var(--text-bright);">${gadgetDesc}</div>
+      </div>
     </div>
-  `).join('');
+    <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px; border-left:2px solid var(--accent-emerald); font-size:0.75rem; margin-bottom:6px;">
+      <div style="font-size:0.65rem; color:var(--text-muted); font-family:var(--font-hud);">${isEn ? 'OPTIMAL SUB-MODULES' : 'SOUS-MODULES CONSEILLÉS'}</div>
+      <div style="font-weight:600; color:var(--accent-emerald);">${modulesDesc}</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-dim); font-family:var(--font-mono);">
+      <span>${isEn ? 'Req. Wattage:' : 'Puissance requise :'} <strong style="color:var(--text-bright);">${rec.requiredPower.toLocaleString(locale)} W</strong></span>
+      <span>${isEn ? 'Projected Power:' : 'Puissance projetée :'} <strong style="color:${rec.powerRatio >= 1.05 ? 'var(--accent-emerald)' : 'var(--accent-amber)'};">${rec.totalPower.toLocaleString(locale)} W (${(rec.powerRatio * 100).toFixed(0)}%)</strong></span>
+    </div>
+  `;
+
+  if (mode === 'wing') {
+    const minTurrets = Math.max(2, Math.ceil(rec.requiredPower / 4200));
+    html += `
+      <div style="margin-top:6px; padding:6px; background:rgba(0,240,255,0.06); border:1px solid rgba(0,240,255,0.2); border-radius:4px; font-size:0.72rem;">
+        <div style="font-weight:700; color:var(--accent-cyan); margin-bottom:2px;">👥 ${isEn ? 'TACTICAL SQUAD FORMATION' : 'FORMATION ESCADRE TACTIQUE'} (${minTurrets} ${isEn ? 'Turrets/Ships Min.' : 'Tourelles/Vaisseaux Min.'})</div>
+        <div style="color:var(--text-bright); line-height:1.3;">
+          • <strong>Pilote 1 (Support) :</strong> Lancet S2/S1 + Sabir 21 (-50% rés.)<br>
+          • <strong>Pilote 2 (Saturation) :</strong> Helix II/I + Surge (+35% charge)<br>
+          • <strong>Pilote 3 (Maintien) :</strong> Arbor / Impact + Focus III (Zone verte)
+        </div>
+      </div>
+    `;
+  }
+
+  DOM.olcBody.innerHTML = html;
 }
 
-function updateStationPriceComparison(mineral, pureSCU, refinedPrice) {
+function applyOptimalLoadout() {
+  const rec = state.lastOptimalRecommendation;
+  if (!rec || !rec.laser) return;
+
+  state.selectedLaser = rec.laser;
+  if (rec.modules && rec.modules.length > 0) {
+    state.selectedModules = [
+      rec.modules[0]?.id || 'none',
+      rec.modules[1]?.id || 'none',
+      rec.modules[2]?.id || 'none'
+    ];
+  } else {
+    state.selectedModules = ['none', 'none', 'none'];
+  }
+  if (rec.gadget) {
+    state.selectedGadget = rec.gadget;
+  }
+
+  const configs = getShipTurretConfigs(state.selectedShip.id);
+  if (configs && configs[0]) {
+    configs[0].laserId = rec.laser.id;
+    configs[0].moduleIds = [...state.selectedModules];
+  }
+
+  saveLoadout();
+  calculateAll();
+  renderShipTurretsConfig();
+  updateLaserOptions();
+  renderSquadWingmen();
+  broadcastLocalLoadout();
+
+  sfx.playSuccess();
+  triggerHaptic(25);
+  const t = I18N[state.currentLang] || I18N.fr;
+  showToast(t.olcAppliedToast || '⚡ Loadout optimal appliqué et synchronisé avec la flotte !');
+}
+
+function updateJointFireCoordinator() {
+  // Retiré : les pilotes utilisent directement les communications vocales Discord en vol.
+}
+
+function setJointFireState(newState, broadcast = true) {
+  state.jointFireState = newState;
+  const btnMap = {
+    standby: DOM.btnFireStateStandby,
+    charging: DOM.btnFireStateCharging,
+    green: DOM.btnFireStateGreen,
+    overheat: DOM.btnFireStateOverheat
+  };
+  Object.keys(btnMap).forEach(k => {
+    if (btnMap[k]) {
+      if (k === newState) {
+        btnMap[k].classList.add('active');
+      } else {
+        btnMap[k].classList.remove('active');
+      }
+    }
+  });
+
+  if (newState === 'overheat') {
+    sfx.playCritical();
+    cockpitVoice.speak("Attention ! Risque critique de surchauffe !", "Warning! Critical overheat risk!");
+  } else if (newState === 'green') {
+    sfx.playSuccess();
+  } else {
+    sfx.playBeep(520, 'sine', 0.04);
+  }
+
+  if (broadcast && fleetNet && fleetNet.connected) {
+    fleetNet.broadcastJointFireSync({
+      fireState: newState,
+      senderCallsign: state.callsign || 'CITIZEN-1',
+      timestamp: Date.now()
+    });
+  }
+}
+
+function handleIncomingJointFireSync(fireData, senderCallsign) {
+  if (!fireData || !fireData.fireState) return;
+  state.wingFireStates[senderCallsign] = {
+    fireState: fireData.fireState,
+    timestamp: fireData.timestamp || Date.now()
+  };
+  renderJointFireWingStatus();
+}
+
+function renderJointFireWingStatus() {
+  if (!DOM.jointFireCard) return;
+  let statusContainer = document.getElementById('jointFireWingStatus');
+  if (!statusContainer) {
+    statusContainer = document.createElement('div');
+    statusContainer.id = 'jointFireWingStatus';
+    statusContainer.style.cssText = 'display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06); font-size:0.7rem;';
+    DOM.jointFireCard.appendChild(statusContainer);
+  }
+
+  const entries = Object.entries(state.wingFireStates);
+  if (entries.length === 0) {
+    statusContainer.innerHTML = '';
+    return;
+  }
+  const isEn = state.currentLang === 'en';
+  statusContainer.innerHTML = entries.map(([callsign, data]) => {
+    let color = 'var(--text-dim)';
+    let label = data.fireState;
+    if (data.fireState === 'charging') { color = 'var(--accent-orange, #f59e0b)'; label = isEn ? 'CHARGE' : 'CHARGE'; }
+    else if (data.fireState === 'green') { color = 'var(--accent-green, #10b981)'; label = isEn ? 'GREEN' : 'ZONE VERTE'; }
+    else if (data.fireState === 'overheat') { color = 'var(--accent-red, #ef4444)'; label = isEn ? 'OVERHEAT' : 'SURCHAUFFE'; }
+    else { label = 'STANDBY'; }
+    return `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.06); font-family:var(--font-mono); border-left:3px solid ${color};">
+      <strong>${callsign}</strong>: <span style="color:${color}; font-weight:700;">${label}</span>
+    </span>`;
+  }).join(' ');
+}
+
+function getEmergencyEscapeVector() {
+  const sys = (state.mineralSystemFilter && state.mineralSystemFilter !== 'all') 
+    ? state.mineralSystemFilter.toUpperCase() 
+    : 'STANTON';
+  if (sys === 'PYRO') {
+    return 'PYRO // CHECKMATE STATION - VECTOR 042° (JUMP 18.2 Gm)';
+  } else if (sys === 'NYX') {
+    return 'NYX // DELAMAR OM-1 / LEVSKI RETREAT (JUMP 9.4 Gm)';
+  } else {
+    return 'STANTON // HUR-L1 GREEN BAND OM-1 (JUMP 24.8 Gm)';
+  }
+}
+
+function triggerRedAlert(source = 'local', incomingData = null) {
+  state.redAlertActive = true;
+  document.body.classList.add('red-alert-active');
+  if (DOM.redAlertBanner) {
+    DOM.redAlertBanner.style.display = 'flex';
+  }
+  const vector = incomingData?.emergencyVector || getEmergencyEscapeVector();
+  if (DOM.redAlertEscapeVector) {
+    DOM.redAlertEscapeVector.textContent = vector;
+  }
+  sfx.playAlarm();
+  triggerHaptic([100, 50, 100, 50, 200]);
+  cockpitVoice.speak(
+    "Alerte rouge ! Contact hostile détecté ! Évacuation d'urgence recommandée.",
+    "Red alert! Hostile contact detected! Emergency jump recommended."
+  );
+  if (source === 'local') {
+    if (fleetNet && fleetNet.connected) {
+      fleetNet.broadcastRedAlert({
+        active: true,
+        emergencyVector: vector,
+        senderCallsign: state.callsign || 'CITIZEN-1',
+        timestamp: Date.now()
+      });
+    }
+    const t = I18N[state.currentLang] || I18N.fr;
+    showToast(t.redAlertBroadcastToast || '🚨 ALERTE ROUGE transmise à l\'escadre !');
+  } else {
+    const caller = incomingData?.senderCallsign || 'Ailier';
+    showToast(`🚨 ALERTE ROUGE reçue de ${caller} !`);
+  }
+}
+
+function dismissRedAlert(source = 'local') {
+  state.redAlertActive = false;
+  document.body.classList.remove('red-alert-active');
+  if (DOM.redAlertBanner) {
+    DOM.redAlertBanner.style.display = 'none';
+  }
+  sfx.playSuccess();
+  triggerHaptic(20);
+  cockpitVoice.speak("Fin d'alerte rouge. Reprise des opérations.", "Red alert stood down. All clear.");
+  if (source === 'local') {
+    if (fleetNet && fleetNet.connected) {
+      fleetNet.broadcastRedAlert({
+        active: false,
+        senderCallsign: state.callsign || 'CITIZEN-1',
+        timestamp: Date.now()
+      });
+    }
+    const t = I18N[state.currentLang] || I18N.fr;
+    showToast(t.redAlertDismissToast || '🛡️ Fin d\'alerte rouge confirmée.');
+  }
+}
+
+function handleIncomingRedAlert(alertData, senderCallsign) {
+  if (!alertData) return;
+  if (alertData.active) {
+    triggerRedAlert('remote', { ...alertData, senderCallsign });
+  } else {
+    dismissRedAlert('remote');
+  }
+}
+
+function initTacticalCoordinator() {
+  const onRedAlertClick = () => {
+    if (state.redAlertActive) {
+      dismissRedAlert('local');
+    } else {
+      triggerRedAlert('local');
+    }
+  };
+  if (DOM.btnMgRedAlert) DOM.btnMgRedAlert.addEventListener('click', onRedAlertClick);
+  if (DOM.btnRedAlertTrigger) DOM.btnRedAlertTrigger.addEventListener('click', onRedAlertClick);
+  if (DOM.btnDismissRedAlert) DOM.btnDismissRedAlert.addEventListener('click', () => dismissRedAlert('local'));
+  if (DOM.btnDeployEscortCombat) {
+    DOM.btnDeployEscortCombat.addEventListener('click', () => {
+      sfx.playCritical();
+      triggerHaptic(25);
+      cockpitVoice.speak("Ordre de combat envoyé à l'escorte.", "Combat order dispatched to escort.");
+      showToast(state.currentLang === 'en' ? '⚔️ Escort combat engagement ordered!' : '⚔️ Ordre d\'engagement transmis aux chasseurs d\'escorte !');
+    });
+  }
+
+  if (DOM.tabOlcSolo && DOM.tabOlcWing) {
+    DOM.tabOlcSolo.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.03);
+      state.optimalLoadoutTab = 'solo';
+      DOM.tabOlcSolo.classList.add('active');
+      DOM.tabOlcSolo.style.borderColor = 'var(--accent-amber)';
+      DOM.tabOlcSolo.style.color = 'var(--accent-amber)';
+      DOM.tabOlcWing.classList.remove('active');
+      DOM.tabOlcWing.style.borderColor = '';
+      DOM.tabOlcWing.style.color = '';
+      calculateAll();
+    });
+
+    DOM.tabOlcWing.addEventListener('click', () => {
+      sfx.playBeep(600, 'sine', 0.03);
+      state.optimalLoadoutTab = 'wing';
+      DOM.tabOlcWing.classList.add('active');
+      DOM.tabOlcWing.style.borderColor = 'var(--accent-cyan)';
+      DOM.tabOlcWing.style.color = 'var(--accent-cyan)';
+      DOM.tabOlcSolo.classList.remove('active');
+      DOM.tabOlcSolo.style.borderColor = '';
+      DOM.tabOlcSolo.style.color = '';
+      calculateAll();
+    });
+  }
+
+  if (DOM.btnApplyOptimalLoadout) {
+    DOM.btnApplyOptimalLoadout.addEventListener('click', () => {
+      applyOptimalLoadout();
+    });
+  }
+
+  const fireButtons = [
+    { btn: DOM.btnFireStateStandby, state: 'standby' },
+    { btn: DOM.btnFireStateCharging, state: 'charging' },
+    { btn: DOM.btnFireStateGreen, state: 'green' },
+    { btn: DOM.btnFireStateOverheat, state: 'overheat' }
+  ];
+  fireButtons.forEach(({ btn, state: fState }) => {
+    if (btn) {
+      btn.addEventListener('click', () => {
+        setJointFireState(fState, true);
+      });
+    }
+  });
+
+  if (DOM.escortCutSlider) {
+    DOM.escortCutSlider.value = state.escortCutPct || 15;
+    DOM.escortCutSlider.addEventListener('input', (e) => {
+      state.escortCutPct = parseFloat(e.target.value) || 0;
+      localStorage.setItem('aaron_mfd_escort_cut', state.escortCutPct.toString());
+      calculateCrewSplit();
+    });
+  }
+}
+
+// ============================================================================
+// JALON 5: SPECIALIZED HAULERS & PHYSICALIZED CARGO REFACTOR 4.0
+// ============================================================================
+
+function initCargoGridMaster() {
+  populateHaulerSelect();
+  updateActiveHauler(state.activeHaulerId);
+
+  if (DOM.selectActiveHauler) {
+    DOM.selectActiveHauler.addEventListener('change', (e) => {
+      const haulerId = e.target.value;
+      updateActiveHauler(haulerId);
+    });
+  }
+
+  if (DOM.btnAddOneHaulerBag) {
+    DOM.btnAddOneHaulerBag.addEventListener('click', () => {
+      addDirectHaulerCargo(8, 'Sacoche 8 SCU');
+    });
+  }
+
+  if (DOM.btnAddBox32) {
+    DOM.btnAddBox32.addEventListener('click', () => {
+      addDirectHaulerCargo(32, 'Boîte 32 SCU');
+    });
+  }
+
+  if (DOM.btnTransferHoldToHauler) {
+    DOM.btnTransferHoldToHauler.addEventListener('click', () => {
+      transferMinerHoldToHauler();
+    });
+  }
+
+  if (DOM.btnBroadcastPickupRequest) {
+    DOM.btnBroadcastPickupRequest.addEventListener('click', () => {
+      broadcastCargoPickupRequest();
+    });
+  }
+
+  if (DOM.btnClearHaulerHold) {
+    DOM.btnClearHaulerHold.addEventListener('click', () => {
+      clearHaulerHold();
+    });
+  }
+
+  if (DOM.haulerCutSlider) {
+    DOM.haulerCutSlider.value = state.haulerCutPct || 15;
+    DOM.haulerCutSlider.addEventListener('input', (e) => {
+      state.haulerCutPct = parseFloat(e.target.value) || 0;
+      localStorage.setItem('aaron_mfd_hauler_cut', state.haulerCutPct.toString());
+      calculateCrewSplit();
+    });
+  }
+}
+
+function addDirectHaulerCargo(scu, label) {
+  const ships = MINING_DATA.supportShips || [];
+  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
+  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
+
+  if (currentSCU + scu > hauler.scu) {
+    showToast(state.currentLang === 'en' ? 'Hauler cargo grid capacity exceeded!' : 'Capacité de la grille de fret dépassée !');
+    sfx.playCritical();
+    return;
+  }
+
+  const mineral = state.selectedMineral || { id: 'quantainium', name: 'Quantainium' };
+  state.haulerHoldBags.push({
+    id: Date.now(),
+    scu: scu,
+    mineral: mineral.id,
+    caller: label || 'Fret'
+  });
+  localStorage.setItem('aaron_mfd_hauler_hold', JSON.stringify(state.haulerHoldBags));
+
+  sfx.playSuccess();
+  triggerHaptic(20);
+  showToast(`+ ${scu} SCU (${mineral.name}) arrimés sur le ${hauler.name} !`);
+  renderCargoGridMaster();
+}
+
+function transferMinerHoldToHauler() {
+  if (state.holdSCU <= 0 && (!state.detachedSaddlebags || state.detachedSaddlebags.length === 0)) {
+    showToast(state.currentLang === 'en' ? 'Your miner hold is empty!' : 'Votre soute de mineur est vide !');
+    sfx.playWarning();
+    return;
+  }
+
+  const ships = MINING_DATA.supportShips || [];
+  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
+  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
+
+  let bagsToTransfer = [];
+  if (state.detachedSaddlebags && state.detachedSaddlebags.length > 0) {
+    bagsToTransfer = state.detachedSaddlebags.map(b => ({
+      id: b.id,
+      scu: b.scu,
+      mineral: b.mineral,
+      caller: state.callsign || 'Mineur'
+    }));
+  } else {
+    bagsToTransfer = [{
+      id: Date.now(),
+      scu: state.holdSCU,
+      mineral: state.selectedMineral ? state.selectedMineral.id : 'quantainium',
+      caller: state.callsign || 'Mineur'
+    }];
+  }
+
+  const totalTransferSCU = bagsToTransfer.reduce((sum, b) => sum + b.scu, 0);
+  if (currentSCU + totalTransferSCU > hauler.scu) {
+    showToast(state.currentLang === 'en' ? 'Hauler cargo grid capacity exceeded!' : 'Capacité de la grille de fret dépassée !');
+    sfx.playCritical();
+    return;
+  }
+
+  state.haulerHoldBags.push(...bagsToTransfer);
+  localStorage.setItem('aaron_mfd_hauler_hold', JSON.stringify(state.haulerHoldBags));
+
+  state.holdSCU = 0;
+  state.detachedSaddlebags = [];
+  updateHoldDisplay();
+  renderSaddlebagsVisual();
+
+  sfx.playSuccess();
+  triggerHaptic(30);
+  cockpitVoice.speak(
+    "Cargaison de soute transférée au transporteur.",
+    "Hold cargo transferred to hauler."
+  );
+
+  showToast(`📥 ${totalTransferSCU.toFixed(1)} SCU transférés sur le ${hauler.name} !`);
+  renderCargoGridMaster();
+}
+
+function populateHaulerSelect() {
+  if (!DOM.selectActiveHauler) return;
+  const ships = MINING_DATA.supportShips || [];
+  DOM.selectActiveHauler.innerHTML = ships.map(ship => {
+    const selected = ship.id === state.activeHaulerId ? 'selected' : '';
+    const gridTypeLabel = ship.gridType === 'internal' ? 'Interne' : ship.gridType === 'external' ? 'Externe' : ship.gridType === 'orbital_spindle' ? 'Spindle' : 'Modulaire';
+    return `<option value="${ship.id}" ${selected}>${ship.name} (${ship.scu} SCU - ${gridTypeLabel})</option>`;
+  }).join('');
+}
+
+function updateActiveHauler(haulerId) {
+  const ships = MINING_DATA.supportShips || [];
+  let hauler = ships.find(s => s.id === haulerId);
+  if (!hauler && ships.length > 0) {
+    hauler = ships[0];
+  }
+  if (!hauler) return;
+  state.activeHaulerId = hauler.id;
+  localStorage.setItem('aaron_mfd_active_hauler', hauler.id);
+
+  if (DOM.selectActiveHauler && DOM.selectActiveHauler.value !== hauler.id) {
+    DOM.selectActiveHauler.value = hauler.id;
+  }
+
+  if (DOM.haulerTractorSpecBadge) {
+    const tb = hauler.tractorBeam || { size: 'S2', power: '12 000 N' };
+    DOM.haulerTractorSpecBadge.textContent = `${tb.size} Tractor • ${tb.power}`;
+  }
+
+  if (DOM.haulerCapacityDisplay) {
+    DOM.haulerCapacityDisplay.textContent = `${hauler.scu} SCU`;
+  }
+
+  if (DOM.haulerGridTypeDisplay) {
+    const gridLabels = {
+      internal: 'Interne Sécurisée',
+      external: 'Externe (Poutres)',
+      orbital_spindle: 'Spindle Orbital',
+      internal_modular: 'Compartiments Modulaires'
+    };
+    DOM.haulerGridTypeDisplay.textContent = gridLabels[hauler.gridType] || hauler.gridType;
+  }
+
+  if (DOM.haulerMaxBagsDisplay) {
+    DOM.haulerMaxBagsDisplay.textContent = `${hauler.prospectorBagsMax} Prosp. / ${hauler.moleBagsMax} MOLE`;
+  }
+
+  renderCargoGridMaster();
+}
+
+function renderCargoGridMaster() {
+  const ships = MINING_DATA.supportShips || [];
+  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
+  if (!hauler) return;
+
+  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
+  const capacity = hauler.scu || 1;
+  const pct = Math.min(100, Math.round((currentSCU / capacity) * 100));
+
+  if (DOM.haulerHoldProgressLabel) {
+    DOM.haulerHoldProgressLabel.textContent = `${currentSCU.toFixed(1)} / ${capacity} SCU (${pct}%)`;
+  }
+
+  if (DOM.haulerBarFill) {
+    DOM.haulerBarFill.style.width = `${pct}%`;
+  }
+
+  let hasQuant = false;
+  let totalRaw = 0;
+  let totalRefined = 0;
+  const locale = getLocale();
+
+  if (DOM.haulerCargoVisualGrid) {
+    if (!state.haulerHoldBags || state.haulerHoldBags.length === 0) {
+      DOM.haulerCargoVisualGrid.innerHTML = `
+        <div class="cargo-box-empty-hint">
+          ${state.currentLang === 'en' ? 'Physicalized freight grid empty. Ready to tractor-beam saddlebags & containers.' : 'Grille de fret physique vide. Prête à arrimer sacoches & conteneurs en vol.'}
+        </div>
+      `;
+    } else {
+      DOM.haulerCargoVisualGrid.innerHTML = state.haulerHoldBags.map((bag, idx) => {
+        const mineral = (MINING_DATA.minerals || []).find(m => m.id === bag.mineral) || {
+          name: bag.mineral || 'Minerais',
+          rawPrice: 50,
+          refinedPrice: 95
+        };
+        if (bag.mineral === 'quantainium') hasQuant = true;
+
+        const rawVal = Math.round(bag.scu * 100 * (mineral.rawPrice || 50));
+        const refinedVal = Math.round(bag.scu * 100 * (mineral.refinedPrice || 95) * 0.93);
+        totalRaw += rawVal;
+        totalRefined += refinedVal;
+
+        const shortName = (mineral.name || 'MIN').split(' ')[0];
+        return `
+          <div class="cargo-box-slot ${bag.mineral === 'quantainium' ? 'has-quant' : ''}" title="${mineral.name} (${bag.scu} SCU) - ~${refinedVal.toLocaleString(locale)} aUEC">
+            <span class="box-ore">${shortName}</span>
+            <span class="box-scu">${bag.scu} SCU</span>
+            <span class="box-origin">${bag.caller || 'Sac #' + (idx + 1)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  if (DOM.haulerQuantainiumAlert) {
+    DOM.haulerQuantainiumAlert.style.display = hasQuant ? 'inline-block' : 'none';
+  }
+
+  if (DOM.haulerRawValDisplay) {
+    DOM.haulerRawValDisplay.textContent = `${totalRaw.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.haulerRefinedValDisplay) {
+    DOM.haulerRefinedValDisplay.textContent = `${totalRefined.toLocaleString(locale)} aUEC`;
+  }
+
+  renderPendingCargoPickups();
+}
+
+function renderPendingCargoPickups() {
+  if (!DOM.pendingPickupsList) return;
+  const count = (state.pendingCargoPickups || []).length;
+  if (DOM.pendingPickupsCount) {
+    DOM.pendingPickupsCount.textContent = `${count} ${count > 1 ? 'appels' : 'appel'}`;
+  }
+
+  if (count === 0) {
+    DOM.pendingPickupsList.innerHTML = `
+      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:4px 0;">
+        ${state.currentLang === 'en' ? 'No floating saddlebags pending pickup in space.' : 'Aucun sac en attente de récupération dans l\'espace.'}
+      </div>
+    `;
+    return;
+  }
+
+  DOM.pendingPickupsList.innerHTML = state.pendingCargoPickups.map(req => {
+    return `
+      <div class="pending-pickup-item">
+        <div class="pending-pickup-info">
+          <div class="pending-pickup-caller">📡 ${req.senderCallsign} (${req.senderShip})</div>
+          <div class="pending-pickup-details">${req.bags.length} sac(s) • ${req.totalSCU.toFixed(1)} SCU</div>
+        </div>
+        <button class="btn-tractor-dock" data-req-id="${req.requestId}">
+          🧲 ARRIMAGE
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  DOM.pendingPickupsList.querySelectorAll('.btn-tractor-dock').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const reqId = btn.getAttribute('data-req-id');
+      acceptCargoPickup(reqId);
+    });
+  });
+}
+
+function broadcastCargoPickupRequest() {
+  const ship = state.selectedShip;
+  let bagsToTransfer = [];
+
+  if (state.detachedSaddlebags && state.detachedSaddlebags.length > 0) {
+    bagsToTransfer = state.detachedSaddlebags.map(b => ({
+      id: b.id,
+      scu: b.scu,
+      mineral: b.mineral,
+      caller: state.callsign || 'CITIZEN-1'
+    }));
+  } else if (state.holdSCU > 0) {
+    const bagSCU = ship.saddlebagSCU || 8;
+    const count = Math.max(1, Math.floor(state.holdSCU / bagSCU));
+    for (let i = 0; i < count; i++) {
+      bagsToTransfer.push({
+        id: Date.now() + i,
+        scu: bagSCU,
+        mineral: state.selectedMineral ? state.selectedMineral.id : 'quantainium',
+        caller: state.callsign || 'CITIZEN-1'
+      });
+    }
+  } else {
+    showToast(state.currentLang === 'en' ? 'No cargo or detached saddlebags to transfer!' : 'Aucune cargaison ou sacoche à transférer !');
+    sfx.playWarning();
+    return;
+  }
+
+  const totalSCU = bagsToTransfer.reduce((sum, b) => sum + (b.scu || 0), 0);
+  const pickupReq = {
+    requestId: 'PK-' + Date.now().toString(36).toUpperCase(),
+    senderCallsign: state.callsign || 'CITIZEN-1',
+    senderShip: ship.name,
+    bags: bagsToTransfer,
+    totalSCU: totalSCU,
+    timestamp: Date.now()
+  };
+
+  if (fleetNet && fleetNet.connected) {
+    fleetNet.broadcastCargoPickupRequest(pickupReq);
+  }
+
+  // Always register locally so the user can test / simulate tractor beam recovery in solo or hauler role
+  state.pendingCargoPickups = (state.pendingCargoPickups || []).filter(r => r.requestId !== pickupReq.requestId);
+  state.pendingCargoPickups.push(pickupReq);
+
+  sfx.playBeep(880, 'sine', 0.08);
+  triggerHaptic(30);
+  cockpitVoice.speak(
+    "Demande de récupération de fret transmise sur Fleet-Net.",
+    "Cargo pickup request broadcast over Fleet-Net."
+  );
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  showToast(t.pickupToastSent || '📡 Demande de récupération de fret transmise à l\'escadre !');
+  renderPendingCargoPickups();
+}
+
+function handleIncomingCargoPickupRequest(pickupData, senderCallsign) {
+  if (!pickupData || !pickupData.requestId) return;
+  state.pendingCargoPickups = (state.pendingCargoPickups || []).filter(r => r.requestId !== pickupData.requestId);
+  state.pendingCargoPickups.push(pickupData);
+
+  sfx.playBeep(700, 'sine', 0.05);
+  triggerHaptic(20);
+  cockpitVoice.speak(
+    `Appel de fret reçu de ${senderCallsign || pickupData.senderCallsign}.`,
+    `Cargo pickup request received from ${senderCallsign || pickupData.senderCallsign}.`
+  );
+
+  showToast(`📡 Demande de fret de ${senderCallsign || pickupData.senderCallsign} (${pickupData.totalSCU.toFixed(1)} SCU)`);
+  renderPendingCargoPickups();
+}
+
+function acceptCargoPickup(reqId) {
+  const req = (state.pendingCargoPickups || []).find(r => r.requestId === reqId);
+  if (!req) return;
+
+  const ships = MINING_DATA.supportShips || [];
+  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
+  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
+
+  if (currentSCU + req.totalSCU > hauler.scu) {
+    showToast(state.currentLang === 'en' ? 'Hauler cargo grid capacity exceeded!' : 'Capacité de la grille de fret du transporteur dépassée !');
+    sfx.playCritical();
+    return;
+  }
+
+  state.haulerHoldBags.push(...req.bags);
+  localStorage.setItem('aaron_mfd_hauler_hold', JSON.stringify(state.haulerHoldBags));
+
+  state.pendingCargoPickups = state.pendingCargoPickups.filter(r => r.requestId !== reqId);
+
+  // If local player was also the sender (solo test mode), deduct from local hold / detached bags!
+  if (req.senderCallsign === (state.callsign || 'CITIZEN-1')) {
+    state.detachedSaddlebags = [];
+    const ship = state.selectedShip;
+    state.holdSCU = Math.max(0, Math.round((state.holdSCU - req.totalSCU) * 10) / 10);
+    updateHoldDisplay();
+    renderSaddlebagsVisual();
+  }
+
+  if (fleetNet && fleetNet.connected) {
+    fleetNet.broadcastCargoPickupAccept({
+      requestId: req.requestId,
+      recipientCallsign: req.senderCallsign,
+      haulerShip: hauler.name,
+      haulerCallsign: state.callsign || 'CITIZEN-1',
+      totalSCU: req.totalSCU
+    });
+  }
+
+  sfx.playSuccess();
+  triggerHaptic(40);
+  cockpitVoice.speak(
+    "Arrimage rayon tracteur terminé. Fret sécurisé sur la grille physique.",
+    "Tractor beam docking complete. Cargo secured on physical grid."
+  );
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  showToast(t.pickupToastAccepted || '🧲 Fret arrimé avec succès dans la soute du transporteur !');
+  renderCargoGridMaster();
+}
+
+function handleIncomingCargoPickupAccept(acceptData, senderCallsign) {
+  if (!acceptData) return;
+  const myCallsign = state.callsign || 'CITIZEN-1';
+  if (acceptData.recipientCallsign && acceptData.recipientCallsign !== myCallsign) return;
+
+  // The miner's cargo has been taken by the hauler!
+  state.detachedSaddlebags = [];
+  if (acceptData.totalSCU) {
+    state.holdSCU = Math.max(0, Math.round((state.holdSCU - acceptData.totalSCU) * 10) / 10);
+  } else {
+    state.holdSCU = 0;
+  }
+
+  updateHoldDisplay();
+  renderSaddlebagsVisual();
+
+  sfx.playSuccess();
+  triggerHaptic(35);
+  cockpitVoice.speak(
+    `Fret arrimé par le transporteur ${acceptData.haulerShip || ''}.`,
+    `Cargo secured by hauler ${acceptData.haulerShip || ''}.`
+  );
+
+  showToast(`🧲 Fret arrimé à bord de ${acceptData.haulerShip || 'un transporteur'} (${senderCallsign || acceptData.haulerCallsign || 'Ailier'}) ! Soute libérée.`);
+}
+
+function clearHaulerHold() {
+  if (!state.haulerHoldBags || state.haulerHoldBags.length === 0) {
+    showToast(state.currentLang === 'en' ? 'Hauler cargo hold is already empty!' : 'La soute du transporteur est déjà vide !');
+    return;
+  }
+  const count = state.haulerHoldBags.length;
+  state.haulerHoldBags = [];
+  localStorage.removeItem('aaron_mfd_hauler_hold');
+  sfx.playSuccess();
+  triggerHaptic(20);
+  showToast(state.currentLang === 'en' ? `${count} container(s) unloaded at station terminal!` : `${count} conteneur(s) déchargé(s) au terminal de la station !`);
+  renderCargoGridMaster();
+}
+
+function updateStationPriceComparison(mineral, pureSCU, refinedPrice, rawPrice) {
   if (!DOM.stationPriceComparatorCard || !DOM.spcTableContainer) return;
   const isEn = state.currentLang === 'en';
   const locale = getLocale();
+  const rPrice = rawPrice || (pureSCU * 100 * mineral.rawPrice);
 
   if (DOM.spcOreTag) {
     DOM.spcOreTag.textContent = mineral.symbol || 'ORE';
     DOM.spcOreTag.style.color = mineral.color || '#10b981';
   }
 
+  // Jalon 6: Updates Market Arbitrage, Terminals and Tour
+  renderMarketArbitrage(mineral, pureSCU, refinedPrice, rPrice);
+  renderMarketTerminals(mineral, pureSCU);
+  renderSalesTour(mineral, pureSCU);
+
+  // Backward compatible Top Refinery Stations list
   const stations = (MINING_DATA.refineryStations || []).slice();
   stations.sort((a, b) => {
     const aBonus = a.bonusMineral === mineral.id ? (a.bonusRate || 0) : 0;
@@ -2961,6 +4132,621 @@ function updateStationPriceComparison(mineral, pureSCU, refinedPrice) {
     `;
   }).join('');
 }
+
+// ==========================================================================
+// JALON 6: BOURSE COMMERCIALE, ARBITRAGE & UEX CORP (SC 4.0 & GUILD SCOUTS)
+// ==========================================================================
+
+function initMarketAndArbitrage() {
+  populateScoutDropdowns();
+
+  if (DOM.btnMktTabArbitrage) {
+    DOM.btnMktTabArbitrage.addEventListener('click', () => setMarketTab('arbitrage'));
+  }
+  if (DOM.btnMktTabTerminals) {
+    DOM.btnMktTabTerminals.addEventListener('click', () => setMarketTab('terminals'));
+  }
+  if (DOM.btnMktTabScout) {
+    DOM.btnMktTabScout.addEventListener('click', () => setMarketTab('scout'));
+  }
+
+  // System filters
+  const filterBtns = document.querySelectorAll('.mkt-filter-btn');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      setMarketSystemFilter(btn.dataset.sysFilter || 'all');
+    });
+  });
+
+  if (DOM.btnRefreshUex) {
+    DOM.btnRefreshUex.addEventListener('click', () => {
+      sfx.playBeep(650, 'sine', 0.04);
+      triggerHaptic(15);
+      fetchUexMarketPrices(true);
+    });
+  }
+
+  if (DOM.btnBroadcastScoutPrice) {
+    DOM.btnBroadcastScoutPrice.addEventListener('click', () => {
+      broadcastScoutPrice();
+    });
+  }
+
+  if (DOM.btnCopySalesTour) {
+    DOM.btnCopySalesTour.addEventListener('click', () => {
+      copySalesTour();
+    });
+  }
+
+  if (DOM.selectScoutTerminal && DOM.selectScoutMineral) {
+    const updateScoutInputPrice = () => {
+      const termId = DOM.selectScoutTerminal.value;
+      const minId = DOM.selectScoutMineral.value;
+      const term = (MINING_DATA.tradeTerminals || []).find(t => t.id === termId);
+      const mineral = (MINING_DATA.minerals || []).find(m => m.id === minId);
+      if (term && term.priceModifiers && term.priceModifiers[minId] && DOM.inputScoutPrice) {
+        DOM.inputScoutPrice.value = term.priceModifiers[minId].refinedPrice;
+      } else if (mineral && DOM.inputScoutPrice) {
+        DOM.inputScoutPrice.value = mineral.refinedPrice;
+      }
+    };
+    DOM.selectScoutTerminal.addEventListener('change', updateScoutInputPrice);
+    DOM.selectScoutMineral.addEventListener('change', updateScoutInputPrice);
+  }
+
+  // Initial fetch / cache load
+  fetchUexMarketPrices(false);
+}
+
+function populateScoutDropdowns() {
+  if (DOM.selectScoutTerminal) {
+    const terminals = MINING_DATA.tradeTerminals || [];
+    DOM.selectScoutTerminal.innerHTML = terminals.map(t => {
+      return `<option value="${t.id}">${t.name} (${t.system.toUpperCase()})</option>`;
+    }).join('');
+  }
+
+  if (DOM.selectScoutMineral) {
+    const minerals = MINING_DATA.minerals || [];
+    DOM.selectScoutMineral.innerHTML = minerals.map(m => {
+      const name = getLocalized(m, 'name');
+      return `<option value="${m.id}">${name}</option>`;
+    }).join('');
+  }
+}
+
+function setMarketTab(tabName) {
+  state.activeMktTab = tabName;
+  const isArbitrage = tabName === 'arbitrage';
+  const isTerminals = tabName === 'terminals';
+  const isScout = tabName === 'scout';
+
+  if (DOM.btnMktTabArbitrage) DOM.btnMktTabArbitrage.classList.toggle('active', isArbitrage);
+  if (DOM.btnMktTabTerminals) DOM.btnMktTabTerminals.classList.toggle('active', isTerminals);
+  if (DOM.btnMktTabScout) DOM.btnMktTabScout.classList.toggle('active', isScout);
+
+  if (DOM.mktPaneArbitrage) DOM.mktPaneArbitrage.style.display = isArbitrage ? 'block' : 'none';
+  if (DOM.mktPaneTerminals) DOM.mktPaneTerminals.style.display = isTerminals ? 'block' : 'none';
+  if (DOM.mktPaneScout) DOM.mktPaneScout.style.display = isScout ? 'block' : 'none';
+
+  sfx.playBeep(520, 'sine', 0.03);
+  triggerHaptic(10);
+}
+
+function setMarketSystemFilter(systemFilter) {
+  state.mktSystemFilter = systemFilter;
+  renderMarketTerminals(state.selectedMineral, state.pureSCU || 10);
+  sfx.playBeep(580, 'sine', 0.02);
+}
+
+async function fetchUexMarketPrices(forceRefresh = false) {
+  const cfg = MINING_DATA.uexConfig || {
+    publicEndpoint: 'https://api.uexcorp.space/2.0/commodities_prices',
+    cacheStorageKey: 'aaron_mfd_uex_cache_v2',
+    cacheExpiryMinutes: 30,
+    apiTimeoutMs: 3500
+  };
+
+  const updateBadge = (statusText, statusClass) => {
+    if (DOM.uexSyncBadge) {
+      DOM.uexSyncBadge.className = `uex-sync-badge ${statusClass}`;
+    }
+    if (DOM.uexSyncText) {
+      DOM.uexSyncText.textContent = statusText;
+    }
+  };
+
+  if (forceRefresh && DOM.btnRefreshUex) {
+    DOM.btnRefreshUex.classList.add('spinning');
+  }
+
+  // 1. Check local cache
+  const cachedJson = localStorage.getItem(cfg.cacheStorageKey);
+  let cacheValid = false;
+  if (cachedJson) {
+    try {
+      const parsed = JSON.parse(cachedJson);
+      const ageMinutes = (Date.now() - (parsed.timestamp || 0)) / (1000 * 60);
+      if (ageMinutes < cfg.cacheExpiryMinutes && !forceRefresh) {
+        cacheValid = true;
+        state.uexMarketStatus = 'cached';
+        state.uexLastSyncTimestamp = parsed.timestamp;
+        updateBadge('UEX CACHE', 'cached');
+        if (DOM.btnRefreshUex) DOM.btnRefreshUex.classList.remove('spinning');
+        return;
+      }
+    } catch (e) {}
+  }
+
+  // 2. Fetch live from UEX Corp API with AbortController timeout
+  try {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), cfg.apiTimeoutMs);
+
+    const response = await fetch(cfg.publicEndpoint, {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(timerId);
+
+    if (response.ok) {
+      const result = await response.json();
+      const payload = {
+        data: result,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(cfg.cacheStorageKey, JSON.stringify(payload));
+      state.uexMarketStatus = 'live';
+      state.uexLastSyncTimestamp = payload.timestamp;
+      updateBadge('UEX LIVE', 'live');
+      if (forceRefresh) {
+        const t = I18N[state.currentLang] || I18N.fr;
+        showToast(t.uexSyncSuccessToast || '🟢 Cours UEX Corp synchronisés avec succès !');
+        sfx.playSuccess();
+      }
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (err) {
+    // Fallback: offline cache or seed baseline
+    state.uexMarketStatus = 'cached';
+    updateBadge('UEX CACHE', 'cached');
+    if (forceRefresh) {
+      const t = I18N[state.currentLang] || I18N.fr;
+      showToast(t.uexSyncFallbackToast || '🟡 Hors-ligne : bascule sur le cache local sécurisé.');
+    }
+  } finally {
+    if (DOM.btnRefreshUex) {
+      DOM.btnRefreshUex.classList.remove('spinning');
+    }
+  }
+
+  // Re-run market calculations
+  if (state.selectedMineral) {
+    renderMarketArbitrage(state.selectedMineral, state.pureSCU || 10, state.pureSCU * 100 * state.selectedMineral.refinedPrice, state.pureSCU * 100 * state.selectedMineral.rawPrice);
+    renderMarketTerminals(state.selectedMineral, state.pureSCU || 10);
+    renderSalesTour(state.selectedMineral, state.pureSCU || 10);
+  }
+}
+
+function broadcastScoutPrice() {
+  if (!DOM.selectScoutTerminal || !DOM.selectScoutMineral || !DOM.inputScoutPrice) return;
+  const terminalId = DOM.selectScoutTerminal.value;
+  const mineralId = DOM.selectScoutMineral.value;
+  const price = parseFloat(DOM.inputScoutPrice.value);
+  const demand = DOM.selectScoutDemand ? DOM.selectScoutDemand.value : 'high';
+
+  if (!price || price <= 0) return;
+
+  const terminal = (MINING_DATA.tradeTerminals || []).find(t => t.id === terminalId);
+  const mineral = (MINING_DATA.minerals || []).find(m => m.id === mineralId);
+  const callsign = state.callsign || 'CITIZEN-1';
+  const termName = terminal ? terminal.name : terminalId;
+  const minName = mineral ? getLocalized(mineral, 'name') : mineralId;
+
+  // Save locally
+  const reportKey = `${terminalId}_${mineralId}`;
+  state.customTerminalPrices[reportKey] = {
+    price,
+    demand,
+    by: callsign,
+    time: Date.now()
+  };
+  localStorage.setItem('aaron_mfd_corpo_prices', JSON.stringify(state.customTerminalPrices));
+
+  // Add to recent feed
+  state.recentScoutReports.unshift({
+    terminalName: termName,
+    mineralName: minName,
+    price,
+    demand,
+    by: callsign,
+    time: Date.now()
+  });
+  if (state.recentScoutReports.length > 8) state.recentScoutReports.pop();
+
+  // Send across Fleet Network
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoPriceUpdate({
+      terminalId,
+      mineralId,
+      terminalName: termName,
+      mineralName: minName,
+      price,
+      demand
+    });
+  }
+
+  // Update badge to Corpo Info
+  if (DOM.uexSyncBadge) DOM.uexSyncBadge.className = 'uex-sync-badge corpo';
+  if (DOM.uexSyncText) DOM.uexSyncText.textContent = 'UEX GUILDE';
+
+  renderScoutReportsFeed();
+  sfx.playSuccess();
+  triggerHaptic(25);
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  showToast(t.scoutPriceBroadcastToast || '📡 Cours de marché diffusé avec succès à toute la flotte !');
+
+  // Re-render views
+  if (state.selectedMineral) {
+    updateStationPriceComparison(state.selectedMineral, state.pureSCU || 10, state.pureSCU * 100 * state.selectedMineral.refinedPrice);
+  }
+}
+
+function handleIncomingCorpoPriceUpdate(priceUpdate, senderCallsign) {
+  if (!priceUpdate) return;
+  const reportKey = `${priceUpdate.terminalId}_${priceUpdate.mineralId}`;
+  state.customTerminalPrices[reportKey] = {
+    price: priceUpdate.price,
+    demand: priceUpdate.demand || 'high',
+    by: senderCallsign || priceUpdate.by || 'Éclaireur',
+    time: Date.now()
+  };
+
+  state.recentScoutReports.unshift({
+    terminalName: priceUpdate.terminalName || priceUpdate.terminalId,
+    mineralName: priceUpdate.mineralName || priceUpdate.mineralId,
+    price: priceUpdate.price,
+    demand: priceUpdate.demand || 'high',
+    by: senderCallsign || 'Éclaireur',
+    time: Date.now()
+  });
+  if (state.recentScoutReports.length > 8) state.recentScoutReports.pop();
+
+  if (DOM.uexSyncBadge) DOM.uexSyncBadge.className = 'uex-sync-badge corpo';
+  if (DOM.uexSyncText) DOM.uexSyncText.textContent = 'UEX GUILDE';
+
+  renderScoutReportsFeed();
+  sfx.playBeep(600, 'sine', 0.05);
+  triggerHaptic(20);
+
+  const t = I18N[state.currentLang] || I18N.fr;
+  showToast(`${t.scoutPriceReceivedToast || '📡 Cours actualisé par'} ${senderCallsign} : ${priceUpdate.mineralName || ''} @ ${priceUpdate.terminalName || ''} (${priceUpdate.price} aUEC)`);
+
+  if (state.selectedMineral) {
+    updateStationPriceComparison(state.selectedMineral, state.pureSCU || 10, state.pureSCU * 100 * state.selectedMineral.refinedPrice);
+  }
+}
+
+function renderScoutReportsFeed() {
+  if (!DOM.mktScoutFeed) return;
+  if (!state.recentScoutReports || state.recentScoutReports.length === 0) {
+    DOM.mktScoutFeed.innerHTML = `<div style="font-style:italic;" data-i18n="noRecentReports">Aucun rapport d'éclaireur récent pour le moment.</div>`;
+    return;
+  }
+
+  DOM.mktScoutFeed.innerHTML = state.recentScoutReports.map(rep => {
+    const elapsedMinutes = Math.max(1, Math.round((Date.now() - rep.time) / 60000));
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px dashed rgba(255,255,255,0.05);">
+        <div>
+          <span style="color:var(--accent-purple); font-weight:700;">[${rep.by}]</span>
+          <span style="color:#fff;">${rep.mineralName}</span>
+          <span style="color:var(--text-muted); font-size:0.68rem;">@ ${rep.terminalName}</span>
+        </div>
+        <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--accent-emerald); font-weight:700;">
+          ${rep.price} aUEC <span style="font-size:0.6rem; color:var(--text-muted); font-weight:normal;">(${elapsedMinutes} min)</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderMarketArbitrage(mineral, pureSCU, refinedPrice, rawPrice) {
+  if (!DOM.mktMethodsGrid) return;
+  const isEn = state.currentLang === 'en';
+  const locale = getLocale();
+  const scu = Math.max(0.1, pureSCU || 1);
+
+  // 1. Raw Direct Sale
+  const rawUnit = mineral.rawPrice || 10;
+  const grossRaw = Math.round(scu * 100 * rawUnit);
+
+  // Station Bonus for top station
+  const stations = (MINING_DATA.refineryStations || []).slice();
+  const topStation = stations.find(s => s.bonusMineral === mineral.id);
+  const stationBonusRate = topStation ? (topStation.bonusRate || 0) : 0;
+  const topStationName = topStation ? topStation.name : (isEn ? 'Standard Refinery' : 'Raffinerie Standard');
+
+  // 2. Refining methods
+  const methods = MINING_DATA.refiningMethods || [];
+  let bestMethod = null;
+  let maxNetPayout = grossRaw;
+
+  const methodEvaluations = methods.map(m => {
+    const yieldSCU = Math.round(scu * m.yieldRate * (1 + stationBonusRate) * 10) / 10;
+    const refinedUnit = mineral.refinedPrice || 20;
+    const grossRefined = Math.round(yieldSCU * 100 * refinedUnit);
+    const refiningFee = Math.round(scu * 100 * mineral.rawPrice * (m.costFactor || 0.25));
+    const netPayout = Math.max(0, grossRefined - refiningFee);
+    const deltaVsRaw = netPayout - grossRaw;
+    const durationHours = Math.round(scu * (m.durationHoursPerSCU || 0.2) * 10) / 10;
+    const yieldPct = Math.round(m.yieldRate * (1 + stationBonusRate) * 100);
+
+    if (netPayout > maxNetPayout) {
+      maxNetPayout = netPayout;
+      bestMethod = m;
+    }
+
+    return {
+      method: m,
+      yieldSCU,
+      yieldPct,
+      refiningFee,
+      netPayout,
+      deltaVsRaw,
+      durationHours
+    };
+  });
+
+  // Render cards
+  let cardsHtml = `
+    <div class="mkt-method-card raw-card">
+      <div class="mkt-method-name">
+        <span>⚡ ${isEn ? 'Raw Direct Sale' : 'Vente Brute Directe'}</span>
+      </div>
+      <div class="mkt-method-meta">${isEn ? 'Immediate • 0 min' : 'Immédiat • 0 min'}</div>
+      <div class="mkt-method-payout">${grossRaw.toLocaleString(locale)} aUEC</div>
+      <div class="mkt-method-delta" style="color:var(--text-muted);">${isEn ? 'Base Payout' : 'Valeur de base'}</div>
+    </div>
+  `;
+
+  cardsHtml += methodEvaluations.map(ev => {
+    const isBest = bestMethod && ev.method.id === bestMethod.id;
+    const isPos = ev.deltaVsRaw >= 0;
+    const sign = isPos ? '+' : '';
+    const deltaClass = isPos ? 'pos' : 'neg';
+
+    return `
+      <div class="mkt-method-card ${isBest ? 'best' : ''}">
+        <div class="mkt-method-name">
+          <span>${isBest ? '🌟 ' : ''}${ev.method.name}</span>
+        </div>
+        <div class="mkt-method-meta">${ev.yieldPct}% SCU • ~${ev.durationHours}h</div>
+        <div class="mkt-method-payout">${ev.netPayout.toLocaleString(locale)} aUEC</div>
+        <div class="mkt-method-delta ${deltaClass}">${sign}${ev.deltaVsRaw.toLocaleString(locale)} aUEC</div>
+      </div>
+    `;
+  }).join('');
+
+  DOM.mktMethodsGrid.innerHTML = cardsHtml;
+
+  // Update recommendation banner
+  if (DOM.mktArbitrageAdviceText && DOM.mktArbitrageRoiBadge) {
+    if (bestMethod && maxNetPayout > grossRaw) {
+      const bestEval = methodEvaluations.find(e => e.method.id === bestMethod.id);
+      const roiPct = Math.round(((maxNetPayout - grossRaw) / (grossRaw || 1)) * 100);
+      const diffVal = bestEval.deltaVsRaw.toLocaleString(locale);
+
+      DOM.mktArbitrageAdviceText.textContent = isEn
+        ? `${bestMethod.name} @ ${topStationName}: +${diffVal} aUEC (+${roiPct}%) vs Raw`
+        : `${bestMethod.name} à ${topStationName} : +${diffVal} aUEC (+${roiPct}%) vs Brut`;
+      DOM.mktArbitrageRoiBadge.textContent = `+${roiPct}% NET`;
+      DOM.mktArbitrageRoiBadge.style.display = 'inline-block';
+    } else {
+      DOM.mktArbitrageAdviceText.textContent = isEn
+        ? `Direct raw sale recommended: low ore value does not offset refining fees.`
+        : `Vente brute directe conseillée : la faible valeur du minerai ne compense pas les frais.`;
+      DOM.mktArbitrageRoiBadge.textContent = `BRUT CONSEILLÉ`;
+      DOM.mktArbitrageRoiBadge.style.display = 'inline-block';
+    }
+  }
+}
+
+function renderMarketTerminals(mineral, pureSCU) {
+  if (!DOM.mktTerminalsTable) return;
+  const isEn = state.currentLang === 'en';
+  const locale = getLocale();
+  const filter = state.mktSystemFilter || 'all';
+  const scu = Math.max(0.1, pureSCU || 1);
+
+  const terminals = (MINING_DATA.tradeTerminals || []).filter(term => {
+    if (filter === 'all') return true;
+    return term.system === filter;
+  });
+
+  const scored = terminals.map(t => {
+    const custom = state.customTerminalPrices[`${t.id}_${mineral.id}`];
+    let refinedPrice = mineral.refinedPrice;
+    let rawPrice = mineral.rawPrice;
+    let demand = t.demandRating || 'medium';
+    let isScoutVerified = false;
+    let scoutBy = '';
+
+    if (custom) {
+      refinedPrice = custom.price;
+      demand = custom.demand || demand;
+      isScoutVerified = true;
+      scoutBy = custom.by || 'Ailier';
+    } else if (t.priceModifiers && t.priceModifiers[mineral.id]) {
+      refinedPrice = t.priceModifiers[mineral.id].refinedPrice || refinedPrice;
+      rawPrice = t.priceModifiers[mineral.id].rawPrice || rawPrice;
+      demand = t.priceModifiers[mineral.id].demand || demand;
+    }
+
+    const totalVal = Math.round(scu * 100 * refinedPrice);
+    return {
+      terminal: t,
+      refinedPrice,
+      rawPrice,
+      demand,
+      totalVal,
+      isScoutVerified,
+      scoutBy
+    };
+  });
+
+  scored.sort((a, b) => b.refinedPrice - a.refinedPrice);
+
+  DOM.mktTerminalsTable.innerHTML = scored.map((item, idx) => {
+    const isTop = idx === 0;
+    const verifiedBadge = item.isScoutVerified
+      ? `<span class="craft-badge" style="font-size:0.6rem; border-color:var(--accent-purple); color:var(--accent-purple);">Éclaireur ${item.scoutBy}</span>`
+      : `<span class="craft-badge" style="font-size:0.6rem; border-color:var(--accent-cyan); color:var(--accent-cyan);">UEX 4.0</span>`;
+
+    const demandClass = item.demand || 'medium';
+    const demandLabel = demandClass === 'high' ? (isEn ? 'HIGH' : 'FORTE') : (demandClass === 'medium' ? (isEn ? 'MED' : 'MOYENNE') : (isEn ? 'LOW' : 'FAIBLE'));
+
+    return `
+      <div class="mkt-terminal-row ${isTop ? 'best-row' : ''}">
+        <div>
+          <div class="mkt-term-name">${isTop ? '🌟 ' : ''}${item.terminal.name}</div>
+          <div class="mkt-term-loc">${getLocalized(item.terminal, 'location')}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${verifiedBadge}
+          <span class="mkt-demand-pill ${demandClass}">${demandLabel}</span>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-mono); font-size:0.8rem; font-weight:700; color:var(--accent-emerald);">
+              ${item.refinedPrice} <span style="font-size:0.65rem; color:var(--text-muted);">aUEC/cSCU</span>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:0.68rem; color:var(--text-muted);">
+              ~${item.totalVal.toLocaleString(locale)} aUEC
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSalesTour(mineral, pureSCU) {
+  if (!DOM.mktTourStopsContainer || !DOM.mktTourTotalPayout) return;
+  const isEn = state.currentLang === 'en';
+  const locale = getLocale();
+
+  // Inspect cargo: if active hauler has cargo or miner hold has cargo
+  let cargoItems = [];
+  if (state.haulerHoldBags && state.haulerHoldBags.length > 0) {
+    cargoItems = state.haulerHoldBags;
+  } else if (state.holdSCU > 0) {
+    cargoItems = [{ mineralId: mineral.id, scu: state.holdSCU }];
+  } else {
+    cargoItems = [{ mineralId: mineral.id, scu: pureSCU || 10 }];
+  }
+
+  // Aggregate commodities by mineralId
+  const oreMap = {};
+  cargoItems.forEach(item => {
+    const mId = item.mineralId || mineral.id;
+    const vol = item.scu || 8;
+    oreMap[mId] = (oreMap[mId] || 0) + vol;
+  });
+
+  const terminals = MINING_DATA.tradeTerminals || [];
+  let totalRevenue = 0;
+  const stops = [];
+
+  Object.keys(oreMap).forEach(mId => {
+    const scuVal = oreMap[mId];
+    const minObj = (MINING_DATA.minerals || []).find(m => m.id === mId) || mineral;
+    const minName = getLocalized(minObj, 'name');
+
+    // Find best terminal for this mineral
+    let bestTerm = null;
+    let highestPrice = 0;
+
+    terminals.forEach(term => {
+      const custom = state.customTerminalPrices[`${term.id}_${mId}`];
+      let p = minObj.refinedPrice;
+      if (custom) p = custom.price;
+      else if (term.priceModifiers && term.priceModifiers[mId]) p = term.priceModifiers[mId].refinedPrice;
+
+      if (p > highestPrice) {
+        highestPrice = p;
+        bestTerm = term;
+      }
+    });
+
+    const stopPayout = Math.round(scuVal * 100 * highestPrice);
+    totalRevenue += stopPayout;
+    stops.push({
+      mineralName: minName,
+      scu: scuVal,
+      terminalName: bestTerm ? bestTerm.name : 'Area18 TDD',
+      system: bestTerm ? bestTerm.system.toUpperCase() : 'STANTON',
+      unitPrice: highestPrice,
+      payout: stopPayout
+    });
+  });
+
+  state.currentSalesTour = {
+    totalRevenue,
+    stops
+  };
+
+  DOM.mktTourTotalPayout.textContent = `~${totalRevenue.toLocaleString(locale)} aUEC`;
+
+  DOM.mktTourStopsContainer.innerHTML = stops.map((stop, idx) => {
+    return `
+      <div class="mkt-tour-stop-item">
+        <div>
+          <span style="color:var(--accent-cyan); font-weight:700;">${idx + 1}.</span>
+          <strong style="color:#fff;">${stop.terminalName}</strong>
+          <span style="color:var(--text-muted); font-size:0.65rem;">(${stop.system})</span>
+          <div style="font-size:0.68rem; color:var(--text-muted);">
+            Vendre ${stop.scu} SCU de ${stop.mineralName} @ ${stop.unitPrice} aUEC/cSCU
+          </div>
+        </div>
+        <div style="font-family:var(--font-mono); font-size:0.78rem; font-weight:700; color:var(--accent-emerald);">
+          ~${stop.payout.toLocaleString(locale)} aUEC
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function copySalesTour() {
+  if (!state.currentSalesTour || !state.currentSalesTour.stops || state.currentSalesTour.stops.length === 0) {
+    showToast(state.currentLang === 'en' ? 'No sales tour available!' : 'Aucun itinéraire de vente disponible !');
+    return;
+  }
+
+  const isEn = state.currentLang === 'en';
+  const locale = getLocale();
+  const lines = [];
+  lines.push(isEn ? '🧭 [AARON MFD] OPTIMAL SALES TOUR' : '🧭 [AARON MFD] TOURNÉE COMMERCIALE OPTIMALE');
+  lines.push(`💰 ${isEn ? 'Expected Total Revenue:' : 'Gain total estimé :'} ~${state.currentSalesTour.totalRevenue.toLocaleString(locale)} aUEC`);
+  lines.push('----------------------------------------');
+
+  state.currentSalesTour.stops.forEach((s, i) => {
+    lines.push(`${i + 1}. ${s.terminalName} (${s.system})`);
+    lines.push(`   📦 ${s.scu} SCU ${s.mineralName} @ ${s.unitPrice} aUEC/cSCU -> ~${s.payout.toLocaleString(locale)} aUEC`);
+  });
+
+  const textToCopy = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      sfx.playSuccess();
+      triggerHaptic(20);
+      showToast(isEn ? '🧭 Trade tour route copied to clipboard!' : '🧭 Itinéraire de tournée commerciale copié dans le presse-papier !');
+    });
+  }
+}
+
 
 function determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
   const t = I18N[state.currentLang] || I18N.fr;
@@ -3409,12 +5195,35 @@ function calculateCrewSplit() {
   const reserveFactor = state.crewReservePct / 100;
   const reserveAmt = Math.round(totalVal * reserveFactor);
   const netPool = totalVal - reserveAmt;
-  const share = Math.round(netPool / Math.max(1, state.crewMembers));
+
+  // Escort Combat Risk cut (Jalon 4)
+  const escortFactor = (state.escortCutPct || 0) / 100;
+  const escortAmt = Math.round(netPool * escortFactor);
+
+  // Freight Hauler Commission cut (Jalon 5)
+  const haulerFactor = (state.haulerCutPct || 0) / 100;
+  const haulerAmt = Math.round(netPool * haulerFactor);
+
+  const minerPool = Math.max(0, netPool - escortAmt - haulerAmt);
+  const share = Math.round(minerPool / Math.max(1, state.crewMembers));
 
   DOM.crewTotalHoldValue.textContent = `${totalVal.toLocaleString(locale)} aUEC`;
   DOM.crewSharePerMember.textContent = `${share.toLocaleString(locale)} aUEC / ${t.perMember}`;
   DOM.crewReserveDeducted.textContent = t.crewDeducted.replace('{pct}', state.crewReservePct).replace('{amt}', reserveAmt.toLocaleString(locale));
   DOM.crewCountDisplay.textContent = `${state.crewMembers} ${state.crewMembers > 1 ? t.playersPlural : t.playersSingular}`;
+
+  if (DOM.escortCutDisplay) {
+    DOM.escortCutDisplay.textContent = `${state.escortCutPct || 0} %`;
+  }
+  if (DOM.escortCutDeducted) {
+    DOM.escortCutDeducted.textContent = `-${escortAmt.toLocaleString(locale)} aUEC (${state.escortCutPct || 0}%)`;
+  }
+  if (DOM.haulerCutDisplay) {
+    DOM.haulerCutDisplay.textContent = `${state.haulerCutPct || 0} %`;
+  }
+  if (DOM.haulerCutDeducted) {
+    DOM.haulerCutDeducted.textContent = `-${haulerAmt.toLocaleString(locale)} aUEC (${state.haulerCutPct || 0}%)`;
+  }
 }
 
 // ============================================================================
@@ -3578,6 +5387,33 @@ function initFleetNet() {
     },
     onRockBroadcast: (rock, callsign) => {
       handleIncomingRockBroadcast(rock, callsign);
+    },
+    onRedAlert: (alertData, senderCallsign) => {
+      handleIncomingRedAlert(alertData, senderCallsign);
+    },
+    onJointFireSync: (fireData, senderCallsign) => {
+      handleIncomingJointFireSync(fireData, senderCallsign);
+    },
+    onCargoPickupRequest: (pickupData, senderCallsign) => {
+      handleIncomingCargoPickupRequest(pickupData, senderCallsign);
+    },
+    onCargoPickupAccept: (acceptData, senderCallsign) => {
+      handleIncomingCargoPickupAccept(acceptData, senderCallsign);
+    },
+    onCorpoPriceUpdate: (priceUpdate, senderCallsign) => {
+      handleIncomingCorpoPriceUpdate(priceUpdate, senderCallsign);
+    },
+    onCorpoStockSync: (stockSync, senderCallsign) => {
+      handleIncomingCorpoStockSync(stockSync, senderCallsign);
+    },
+    onCorpoExpenseSync: (expenseSync, senderCallsign) => {
+      handleIncomingCorpoExpenseSync(expenseSync, senderCallsign);
+    },
+    onCorpoTreasurySync: (treasurySync, senderCallsign) => {
+      handleIncomingCorpoTreasurySync(treasurySync, senderCallsign);
+    },
+    onCorpoTradeSync: (tradeSync, senderCallsign) => {
+      handleIncomingCorpoTradeSync(tradeSync, senderCallsign);
     }
   });
 
@@ -5314,6 +7150,10 @@ function setLanguage(lang) {
   updateHaloRangefinder();
   populateRefineryModalSelects();
   renderRefineryJobs();
+  renderGuildStockpile();
+  renderGuildExpenses();
+  updateGuildNetWorthMetrics();
+  updatePushStatusBadge();
   updateLedgerDisplay();
   updateLaserOptions();
   updateLoadoutButtonSummary();
@@ -6413,13 +8253,6 @@ function bindEventListeners() {
   if (DOM.mobileLiveSummaryBar) {
     DOM.mobileLiveSummaryBar.addEventListener('click', () => setMobileView('analysis'));
   }
-  if (DOM.btnQuickEditLaser) {
-    DOM.btnQuickEditLaser.addEventListener('click', () => {
-      sfx.playBeep(700, 'sine', 0.04);
-      triggerHaptic(12);
-      if (DOM.btnOpenLoadout) DOM.btnOpenLoadout.click();
-    });
-  }
 
   // Scan Panel Internal Sub-tabs (Ergonomic Compact Navigation)
   if (DOM.btnScanSubtabQuick) {
@@ -7451,12 +9284,242 @@ function refractureSubchunk(chunk) {
 }
 
 // ==========================================
-// FEATURE 2: REFINERY ORDERS TRACKER
+// FEATURE 2: GUILD STOCKPILE, REFINING STATUSES & EXPENSE LEDGER (JALON 7)
 // ==========================================
+
+const DEFAULT_GUILD_STOCKPILE = [
+  {
+    id: 'lot_seed_1',
+    stationId: 'arc_l1',
+    stationName: 'ARC-L1 Wide Forest',
+    mineralId: 'quantainium',
+    mineralName: 'Quantainium',
+    scu: 64.0,
+    status: 'refined_ready',
+    rawVal: 384000,
+    refinedVal: 1718400,
+    depositedBy: 'VORTEX-1',
+    timestamp: Date.now() - 3600000
+  },
+  {
+    id: 'lot_seed_2',
+    stationId: 'hur_l1',
+    stationName: 'HUR-L1 Green Glade',
+    mineralId: 'bexalite',
+    mineralName: 'Bexalite',
+    scu: 32.0,
+    status: 'refining',
+    rawVal: 180000,
+    refinedVal: 384000,
+    methodName: 'Dinyx Solventation',
+    depositedBy: 'MINER-PROSPECTOR',
+    timestamp: Date.now() - 1800000
+  },
+  {
+    id: 'lot_seed_3',
+    stationId: 'mic_l1',
+    stationName: 'MIC-L1 Shallow Frontier',
+    mineralId: 'laranite',
+    mineralName: 'Laranite',
+    scu: 48.0,
+    status: 'raw',
+    rawVal: 144000,
+    refinedVal: 288000,
+    depositedBy: 'SCOUT-MERCHANT',
+    timestamp: Date.now() - 7200000
+  }
+];
+
+const DEFAULT_GUILD_EXPENSES = [
+  {
+    id: 'exp_seed_1',
+    category: 'refining',
+    amount: 18500,
+    author: 'VORTEX-1',
+    location: 'ARC-L1 Wide Forest',
+    note: 'Frais de raffinage procédé Dinyx pour 64 SCU Quantainium',
+    timestamp: Date.now() - 3600000
+  },
+  {
+    id: 'exp_seed_2',
+    category: 'fuel',
+    amount: 12000,
+    author: 'HAULER-9',
+    location: 'HUR-L1 Green Glade',
+    note: 'Plein de Quantum Fuel pour convoi C2 Hercules',
+    timestamp: Date.now() - 1800000
+  }
+];
+
+function initGuildStockpileAndExpenses() {
+  // 1. Sub-tabs switching
+  if (DOM.btnStockpileTabOverview) {
+    DOM.btnStockpileTabOverview.addEventListener('click', () => switchStockpileTab('overview'));
+  }
+  if (DOM.btnStockpileTabRefining) {
+    DOM.btnStockpileTabRefining.addEventListener('click', () => switchStockpileTab('refining'));
+  }
+  if (DOM.btnStockpileTabExpenses) {
+    DOM.btnStockpileTabExpenses.addEventListener('click', () => switchStockpileTab('expenses'));
+  }
+  if (DOM.btnStockpileTabTreasury) {
+    DOM.btnStockpileTabTreasury.addEventListener('click', () => switchStockpileTab('treasury'));
+  }
+  if (DOM.btnStockpileTabTrading) {
+    DOM.btnStockpileTabTrading.addEventListener('click', () => switchStockpileTab('trading'));
+  }
+
+  // 2. Populate filters & dropdowns
+  populateRefineryModalSelects();
+
+  // 3. Status filter pills
+  const statusPills = document.querySelectorAll('.stock-pill-btn');
+  statusPills.forEach(btn => {
+    btn.addEventListener('click', () => {
+      statusPills.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.stockpileFilterStatus = btn.getAttribute('data-stock-filter') || 'all';
+      renderGuildStockpile();
+    });
+  });
+
+  // 4. Station & mineral filter dropdowns
+  if (DOM.stockpileStationFilter) {
+    DOM.stockpileStationFilter.addEventListener('change', (e) => {
+      state.stockpileFilterStation = e.target.value;
+      renderGuildStockpile();
+    });
+  }
+  if (DOM.stockpileMineralFilter) {
+    DOM.stockpileMineralFilter.addEventListener('change', (e) => {
+      state.stockpileFilterMineral = e.target.value;
+      renderGuildStockpile();
+    });
+  }
+
+  // 5. Quick deposit from ship hold
+  if (DOM.btnQuickDepositHold) {
+    DOM.btnQuickDepositHold.addEventListener('click', depositHoldToStockpile);
+  }
+
+  // 6. Toggle manual deposit form
+  if (DOM.btnToggleManualLotForm) {
+    DOM.btnToggleManualLotForm.addEventListener('click', () => {
+      if (!DOM.manualLotCard) return;
+      const isVisible = DOM.manualLotCard.style.display !== 'none';
+      DOM.manualLotCard.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible && DOM.manualLotScuInput) {
+        DOM.manualLotScuInput.focus();
+      }
+    });
+  }
+
+  // 7. Submit manual stock lot
+  if (DOM.btnSubmitManualStockLot) {
+    DOM.btnSubmitManualStockLot.addEventListener('click', submitManualStockLot);
+  }
+
+  // 8. Fleet sync stockpile
+  if (DOM.btnSyncStockpileFleet) {
+    DOM.btnSyncStockpileFleet.addEventListener('click', () => {
+      broadcastStockpileToFleet(false);
+    });
+  }
+
+  // 9. Push Notifications setup
+  initPushNotifications();
+
+  // 10. Expenses logging & controls
+  if (DOM.btnAddExpenseSubmit) {
+    DOM.btnAddExpenseSubmit.addEventListener('click', addGuildExpense);
+  }
+  if (DOM.btnCopyExpensesDiscord) {
+    DOM.btnCopyExpensesDiscord.addEventListener('click', copyGuildExpensesToDiscord);
+  }
+  if (DOM.btnSyncExpensesFleet) {
+    DOM.btnSyncExpensesFleet.addEventListener('click', () => {
+      broadcastExpensesToFleet(false);
+    });
+  }
+  if (DOM.btnClearExpensesAll) {
+    DOM.btnClearExpensesAll.addEventListener('click', clearGuildExpenses);
+  }
+
+  // 11. Treasury & mo.Trader Controls
+  if (DOM.treasuryTaxSelect) {
+    DOM.treasuryTaxSelect.value = state.guildCorpoTaxPct.toString();
+    DOM.treasuryTaxSelect.addEventListener('change', (e) => {
+      state.guildCorpoTaxPct = parseInt(e.target.value, 10) || 0;
+      saveGuildTreasury();
+      renderMoTraderSheet();
+    });
+  }
+  if (DOM.btnDepositTreasury) {
+    DOM.btnDepositTreasury.addEventListener('click', depositGuildTreasury);
+  }
+  if (DOM.btnWithdrawTreasury) {
+    DOM.btnWithdrawTreasury.addEventListener('click', withdrawGuildTreasury);
+  }
+  if (DOM.btnCopyMoTrader) {
+    DOM.btnCopyMoTrader.addEventListener('click', copyMoTraderSheetToClipboard);
+  }
+
+  // 12. Crafting 4.0 Goals Controls
+  if (DOM.btnToggleAddGoalForm) {
+    DOM.btnToggleAddGoalForm.addEventListener('click', () => {
+      if (!DOM.addCraftingGoalForm) return;
+      const isVis = DOM.addCraftingGoalForm.style.display !== 'none';
+      DOM.addCraftingGoalForm.style.display = isVis ? 'none' : 'block';
+    });
+  }
+  if (DOM.btnSubmitCraftingGoal) {
+    DOM.btnSubmitCraftingGoal.addEventListener('click', submitCraftingGoal);
+  }
+  if (DOM.btnSyncTreasuryFleet) {
+    DOM.btnSyncTreasuryFleet.addEventListener('click', () => {
+      broadcastTreasuryToFleet(false);
+    });
+  }
+
+  // 13. Load persisted data & render
+  loadGuildStockpile();
+  loadGuildExpenses();
+  renderGuildTreasury();
+  initCommodityTrading();
+}
+
+function switchStockpileTab(tabName) {
+  state.activeStockpileTab = tabName;
+  const tabs = [
+    { id: 'overview', btn: DOM.btnStockpileTabOverview, pane: DOM.paneStockpileOverview },
+    { id: 'refining', btn: DOM.btnStockpileTabRefining, pane: DOM.paneStockpileRefining },
+    { id: 'expenses', btn: DOM.btnStockpileTabExpenses, pane: DOM.paneStockpileExpenses },
+    { id: 'treasury', btn: DOM.btnStockpileTabTreasury, pane: DOM.paneStockpileTreasury },
+    { id: 'trading', btn: DOM.btnStockpileTabTrading, pane: DOM.paneStockpileTrading }
+  ];
+
+  tabs.forEach(t => {
+    const isActive = t.id === tabName;
+    if (t.btn) t.btn.classList.toggle('active', isActive);
+    if (t.pane) t.pane.classList.toggle('active', isActive);
+  });
+}
+
 function populateRefineryModalSelects() {
   const t = I18N[state.currentLang] || I18N.fr;
-  if (DOM.refineryOrderStationSelect) {
-    DOM.refineryOrderStationSelect.innerHTML = '';
+
+  // Station dropdowns (Order station, Filter station, Manual lot station)
+  const populateStations = (selectEl, includeAllOption = false) => {
+    if (!selectEl) return;
+    const currentVal = selectEl.value;
+    selectEl.innerHTML = '';
+
+    if (includeAllOption) {
+      const optAll = document.createElement('option');
+      optAll.value = 'all';
+      optAll.textContent = t.filterAllStations || 'Toutes les stations';
+      selectEl.appendChild(optAll);
+    }
 
     const stantonGroup = document.createElement('optgroup');
     stantonGroup.label = t.optgroupStanton || '🌌 SYSTÈME STANTON';
@@ -7470,7 +9533,7 @@ function populateRefineryModalSelects() {
     MINING_DATA.refineryStations.forEach(st => {
       const opt = document.createElement('option');
       opt.value = st.id;
-      opt.textContent = `${st.name} (${st.system}) - ${st.bestFor}`;
+      opt.textContent = `${st.name} (${st.system})`;
       if (st.sector === 'pyro') {
         pyroGroup.appendChild(opt);
       } else if (st.sector === 'nyx') {
@@ -7480,38 +9543,1674 @@ function populateRefineryModalSelects() {
       }
     });
 
-    DOM.refineryOrderStationSelect.appendChild(stantonGroup);
-    DOM.refineryOrderStationSelect.appendChild(pyroGroup);
-    DOM.refineryOrderStationSelect.appendChild(nyxGroup);
-  }
+    selectEl.appendChild(stantonGroup);
+    selectEl.appendChild(pyroGroup);
+    selectEl.appendChild(nyxGroup);
 
+    if (currentVal) selectEl.value = currentVal;
+  };
+
+  populateStations(DOM.refineryOrderStationSelect, false);
+  populateStations(DOM.stockpileStationFilter, true);
+  populateStations(DOM.manualLotStationSelect, false);
+
+  // Refining methods select
   if (DOM.refineryOrderMethodSelect) {
     DOM.refineryOrderMethodSelect.innerHTML = '';
     MINING_DATA.refiningMethods.forEach(rm => {
       const opt = document.createElement('option');
       opt.value = rm.id;
-      opt.textContent = `${rm.name} (${Math.round(rm.yieldRate * 100)}% ${t.refineryYield}) - ${rm.durationHoursPerSCU}h/SCU`;
+      opt.textContent = `${rm.name} (${Math.round(rm.yieldRate * 100)}% ${t.refineryYield || 'Rendement'})`;
       DOM.refineryOrderMethodSelect.appendChild(opt);
+    });
+  }
+
+  // Minerals select (Filter mineral, Manual lot mineral)
+  const populateMinerals = (selectEl, includeAllOption = false) => {
+    if (!selectEl) return;
+    const currentVal = selectEl.value;
+    selectEl.innerHTML = '';
+
+    if (includeAllOption) {
+      const optAll = document.createElement('option');
+      optAll.value = 'all';
+      optAll.textContent = t.filterAllMinerals || 'Tous les minerais';
+      selectEl.appendChild(optAll);
+    }
+
+    MINING_DATA.minerals.forEach(min => {
+      const opt = document.createElement('option');
+      opt.value = min.id;
+      opt.textContent = getLocalized(min, 'name');
+      selectEl.appendChild(opt);
+    });
+
+    if (currentVal) selectEl.value = currentVal;
+  };
+
+  populateMinerals(DOM.stockpileMineralFilter, true);
+  populateMinerals(DOM.manualLotMineralSelect, false);
+}
+
+// ----------------------------------------------------
+// PUSH NOTIFICATION SYSTEM (ALPHA 4.10 NATIVE)
+// ----------------------------------------------------
+function initPushNotifications() {
+  updatePushStatusBadge();
+
+  if (DOM.btnRequestPushPerm) {
+    DOM.btnRequestPushPerm.addEventListener('click', requestPushPermission);
+  }
+  if (DOM.btnTestPushAlert) {
+    DOM.btnTestPushAlert.addEventListener('click', () => {
+      const t = I18N[state.currentLang] || I18N.fr;
+      sendDesktopPushNotification(
+        '🔔 AARON MFD : TEST ALERTE LOGISTIQUE',
+        'Test d\'alerte push réussi ! Vos ordres de raffinage vous notifieront ici.'
+      );
+      showToast(t.toastPushTestSent || '🔔 Notification de test envoyée !');
     });
   }
 }
 
+function updatePushStatusBadge() {
+  if (!DOM.pushStatusBadge) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (!('Notification' in window)) {
+    DOM.pushStatusBadge.className = 'push-status-badge denied';
+    DOM.pushStatusBadge.textContent = 'Non supporté sur ce navigateur';
+    return;
+  }
+
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    DOM.pushStatusBadge.className = 'push-status-badge granted';
+    DOM.pushStatusBadge.textContent = `🟢 ${t.pushPermissionGranted || 'Notifications actives'}`;
+    state.pushNotificationEnabled = true;
+  } else if (perm === 'denied') {
+    DOM.pushStatusBadge.className = 'push-status-badge denied';
+    DOM.pushStatusBadge.textContent = `🔴 ${t.pushPermissionDenied || 'Bloqué'}`;
+    state.pushNotificationEnabled = false;
+  } else {
+    DOM.pushStatusBadge.className = 'push-status-badge prompt';
+    DOM.pushStatusBadge.textContent = '🟡 Autorisation requise';
+    state.pushNotificationEnabled = false;
+  }
+}
+
+function requestPushPermission() {
+  if (!('Notification' in window)) {
+    showToast('Notifications de bureau non supportées par ce navigateur.');
+    return;
+  }
+
+  Notification.requestPermission().then(permission => {
+    updatePushStatusBadge();
+    const t = I18N[state.currentLang] || I18N.fr;
+    if (permission === 'granted') {
+      sfx.playSuccess();
+      triggerHaptic(20);
+      showToast('🟢 Notifications push autorisées pour AARON MFD !');
+      sendDesktopPushNotification(
+        '🔔 AARON MFD INITIALISÉ',
+        'Vous recevrez les alertes de fin de raffinage même en arrière-plan.'
+      );
+    } else {
+      sfx.playWarning();
+      showToast('Notifications désactivées.');
+    }
+  });
+}
+
+function sendDesktopPushNotification(title, body) {
+  // 1. Audio and voice chime
+  sfx.playSuccess();
+  triggerHaptic([30, 50, 30]);
+
+  if (state.voiceTTSEnabled && typeof speakVoice === 'function') {
+    speakVoice(body);
+  }
+
+  // 2. Native Desktop Notification if allowed
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: body,
+        icon: './assets/icon-192.png',
+        badge: './assets/icon-192.png',
+        tag: 'aaron-refinery-status',
+        renotify: true
+      });
+    } catch (e) {
+      console.warn('Native notification failed:', e);
+    }
+  }
+}
+
+// ----------------------------------------------------
+// GUILD STOCKPILE LOGISTICS & DISPATCH
+// ----------------------------------------------------
+function depositHoldToStockpile() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (state.holdSCU <= 0 && state.sessionLog.length === 0) {
+    sfx.playWarning();
+    showToast(t.toastHoldEmpty || 'Votre soute est actuellement vide.');
+    return;
+  }
+
+  const station = MINING_DATA.refineryStations[0];
+  const mineral = state.selectedMineral || MINING_DATA.minerals[0];
+  const scu = state.holdSCU > 0 ? parseFloat(state.holdSCU.toFixed(1)) : 32.0;
+
+  const rawPrice = (mineral.rawPrice || 80);
+  const rawVal = Math.round(scu * 100 * rawPrice);
+  const refinedVal = Math.round(scu * 100 * (mineral.refinedPrice || rawPrice * 1.9));
+
+  const newLot = {
+    id: 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    stationId: station.id,
+    stationName: station.name,
+    mineralId: mineral.id,
+    mineralName: getLocalized(mineral, 'name'),
+    scu: scu,
+    status: 'raw',
+    rawVal: rawVal,
+    refinedVal: refinedVal,
+    depositedBy: state.callsign || 'CITIZEN-1',
+    timestamp: Date.now()
+  };
+
+  state.guildStockpile.unshift(newLot);
+  saveGuildStockpile();
+
+  // Empty ship hold
+  clearHold();
+
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+  sfx.playSuccess();
+  triggerHaptic(25);
+
+  const msg = (t.lotDepositedToast || '📦 Lot de {scu} SCU ({mineral}) déposé dans le stockpile à {station} !')
+    .replace('{scu}', newLot.scu)
+    .replace('{mineral}', newLot.mineralName)
+    .replace('{station}', newLot.stationName);
+  showToast(msg);
+
+  // Auto-sync with fleet
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'deposit',
+      lot: newLot,
+      allLots: state.guildStockpile
+    });
+  }
+}
+
+function submitManualStockLot() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const category = DOM.manualLotCategorySelect ? DOM.manualLotCategorySelect.value : 'mineral';
+  const unitBuyCost = DOM.manualLotBuyCostInput ? (parseFloat(DOM.manualLotBuyCostInput.value) || 0) : 0;
+  const stationId = DOM.manualLotStationSelect ? DOM.manualLotStationSelect.value : 'arc_l1';
+  const itemId = DOM.manualLotMineralSelect ? DOM.manualLotMineralSelect.value : 'quantainium';
+  const scu = DOM.manualLotScuInput ? parseFloat(DOM.manualLotScuInput.value) : 32.0;
+  const status = DOM.manualLotStatusSelect ? DOM.manualLotStatusSelect.value : 'refined_ready';
+
+  if (!scu || scu <= 0) {
+    showToast('Volume SCU invalide.');
+    return;
+  }
+
+  const station = MINING_DATA.refineryStations.find(s => s.id === stationId) || MINING_DATA.refineryStations[0];
+  let itemName = itemId;
+  let rawVal = 0;
+  let refinedVal = 0;
+
+  if (category === 'commodity') {
+    const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === itemId) || MINING_DATA.generalCommodities[0];
+    itemName = getLocalized(comm, 'name') || comm.name_fr;
+    rawVal = Math.round(scu * (unitBuyCost > 0 ? unitBuyCost : comm.baseBuy) * 100);
+    refinedVal = Math.round(scu * comm.baseSell * 100);
+  } else {
+    const mineral = MINING_DATA.minerals.find(m => m.id === itemId) || MINING_DATA.minerals[0];
+    itemName = getLocalized(mineral, 'name');
+    rawVal = Math.round(scu * 100 * (mineral.rawPrice || 80));
+    refinedVal = Math.round(scu * 100 * (mineral.refinedPrice || (mineral.rawPrice * 1.9)));
+  }
+
+  const newLot = {
+    id: 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    category: category,
+    stationId: station.id,
+    stationName: station.name,
+    mineralId: itemId,
+    mineralName: itemName,
+    scu: parseFloat(scu.toFixed(1)),
+    unitBuyCost: unitBuyCost,
+    status: status,
+    rawVal: rawVal,
+    refinedVal: refinedVal,
+    depositedBy: state.callsign || 'CITIZEN-1',
+    timestamp: Date.now()
+  };
+
+  state.guildStockpile.unshift(newLot);
+  saveGuildStockpile();
+
+  // Hide form
+  if (DOM.manualLotCard) DOM.manualLotCard.style.display = 'none';
+
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+  sfx.playSuccess();
+  triggerHaptic(20);
+
+  const msg = (t.lotDepositedToast || '📦 Lot de {scu} SCU ({mineral}) déposé dans le stockpile à {station} !')
+    .replace('{scu}', newLot.scu)
+    .replace('{mineral}', newLot.mineralName)
+    .replace('{station}', newLot.stationName);
+  showToast(msg);
+
+  // Fleet sync
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'deposit',
+      lot: newLot,
+      allLots: state.guildStockpile
+    });
+  }
+}
+
+function assignStockLotToHauler(lotId) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const lot = state.guildStockpile.find(l => l.id === lotId);
+  if (!lot) return;
+
+  const ships = MINING_DATA.supportShips || [];
+  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
+
+  // Check hauler capacity
+  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
+  if (currentSCU + lot.scu > hauler.scu) {
+    sfx.playWarning();
+    showToast(`Capacité du transporteur ${hauler.name} dépassée (${currentSCU}/${hauler.scu} SCU) !`);
+    return;
+  }
+
+  // Add to hauler cargo hold
+  state.haulerHoldBags.push({
+    id: 'bag_' + Date.now(),
+    mineral: lot.mineralName,
+    scu: lot.scu,
+    rawVal: lot.rawVal,
+    refinedVal: lot.refinedVal,
+    source: lot.stationName
+  });
+
+  saveHaulerHoldBags();
+  updateHaulerCargoUI();
+
+  // Remove lot from stockpile
+  state.guildStockpile = state.guildStockpile.filter(l => l.id !== lotId);
+  saveGuildStockpile();
+
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+  sfx.playSuccess();
+  triggerHaptic(25);
+
+  const msg = (t.assignedToHaulerToast || '🚜 Lot de {scu} SCU assigné à la soute du transporteur {hauler} !')
+    .replace('{scu}', lot.scu)
+    .replace('{hauler}', hauler.name);
+  showToast(msg);
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'assign_hauler',
+      lotId: lotId,
+      allLots: state.guildStockpile
+    });
+  }
+}
+
+function markStockLotSold(lotId) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const lot = state.guildStockpile.find(l => l.id === lotId);
+  if (!lot) return;
+
+  const finalProfit = lot.status === 'raw' ? lot.rawVal : lot.refinedVal;
+  addLedgerEntry('sale', lot.mineralName, lot.scu, finalProfit, lot.stationName);
+  updateLedgerDisplay();
+
+  state.guildStockpile = state.guildStockpile.filter(l => l.id !== lotId);
+  saveGuildStockpile();
+
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+  sfx.playSuccess();
+  triggerHaptic(20);
+
+  const locale = getLocale();
+  const msg = (t.lotSoldToast || '💰 Lot vendu avec succès ! Bénéfice de {auec} aUEC enregistré.')
+    .replace('{auec}', finalProfit.toLocaleString(locale));
+  showToast(msg);
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'sold',
+      lotId: lotId,
+      allLots: state.guildStockpile
+    });
+  }
+}
+
+function deleteStockLot(lotId) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  state.guildStockpile = state.guildStockpile.filter(l => l.id !== lotId);
+  saveGuildStockpile();
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+  showToast(t.lotDeletedToast || '🗑️ Lot retiré du stockpile.');
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'delete',
+      lotId: lotId,
+      allLots: state.guildStockpile
+    });
+  }
+}
+
+function passStockLotToRefining(lotId) {
+  const lot = state.guildStockpile.find(l => l.id === lotId);
+  if (!lot) return;
+
+  lot.status = 'refining';
+  lot.methodName = 'Dinyx Solventation';
+  saveGuildStockpile();
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+  sfx.playSuccess();
+  showToast(`🏭 Lot de ${lot.scu} SCU (${lot.mineralName}) basculé en statut raffinage !`);
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'update_status',
+      lotId: lotId,
+      allLots: state.guildStockpile
+    });
+  }
+}
+
+function broadcastStockpileToFleet(silent = false) {
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'sync_all',
+      allLots: state.guildStockpile
+    });
+    if (!silent) {
+      const t = I18N[state.currentLang] || I18N.fr;
+      const msg = (t.stockpileSyncToast || '📡 Stockpile de guilde synchronisé avec la flotte ({count} lots) !')
+        .replace('{count}', state.guildStockpile.length);
+      showToast(msg);
+      sfx.playSuccess();
+    }
+  } else if (!silent) {
+    showToast('FLEET-NET non connecté. Rejoignez une escadre pour synchroniser le stockpile.');
+  }
+}
+
+function handleIncomingCorpoStockSync(stockSync, senderCallsign) {
+  if (!stockSync) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (Array.isArray(stockSync.allLots)) {
+    state.guildStockpile = stockSync.allLots;
+    saveGuildStockpile();
+    renderGuildStockpile();
+    updateGuildNetWorthMetrics();
+  }
+
+  sfx.playBeep(680, 'sine', 0.05);
+  const msg = (t.stockpileReceivedToast || '📡 Stockpile actualisé par {callsign} !')
+    .replace('{callsign}', senderCallsign || 'Pilote');
+  showToast(msg);
+}
+
+function renderGuildStockpile() {
+  if (!DOM.guildStockpileList) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  const locale = getLocale();
+
+  let lots = [...state.guildStockpile];
+
+  // Apply station filter
+  if (state.stockpileFilterStation && state.stockpileFilterStation !== 'all') {
+    lots = lots.filter(l => l.stationId === state.stockpileFilterStation);
+  }
+
+  // Apply mineral filter
+  if (state.stockpileFilterMineral && state.stockpileFilterMineral !== 'all') {
+    lots = lots.filter(l => l.mineralId === state.stockpileFilterMineral);
+  }
+
+  // Apply status filter
+  if (state.stockpileFilterStatus && state.stockpileFilterStatus !== 'all') {
+    lots = lots.filter(l => l.status === state.stockpileFilterStatus);
+  }
+
+  DOM.guildStockpileList.innerHTML = '';
+  if (lots.length === 0) {
+    DOM.guildStockpileList.innerHTML = `
+      <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:24px; background:rgba(255,255,255,0.02); border-radius:6px;">
+        ${t.emptyStockpile || 'Aucun minerai enregistré dans le stockpile de guilde.'}
+      </div>
+    `;
+    return;
+  }
+
+  lots.forEach(lot => {
+    const card = document.createElement('div');
+    card.className = `stockpile-lot-card status-${lot.status}`;
+
+    let statusPillHtml = '';
+    if (lot.status === 'refined_ready') {
+      statusPillHtml = `<span class="lot-status-pill ready">${t.statusBadgeReady || '🟢 PRÊT AU TRANSPORT'}</span>`;
+    } else if (lot.status === 'refining') {
+      statusPillHtml = `<span class="lot-status-pill refining">${t.statusBadgeRefining || '🟡 EN RAFFINAGE'}</span>`;
+    } else {
+      statusPillHtml = `<span class="lot-status-pill raw">${t.statusBadgeRaw || '⚪ BRUT STOCKÉ'}</span>`;
+    }
+
+    const valueDisplay = lot.status === 'raw' ? lot.rawVal : lot.refinedVal;
+    const valueLabel = lot.status === 'raw' ? 'Valeur brute :' : 'Valeur raffinée :';
+
+    const isComm = lot.category === 'commodity';
+    const categoryBadge = isComm ? `<span class="commodity-badge">📦 COMMODITY</span>` : `<span class="commodity-badge" style="border-color:rgba(16,185,129,0.3); color:var(--accent-emerald); background:rgba(16,185,129,0.1);">⛏️ MINERAI</span>`;
+    const costTotal = (lot.unitBuyCost || 0) * lot.scu * 100;
+    const marginTotal = (valueDisplay || 0) - costTotal;
+    const marginInfo = lot.unitBuyCost > 0
+      ? `<div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Coût: ${costTotal.toLocaleString(locale)} aUEC | Marge: <strong style="color:${marginTotal >= 0 ? 'var(--accent-emerald)' : '#f87171'}">${marginTotal >= 0 ? '+' : ''}${marginTotal.toLocaleString(locale)} aUEC</strong></div>`
+      : '';
+
+    card.innerHTML = `
+      <div class="lot-header-row">
+        <div class="lot-station-badge">
+          <span>📍</span>
+          <span>${lot.stationName}</span>
+          ${categoryBadge}
+        </div>
+        ${statusPillHtml}
+      </div>
+      <div class="lot-details-row">
+        <div>
+          <strong style="color:var(--accent-cyan); font-family:var(--font-hud); font-size:0.92rem;">${lot.mineralName}</strong>
+          <span style="font-family:var(--font-mono); font-weight:700; color:#fff; margin-left:6px;">${lot.scu.toFixed(1)} SCU</span>
+          ${marginInfo}
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:0.75rem; color:var(--text-muted);">${valueLabel}</span>
+          <strong style="font-family:var(--font-mono); color:var(--accent-emerald); font-size:0.95rem; margin-left:4px;">
+            ${(valueDisplay || 0).toLocaleString(locale)} aUEC
+          </strong>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+        <span class="lot-depositor-tag">
+          ${(t.depositedBy || 'Déposé par {callsign}').replace('{callsign}', lot.depositedBy || 'Pilote')}
+        </span>
+        <div class="lot-actions-row">
+          ${lot.status === 'refined_ready' ? `
+            <button type="button" class="chip-btn btn-assign-hauler" data-lot-id="${lot.id}" style="border-color:var(--accent-emerald); color:var(--accent-emerald); padding:3px 8px; font-size:0.72rem;">
+              🚜 Assigner C2/MAX
+            </button>
+            <button type="button" class="chip-btn btn-sell-lot" data-lot-id="${lot.id}" style="border-color:var(--accent-cyan); color:var(--accent-cyan); padding:3px 8px; font-size:0.72rem;">
+              💰 Vendre
+            </button>
+          ` : ''}
+          ${lot.status === 'raw' ? `
+            <button type="button" class="chip-btn btn-pass-refining" data-lot-id="${lot.id}" style="border-color:var(--accent-amber); color:var(--accent-amber); padding:3px 8px; font-size:0.72rem;">
+              🏭 Raffiner
+            </button>
+          ` : ''}
+          <button type="button" class="chip-btn btn-delete-lot" data-lot-id="${lot.id}" style="border-color:rgba(239,68,68,0.3); color:#fca5a5; padding:3px 6px; font-size:0.72rem;">
+            &times;
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Action listeners
+    const assignBtn = card.querySelector('.btn-assign-hauler');
+    if (assignBtn) {
+      assignBtn.addEventListener('click', () => assignStockLotToHauler(lot.id));
+    }
+    const sellBtn = card.querySelector('.btn-sell-lot');
+    if (sellBtn) {
+      sellBtn.addEventListener('click', () => markStockLotSold(lot.id));
+    }
+    const passRefBtn = card.querySelector('.btn-pass-refining');
+    if (passRefBtn) {
+      passRefBtn.addEventListener('click', () => passStockLotToRefining(lot.id));
+    }
+    const delBtn = card.querySelector('.btn-delete-lot');
+    if (delBtn) {
+      delBtn.addEventListener('click', () => deleteStockLot(lot.id));
+    }
+
+    DOM.guildStockpileList.appendChild(card);
+  });
+}
+
+function saveGuildStockpile() {
+  try {
+    localStorage.setItem('aaron_mfd_guild_stockpile', JSON.stringify(state.guildStockpile));
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+function loadGuildStockpile() {
+  try {
+    const raw = localStorage.getItem('aaron_mfd_guild_stockpile');
+    if (raw) {
+      state.guildStockpile = JSON.parse(raw) || [];
+    } else {
+      state.guildStockpile = [...DEFAULT_GUILD_STOCKPILE];
+      saveGuildStockpile();
+    }
+  } catch (e) {
+    state.guildStockpile = [...DEFAULT_GUILD_STOCKPILE];
+  }
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+}
+
+// ----------------------------------------------------
+// CORPO EXPENSE LEDGER
+// ----------------------------------------------------
+function addGuildExpense() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const category = DOM.expenseCategorySelect ? DOM.expenseCategorySelect.value : 'refining';
+  const amount = DOM.expenseAmountInput ? parseFloat(DOM.expenseAmountInput.value) : 0;
+  const author = DOM.expenseAuthorInput ? (DOM.expenseAuthorInput.value.trim() || state.callsign || 'CITIZEN-1') : (state.callsign || 'CITIZEN-1');
+  const location = DOM.expenseLocationInput ? (DOM.expenseLocationInput.value.trim() || 'Stanton') : 'Stanton';
+  const note = DOM.expenseNoteInput ? DOM.expenseNoteInput.value.trim() : '';
+
+  if (!amount || amount <= 0) {
+    showToast('Montant de dépense invalide.');
+    return;
+  }
+
+  const categoryLabels = {
+    refining: t.expenseCatRefining || '🏭 Frais de Raffinage',
+    fuel: t.expenseCatFuel || '⛽ Carburant',
+    repairs: t.expenseCatRepairs || '🛠️ Réparations',
+    gear: t.expenseCatGear || '🚀 Modules & Consommables',
+    escort: t.expenseCatEscort || '🛡️ Prime Escorte',
+    other: t.expenseCatOther || '💼 Autre logistique'
+  };
+
+  const newExp = {
+    id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    category: category,
+    categoryName: categoryLabels[category] || category,
+    amount: Math.round(amount),
+    author: author,
+    location: location,
+    note: note,
+    timestamp: Date.now()
+  };
+
+  state.guildExpenses.unshift(newExp);
+  saveGuildExpenses();
+
+  // Reset inputs
+  if (DOM.expenseAmountInput) DOM.expenseAmountInput.value = '';
+  if (DOM.expenseNoteInput) DOM.expenseNoteInput.value = '';
+
+  renderGuildExpenses();
+  updateGuildNetWorthMetrics();
+  sfx.playSuccess();
+  triggerHaptic(20);
+
+  const locale = getLocale();
+  const msg = (t.expenseAddedToast || '🧾 Dépense de {amount} aUEC ({category}) enregistrée !')
+    .replace('{amount}', newExp.amount.toLocaleString(locale))
+    .replace('{category}', newExp.categoryName);
+  showToast(msg);
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoExpenseSync({
+      action: 'add',
+      expense: newExp,
+      allExpenses: state.guildExpenses
+    });
+  }
+}
+
+function deleteGuildExpense(expId) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  state.guildExpenses = state.guildExpenses.filter(e => e.id !== expId);
+  saveGuildExpenses();
+  renderGuildExpenses();
+  updateGuildNetWorthMetrics();
+  showToast(t.expenseDeletedToast || '🗑️ Dépense supprimée du Grand Livre.');
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoExpenseSync({
+      action: 'delete',
+      expenseId: expId,
+      allExpenses: state.guildExpenses
+    });
+  }
+}
+
+function clearGuildExpenses() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (!confirm('Réinitialiser toutes les dépenses de guilde de la session ?')) return;
+
+  state.guildExpenses = [];
+  saveGuildExpenses();
+  renderGuildExpenses();
+  updateGuildNetWorthMetrics();
+  showToast('Grand Livre des dépenses réinitialisé.');
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoExpenseSync({
+      action: 'clear',
+      allExpenses: []
+    });
+  }
+}
+
+function broadcastExpensesToFleet(silent = false) {
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoExpenseSync({
+      action: 'sync_all',
+      allExpenses: state.guildExpenses
+    });
+    if (!silent) {
+      const t = I18N[state.currentLang] || I18N.fr;
+      showToast(t.expenseSyncToast || '🧾 Grand Livre des dépenses synchronisé avec l\'escadre !');
+      sfx.playSuccess();
+    }
+  } else if (!silent) {
+    showToast('FLEET-NET non connecté.');
+  }
+}
+
+function handleIncomingCorpoExpenseSync(expenseSync, senderCallsign) {
+  if (!expenseSync) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (Array.isArray(expenseSync.allExpenses)) {
+    state.guildExpenses = expenseSync.allExpenses;
+    saveGuildExpenses();
+    renderGuildExpenses();
+    updateGuildNetWorthMetrics();
+  }
+
+  sfx.playBeep(650, 'sine', 0.05);
+  const msg = (t.expenseReceivedToast || '🧾 Dépense enregistrée par {callsign} !')
+    .replace('{callsign}', senderCallsign || 'Trésorier');
+  showToast(msg);
+}
+
+function copyGuildExpensesToDiscord() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const locale = getLocale();
+
+  const totalExp = state.guildExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const grossVal = state.guildStockpile.reduce((sum, l) => sum + (l.status === 'raw' ? l.rawVal : l.refinedVal), 0);
+  const netVal = grossVal - totalExp;
+
+  let text = `╔══════════════════════════════════════════════════╗\n`;
+  text += `   AARON MFD — GRAND LIVRE DE CORPORATION (4.10)\n`;
+  text += `   ESCADRE : ${fleetNet ? fleetNet.roomCode || 'SOLO' : 'SOLO'} • DATE : ${new Date().toLocaleDateString(locale)}\n`;
+  text += `╚══════════════════════════════════════════════════╝\n\n`;
+
+  text += `📊 BILAN FINANCIER GLOBAL :\n`;
+  text += `  • Recettes Brutes de Stocks : ${grossVal.toLocaleString(locale)} aUEC\n`;
+  text += `  • Total Dépenses Engagées   : -${totalExp.toLocaleString(locale)} aUEC\n`;
+  text += `  • BÉNÉFICE NET CORPORATIF   : ${netVal.toLocaleString(locale)} aUEC\n\n`;
+
+  text += `🧾 DÉTAIL DES FRAIS ENGAGÉS :\n`;
+  if (state.guildExpenses.length === 0) {
+    text += `  (Aucune dépense enregistrée)\n`;
+  } else {
+    state.guildExpenses.forEach((exp, idx) => {
+      text += `  ${idx + 1}. [${exp.categoryName}] ${exp.amount.toLocaleString(locale)} aUEC — ${exp.author} (${exp.location})${exp.note ? ' : ' + exp.note : ''}\n`;
+    });
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    sfx.playSuccess();
+    triggerHaptic(20);
+    showToast(t.expenseDiscordCopiedToast || '📋 Rapport financier de guilde copié dans le presse-papier !');
+  }).catch(() => {
+    showToast('Erreur copie presse-papier.');
+  });
+}
+
+function renderGuildExpenses() {
+  if (!DOM.guildExpensesList) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  const locale = getLocale();
+
+  DOM.guildExpensesList.innerHTML = '';
+  if (state.guildExpenses.length === 0) {
+    DOM.guildExpensesList.innerHTML = `
+      <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px; background:rgba(255,255,255,0.02); border-radius:6px;">
+        ${t.noExpensesRecorded || 'Aucune dépense corporative enregistrée pour le moment.'}
+      </div>
+    `;
+    return;
+  }
+
+  state.guildExpenses.forEach(exp => {
+    const item = document.createElement('div');
+    item.className = 'expense-row-item';
+
+    item.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <strong style="color:#fff; font-family:var(--font-hud); font-size:0.84rem;">${exp.categoryName}</strong>
+          <span style="font-size:0.72rem; color:var(--text-muted);">• ${exp.author} (${exp.location})</span>
+        </div>
+        ${exp.note ? `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic;">${exp.note}</div>` : ''}
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="expense-amount-tag">-${(exp.amount || 0).toLocaleString(locale)} aUEC</span>
+        <button type="button" class="chip-btn btn-del-exp" data-exp-id="${exp.id}" style="border-color:rgba(239,68,68,0.3); color:#fca5a5; padding:2px 6px; font-size:0.72rem;">
+          &times;
+        </button>
+      </div>
+    `;
+
+    const delBtn = item.querySelector('.btn-del-exp');
+    if (delBtn) {
+      delBtn.addEventListener('click', () => deleteGuildExpense(exp.id));
+    }
+
+    DOM.guildExpensesList.appendChild(item);
+  });
+}
+
+function saveGuildExpenses() {
+  try {
+    localStorage.setItem('aaron_mfd_guild_expenses', JSON.stringify(state.guildExpenses));
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+function loadGuildExpenses() {
+  try {
+    const raw = localStorage.getItem('aaron_mfd_guild_expenses');
+    if (raw) {
+      state.guildExpenses = JSON.parse(raw) || [];
+    } else {
+      state.guildExpenses = [...DEFAULT_GUILD_EXPENSES];
+      saveGuildExpenses();
+    }
+  } catch (e) {
+    state.guildExpenses = [...DEFAULT_GUILD_EXPENSES];
+  }
+  renderGuildExpenses();
+  updateGuildNetWorthMetrics();
+}
+
+function updateGuildNetWorthMetrics() {
+  const locale = getLocale();
+
+  const totalSCU = state.guildStockpile.reduce((sum, l) => sum + (l.scu || 0), 0);
+  const readyLots = state.guildStockpile.filter(l => l.status === 'refined_ready').length;
+
+  const grossVal = state.guildStockpile.reduce((sum, l) => sum + (l.status === 'raw' ? l.rawVal : l.refinedVal), 0);
+  const totalExp = state.guildExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const netWorth = grossVal - totalExp;
+
+  if (DOM.guildNetWorthDisplay) {
+    DOM.guildNetWorthDisplay.textContent = `${netWorth.toLocaleString(locale)} aUEC`;
+    DOM.guildNetWorthDisplay.style.color = netWorth >= 0 ? 'var(--accent-emerald)' : '#f87171';
+  }
+  if (DOM.guildTotalScuDisplay) {
+    DOM.guildTotalScuDisplay.textContent = `${totalSCU.toFixed(1)} SCU`;
+  }
+  if (DOM.guildReadyLotsDisplay) {
+    DOM.guildReadyLotsDisplay.textContent = `${readyLots} Lot(s)`;
+  }
+  if (DOM.guildExpenseTotalDisplay) {
+    DOM.guildExpenseTotalDisplay.textContent = `-${totalExp.toLocaleString(locale)} aUEC`;
+  }
+
+  // Expense ledger summary pane
+  if (DOM.expenseLedgerNetVal) {
+    DOM.expenseLedgerNetVal.textContent = `${netWorth.toLocaleString(locale)} aUEC`;
+    DOM.expenseLedgerNetVal.style.color = netWorth >= 0 ? 'var(--accent-emerald)' : '#f87171';
+  }
+  if (DOM.expenseLedgerTotalVal) {
+    DOM.expenseLedgerTotalVal.textContent = `-${totalExp.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.expenseLedgerGrossVal) {
+    DOM.expenseLedgerGrossVal.textContent = `${grossVal.toLocaleString(locale)} aUEC`;
+  }
+}
+
+// ========================================================
+// JALON 7 MODULE: GUILD TREASURY & MO.TRADER TRANSFER SHEET
+// ========================================================
+function renderGuildTreasury() {
+  const locale = getLocale();
+  if (DOM.treasuryBalanceVal) {
+    DOM.treasuryBalanceVal.textContent = `${state.guildTreasuryBalance.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.treasuryTaxSelect) {
+    DOM.treasuryTaxSelect.value = (state.guildCorpoTaxPct ?? 10).toString();
+  }
+  renderMoTraderSheet();
+  renderCraftingGoals();
+}
+
+function saveGuildTreasury() {
+  try {
+    localStorage.setItem('aaron_mfd_guild_treasury', state.guildTreasuryBalance.toString());
+    localStorage.setItem('aaron_mfd_guild_tax_pct', state.guildCorpoTaxPct.toString());
+    localStorage.setItem('aaron_mfd_guild_payout_statuses', JSON.stringify(state.guildPayoutStatuses));
+    localStorage.setItem('aaron_mfd_guild_crafting_goals', JSON.stringify(state.guildCraftingGoals));
+  } catch (e) {
+    console.warn('[Guild Treasury] Erreur lors de la sauvegarde locale:', e);
+  }
+}
+
+function depositGuildTreasury() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const promptText = t.btnDepositTreasury || 'Montant à verser dans la caisse de guilde (aUEC) :';
+  const input = prompt(promptText, '50000');
+  if (!input) return;
+  const amount = parseInt(input.trim().replace(/\s/g, ''), 10);
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Montant invalide.');
+    sfx.playWarning();
+    return;
+  }
+  state.guildTreasuryBalance += amount;
+  saveGuildTreasury();
+  renderGuildTreasury();
+  sfx.playSuccess();
+  triggerHaptic(20);
+  showToast(t.toastTreasuryUpdated || '💰 Trésorerie de guilde actualisée !');
+  broadcastTreasuryToFleet(true);
+}
+
+function withdrawGuildTreasury() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const promptText = t.btnWithdrawTreasury || 'Montant à décaisser de la caisse de guilde (aUEC) :';
+  const input = prompt(promptText, '25000');
+  if (!input) return;
+  const amount = parseInt(input.trim().replace(/\s/g, ''), 10);
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Montant invalide.');
+    sfx.playWarning();
+    return;
+  }
+  if (amount > state.guildTreasuryBalance) {
+    showToast('Fonds insuffisants dans la trésorerie.');
+    sfx.playWarning();
+    return;
+  }
+  state.guildTreasuryBalance -= amount;
+  saveGuildTreasury();
+  renderGuildTreasury();
+  sfx.playBeep(450, 'sine', 0.08);
+  triggerHaptic(15);
+  showToast(t.toastTreasuryUpdated || '💰 Trésorerie de guilde actualisée !');
+  broadcastTreasuryToFleet(true);
+}
+
+function calculateMoTraderSplit() {
+  // 1. Gather active participants
+  let pilots = [];
+  if (fleetNet && fleetNet.status === 'connected' && fleetNet.peers && fleetNet.peers.size > 0) {
+    pilots.push({
+      id: 'local',
+      callsign: state.callsign || 'CITIZEN-1',
+      role: 'Commandant / MOLE',
+      weight: 1.0
+    });
+    fleetNet.getPeersList().forEach(p => {
+      const shipDesc = (p.shipId || 'vessel').toUpperCase();
+      let role = 'Opérateur / ' + shipDesc;
+      let weight = 1.0;
+      if (shipDesc.includes('C2') || shipDesc.includes('RAFT') || shipDesc.includes('HULL')) {
+        role = 'Transporteur Cargo';
+        weight = 0.9;
+      } else if (shipDesc.includes('HORNET') || shipDesc.includes('GLADIUS') || shipDesc.includes('SABRE')) {
+        role = 'Escorte Combat';
+        weight = 0.85;
+      }
+      pilots.push({
+        id: p.peerId,
+        callsign: p.callsign || 'CITIZEN',
+        role: role,
+        weight: weight
+      });
+    });
+  } else {
+    // Default simulated crew for standalone demo / offline squad
+    pilots = [
+      { id: 'p_cmd', callsign: state.callsign || 'VORTEX-1', role: 'Commandant (MOLE Pilot)', weight: 1.0 },
+      { id: 'p_w1', callsign: 'TITAN-4', role: 'Transporteur (C2 Hercules)', weight: 0.9 },
+      { id: 'p_w2', callsign: 'ORION-2', role: 'Opérateur Tourelle 1 (Lancet)', weight: 1.0 },
+      { id: 'p_w3', callsign: 'SABRE-5', role: 'Escorte Tactique (Gladius)', weight: 0.85 }
+    ];
+  }
+
+  // 2. Gross pool = total stockpile value or baseline 1,200,000 aUEC
+  const grossVal = state.guildStockpile.reduce((sum, l) => sum + (l.status === 'raw' ? l.rawVal : l.refinedVal), 0);
+  const totalPool = grossVal > 0 ? grossVal : 1200000;
+
+  // 3. Guild tax calculation
+  const taxPct = state.guildCorpoTaxPct ?? 10;
+  const totalTax = Math.round(totalPool * (taxPct / 100));
+  const distributablePool = totalPool - totalTax;
+
+  const totalWeight = pilots.reduce((sum, p) => sum + p.weight, 0);
+
+  return pilots.map(p => {
+    const grossShare = Math.round(totalPool * (p.weight / totalWeight));
+    const corpoTax = Math.round(grossShare * (taxPct / 100));
+    const netPayout = grossShare - corpoTax;
+    const status = state.guildPayoutStatuses[p.id] || 'pending';
+    return {
+      id: p.id,
+      callsign: p.callsign,
+      role: p.role,
+      grossShare: grossShare,
+      corpoTax: corpoTax,
+      netPayout: netPayout,
+      status: status
+    };
+  });
+}
+
+function renderMoTraderSheet() {
+  if (!DOM.moTraderTableBody) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  const locale = getLocale();
+  DOM.moTraderTableBody.innerHTML = '';
+
+  const splitData = calculateMoTraderSplit();
+
+  splitData.forEach(p => {
+    const tr = document.createElement('tr');
+
+    const isPaid = p.status === 'paid';
+    const statusText = isPaid ? (t.statusPaid || 'Virement Fait') : (t.statusPending || 'En attente');
+    const statusClass = isPaid ? 'paid' : 'pending';
+
+    tr.innerHTML = `
+      <td>
+        <strong style="color:#fff; font-family:var(--font-hud);">${escapeHtml(p.callsign)}</strong>
+        <div style="font-size:0.7rem; color:var(--text-muted);">${escapeHtml(p.role)}</div>
+      </td>
+      <td style="font-family:var(--font-mono); color:var(--text-muted); font-size:0.8rem;">
+        ${p.grossShare.toLocaleString(locale)} aUEC
+      </td>
+      <td style="font-family:var(--font-mono); color:#f87171; font-size:0.8rem;">
+        -${p.corpoTax.toLocaleString(locale)} aUEC
+      </td>
+      <td style="font-family:var(--font-mono); font-weight:700; color:var(--accent-cyan); font-size:0.85rem;">
+        ${p.netPayout.toLocaleString(locale)} aUEC
+      </td>
+      <td>
+        <span class="motrader-status-pill ${statusClass}" data-pilot-id="${escapeHtml(p.id)}">
+          ${isPaid ? '🟢' : '🟡'} ${escapeHtml(statusText)}
+        </span>
+      </td>
+    `;
+
+    const pill = tr.querySelector('.motrader-status-pill');
+    if (pill) {
+      pill.addEventListener('click', () => {
+        toggleMoTraderStatus(p.id);
+      });
+    }
+
+    DOM.moTraderTableBody.appendChild(tr);
+  });
+}
+
+function toggleMoTraderStatus(pilotId) {
+  const current = state.guildPayoutStatuses[pilotId] || 'pending';
+  state.guildPayoutStatuses[pilotId] = current === 'paid' ? 'pending' : 'paid';
+  saveGuildTreasury();
+  renderMoTraderSheet();
+  sfx.playBeep(620, 'sine', 0.04);
+  triggerHaptic(10);
+  broadcastTreasuryToFleet(true);
+}
+
+function copyMoTraderSheetToClipboard() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const locale = getLocale();
+  const splitData = calculateMoTraderSplit();
+  const taxPct = state.guildCorpoTaxPct ?? 10;
+
+  let lines = [];
+  lines.push('════════════════════════════════════════');
+  lines.push('💰 AARON MFD • FEUILLE DE VIREMENT MO.TRADER');
+  lines.push(`🏛️ Retenue Corporation : ${taxPct}% (Caisse de Réserve)`);
+  lines.push('════════════════════════════════════════');
+
+  let totalPaidOut = 0;
+  let totalWithheld = 0;
+
+  splitData.forEach(p => {
+    totalPaidOut += p.netPayout;
+    totalWithheld += p.corpoTax;
+    const badge = p.status === 'paid' ? '[VIREMENT FAIT]' : '[EN ATTENTE]';
+    lines.push(`• ${p.callsign} (${p.role}) ➔ ${p.netPayout.toLocaleString(locale)} aUEC ${badge}`);
+  });
+
+  lines.push('────────────────────────────────────────');
+  lines.push(`Total distribué : ${totalPaidOut.toLocaleString(locale)} aUEC`);
+  lines.push(`Retenue caisse guilde : ${totalWithheld.toLocaleString(locale)} aUEC`);
+  lines.push('════════════════════════════════════════');
+
+  const textToCopy = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      showToast(t.toastMoTraderCopied || '📋 Feuille de virements mo.Trader copiée dans le presse-papier !');
+      sfx.playSuccess();
+      triggerHaptic(20);
+    }).catch(() => {
+      prompt('Copiez manuellement :', textToCopy);
+    });
+  } else {
+    prompt('Copiez manuellement :', textToCopy);
+  }
+}
+
+// ========================================================
+// JALON 7 MODULE: CRAFTING 4.0 COLLECTIVE GOALS
+// ========================================================
+function renderCraftingGoals() {
+  if (!DOM.craftingGoalsList) return;
+  const locale = getLocale();
+  DOM.craftingGoalsList.innerHTML = '';
+
+  if (!state.guildCraftingGoals || state.guildCraftingGoals.length === 0) {
+    DOM.craftingGoalsList.innerHTML = `
+      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:6px 0;">
+        Aucun objectif d'artisanat actif. Cliquez sur "Nouvel Objectif" pour en définir un.
+      </div>
+    `;
+    return;
+  }
+
+  state.guildCraftingGoals.forEach(goal => {
+    // Calculate fulfillment for each mineral
+    let totalRatios = 0;
+    const mineralPillsHtml = goal.requiredMinerals.map(req => {
+      // Find matching SCU in stockpile
+      const currentScu = state.guildStockpile
+        .filter(l => l.mineralId === req.mineralId)
+        .reduce((sum, l) => sum + (l.scu || 0), 0);
+      const isFulfilled = currentScu >= req.neededScu;
+      const ratio = Math.min(1.0, currentScu / (req.neededScu || 1));
+      totalRatios += ratio;
+      const minName = req.mineralId.toUpperCase();
+      return `
+        <span class="crafting-req-pill ${isFulfilled ? 'fulfilled' : ''}">
+          ${isFulfilled ? '✓' : '○'} ${minName} : ${currentScu.toFixed(1)} / ${req.neededScu} SCU
+        </span>
+      `;
+    }).join('');
+
+    const progressPct = Math.round((totalRatios / (goal.requiredMinerals.length || 1)) * 100);
+
+    const card = document.createElement('div');
+    card.className = 'crafting-goal-card';
+    card.innerHTML = `
+      <div class="crafting-goal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.1rem;">🛠️</span>
+          <div>
+            <strong style="color:#fff; font-family:var(--font-hud); font-size:0.85rem;">
+              ${escapeHtml(goal.name)}
+            </strong>
+            <span style="font-size:0.72rem; color:var(--text-muted); margin-left:6px;">
+              (Cible: ${goal.targetCount}x)
+            </span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-family:var(--font-mono); font-size:0.82rem; font-weight:700; color:${progressPct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-cyan)'};">
+            ${progressPct}%
+          </span>
+          <button type="button" class="btn-del-goal" data-goal-id="${escapeHtml(goal.id)}" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Supprimer">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="crafting-gauge-container">
+        <div class="crafting-gauge-fill" style="width:${progressPct}%;"></div>
+      </div>
+
+      <div class="crafting-minerals-pills">
+        ${mineralPillsHtml}
+      </div>
+    `;
+
+    const delBtn = card.querySelector('.btn-del-goal');
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteCraftingGoal(goal.id);
+      });
+    }
+
+    DOM.craftingGoalsList.appendChild(card);
+  });
+}
+
+function submitCraftingGoal() {
+  if (!DOM.craftingGoalItemSelect || !DOM.craftingGoalCountInput) return;
+  const itemId = DOM.craftingGoalItemSelect.value;
+  const count = Math.max(1, parseInt(DOM.craftingGoalCountInput.value, 10) || 1);
+
+  const presets = {
+    lancet_mk2: {
+      name: 'Lancet MH2 Custom (Tête S2)',
+      minerals: [
+        { mineralId: 'quantainium', neededScu: 16 * count },
+        { mineralId: 'bexalite', neededScu: 8 * count },
+        { mineralId: 'taranite', neededScu: 4 * count }
+      ]
+    },
+    helix_s2: {
+      name: 'Helix II Custom (Tête S2)',
+      minerals: [
+        { mineralId: 'bexalite', neededScu: 12 * count },
+        { mineralId: 'laranite', neededScu: 16 * count },
+        { mineralId: 'borase', neededScu: 8 * count }
+      ]
+    },
+    sabir_mod: {
+      name: 'Module Actif Sabir 21',
+      minerals: [
+        { mineralId: 'borase', neededScu: 3 * count },
+        { mineralId: 'laranite', neededScu: 2 * count }
+      ]
+    },
+    surge_mod: {
+      name: 'Module Actif Surge',
+      minerals: [
+        { mineralId: 'quantainium', neededScu: 4 * count },
+        { mineralId: 'agricium', neededScu: 4 * count }
+      ]
+    },
+    custom_saddlebags: {
+      name: 'Sacoches Amovibles Renforcées 32 SCU',
+      minerals: [
+        { mineralId: 'titanium', neededScu: 20 * count },
+        { mineralId: 'copper', neededScu: 10 * count }
+      ]
+    }
+  };
+
+  const preset = presets[itemId] || presets.lancet_mk2;
+
+  const newGoal = {
+    id: 'goal_' + Date.now(),
+    itemId: itemId,
+    name: `${preset.name} (x${count})`,
+    targetCount: count,
+    requiredMinerals: preset.minerals
+  };
+
+  state.guildCraftingGoals.unshift(newGoal);
+  saveGuildTreasury();
+  renderCraftingGoals();
+
+  if (DOM.addCraftingGoalForm) {
+    DOM.addCraftingGoalForm.style.display = 'none';
+  }
+
+  sfx.playSuccess();
+  triggerHaptic(15);
+  showToast('🛠️ Objectif d\'artisanat ajouté au carnet de guilde !');
+  broadcastTreasuryToFleet(true);
+}
+
+function deleteCraftingGoal(goalId) {
+  state.guildCraftingGoals = state.guildCraftingGoals.filter(g => g.id !== goalId);
+  saveGuildTreasury();
+  renderCraftingGoals();
+  sfx.playBeep(400, 'square', 0.05);
+  showToast('🗑️ Objectif retiré du carnet.');
+  broadcastTreasuryToFleet(true);
+}
+
+// ========================================================
+// JALON 7: FLEETNET TREASURY & MO.TRADER SYNC
+// ========================================================
+function broadcastTreasuryToFleet(silent = false) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (fleetNet && fleetNet.status === 'connected') {
+    const payload = {
+      treasuryBalance: state.guildTreasuryBalance,
+      taxPct: state.guildCorpoTaxPct,
+      goals: state.guildCraftingGoals,
+      payoutStatuses: state.guildPayoutStatuses
+    };
+    const sent = fleetNet.broadcastCorpoTreasurySync(payload);
+    if (sent && !silent) {
+      showToast(t.toastTreasurySync || '💰 Trésorerie et virements synchronisés avec l\'escadre !');
+      sfx.playSuccess();
+    }
+  } else if (!silent) {
+    showToast('FLEET-NET non connecté. Rejoignez une escadre pour synchroniser la trésorerie.');
+  }
+}
+
+function handleIncomingCorpoTreasurySync(treasurySync, senderCallsign) {
+  if (!treasurySync) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (typeof treasurySync.treasuryBalance === 'number') {
+    state.guildTreasuryBalance = treasurySync.treasuryBalance;
+  }
+  if (typeof treasurySync.taxPct === 'number') {
+    state.guildCorpoTaxPct = treasurySync.taxPct;
+  }
+  if (Array.isArray(treasurySync.goals)) {
+    state.guildCraftingGoals = treasurySync.goals;
+  }
+  if (treasurySync.payoutStatuses && typeof treasurySync.payoutStatuses === 'object') {
+    state.guildPayoutStatuses = { ...state.guildPayoutStatuses, ...treasurySync.payoutStatuses };
+  }
+
+  saveGuildTreasury();
+  renderGuildTreasury();
+  sfx.playBeep(720, 'sine', 0.05);
+
+  const msg = (t.toastTreasurySync || '💰 Trésorerie et virements synchronisés avec l\'escadre !')
+    + ` (${senderCallsign || 'Trésorier'})`;
+  showToast(msg);
+}
+
+// ========================================================
+// JALON 7 MODULE: COMMODITY TRADING & CARGO ROUTES SOLVER
+// ========================================================
+function initCommodityTrading() {
+  populateTradeSimulatorSelects();
+
+  if (DOM.tradePresetRouteSelect) {
+    DOM.tradePresetRouteSelect.addEventListener('change', (e) => {
+      loadTradePresetRoute(e.target.value);
+    });
+  }
+
+  if (DOM.tradeCommoditySelect) {
+    DOM.tradeCommoditySelect.addEventListener('change', (e) => {
+      const commId = e.target.value;
+      const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === commId);
+      if (comm) {
+        if (DOM.tradeBuyPriceInput) DOM.tradeBuyPriceInput.value = comm.baseBuy.toString();
+        if (DOM.tradeSellPriceInput) DOM.tradeSellPriceInput.value = comm.baseSell.toString();
+        calculateTradeMetrics();
+      }
+    });
+  }
+
+  const recalcInputs = [DOM.tradeCargoScuInput, DOM.tradeBuyPriceInput, DOM.tradeSellPriceInput];
+  recalcInputs.forEach(input => {
+    if (input) {
+      input.addEventListener('input', calculateTradeMetrics);
+    }
+  });
+
+  // Capacity buttons presets
+  const capButtons = document.querySelectorAll('.trade-cap-btn');
+  capButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      capButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const scu = btn.getAttribute('data-scu');
+      if (DOM.tradeCargoScuInput && scu) {
+        DOM.tradeCargoScuInput.value = scu;
+        calculateTradeMetrics();
+      }
+    });
+  });
+
+  if (DOM.btnFinanceTradeTreasury) {
+    DOM.btnFinanceTradeTreasury.addEventListener('click', financeTradeFromTreasury);
+  }
+  if (DOM.btnAddTradeToStockpile) {
+    DOM.btnAddTradeToStockpile.addEventListener('click', addTradeRunToStockpile);
+  }
+  if (DOM.btnSyncTradeFleet) {
+    DOM.btnSyncTradeFleet.addEventListener('click', () => {
+      broadcastTradeToFleet(false);
+    });
+  }
+
+  if (DOM.manualLotCategorySelect) {
+    DOM.manualLotCategorySelect.addEventListener('change', updateManualLotCommodityOrMineralDropdown);
+  }
+
+  loadTradePresetRoute('route_med_hurston');
+  renderPopularTradeRoutes();
+}
+
+function updateManualLotCommodityOrMineralDropdown() {
+  if (!DOM.manualLotCategorySelect || !DOM.manualLotMineralSelect) return;
+  const isCommodity = DOM.manualLotCategorySelect.value === 'commodity';
+  DOM.manualLotMineralSelect.innerHTML = '';
+
+  if (isCommodity) {
+    (MINING_DATA.generalCommodities || []).forEach(comm => {
+      const opt = document.createElement('option');
+      opt.value = comm.id;
+      opt.textContent = `${comm.name_fr} (Base: ${comm.baseBuy} aUEC)`;
+      DOM.manualLotMineralSelect.appendChild(opt);
+    });
+    if (DOM.manualLotBuyCostInput) {
+      DOM.manualLotBuyCostInput.value = (MINING_DATA.generalCommodities[0]?.baseBuy || 17.4).toString();
+    }
+  } else {
+    (MINING_DATA.minerals || []).forEach(mineral => {
+      const opt = document.createElement('option');
+      opt.value = mineral.id;
+      opt.textContent = `${getLocalized(mineral, 'name')} (${mineral.rawPrice} aUEC)`;
+      DOM.manualLotMineralSelect.appendChild(opt);
+    });
+    if (DOM.manualLotBuyCostInput) {
+      DOM.manualLotBuyCostInput.value = '0';
+    }
+  }
+}
+
+function populateTradeSimulatorSelects() {
+  if (DOM.tradePresetRouteSelect) {
+    DOM.tradePresetRouteSelect.innerHTML = '';
+    (MINING_DATA.popularTradeRoutes || []).forEach(route => {
+      const opt = document.createElement('option');
+      opt.value = route.id;
+      opt.textContent = `${route.name} (+${route.marginPerScu} aUEC/SCU)`;
+      DOM.tradePresetRouteSelect.appendChild(opt);
+    });
+  }
+
+  if (DOM.tradeCommoditySelect) {
+    DOM.tradeCommoditySelect.innerHTML = '';
+    (MINING_DATA.generalCommodities || []).forEach(comm => {
+      const opt = document.createElement('option');
+      opt.value = comm.id;
+      opt.textContent = `${comm.name_fr} (${comm.baseBuy} ➔ ${comm.baseSell} aUEC)`;
+      DOM.tradeCommoditySelect.appendChild(opt);
+    });
+  }
+}
+
+function loadTradePresetRoute(routeId) {
+  const route = (MINING_DATA.popularTradeRoutes || []).find(r => r.id === routeId) || MINING_DATA.popularTradeRoutes[0];
+  if (!route) return;
+
+  if (DOM.tradePresetRouteSelect) DOM.tradePresetRouteSelect.value = route.id;
+  if (DOM.tradeCommoditySelect) DOM.tradeCommoditySelect.value = route.commodityId;
+  if (DOM.tradeOriginInput) DOM.tradeOriginInput.value = route.origin;
+  if (DOM.tradeDestinationInput) DOM.tradeDestinationInput.value = route.destination;
+  if (DOM.tradeBuyPriceInput) DOM.tradeBuyPriceInput.value = route.buyPrice.toString();
+  if (DOM.tradeSellPriceInput) DOM.tradeSellPriceInput.value = route.sellPrice.toString();
+
+  updateTradeRiskBadge(route.risk);
+  calculateTradeMetrics();
+}
+
+function updateTradeRiskBadge(riskLevel) {
+  if (!DOM.tradeRiskBadge) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+  DOM.tradeRiskBadge.className = `trade-risk-badge ${riskLevel || 'safe'}`;
+  if (riskLevel === 'extreme') {
+    DOM.tradeRiskBadge.textContent = t.riskExtreme || '🔴 Extrême (Hors-la-loi / Pyro)';
+  } else if (riskLevel === 'moderate') {
+    DOM.tradeRiskBadge.textContent = t.riskModerate || '🟡 Modéré (Risque Mantis)';
+  } else {
+    DOM.tradeRiskBadge.textContent = t.riskSafe || '🟢 Sécurisé (Zone Armistice)';
+  }
+}
+
+function calculateTradeMetrics() {
+  const locale = getLocale();
+  const scu = parseFloat(DOM.tradeCargoScuInput?.value) || 0;
+  const buyPrice = parseFloat(DOM.tradeBuyPriceInput?.value) || 0;
+  const sellPrice = parseFloat(DOM.tradeSellPriceInput?.value) || 0;
+
+  const capitalRequired = Math.round(scu * buyPrice * 100);
+  const grossReturn = Math.round(scu * sellPrice * 100);
+  const netProfit = grossReturn - capitalRequired;
+  const marginPerScu = Math.round((sellPrice - buyPrice) * 100);
+  const roi = buyPrice > 0 ? (((sellPrice - buyPrice) / buyPrice) * 100).toFixed(1) : '0.0';
+
+  if (DOM.tradeCapitalRequiredVal) {
+    DOM.tradeCapitalRequiredVal.textContent = `${capitalRequired.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.tradeGrossReturnVal) {
+    DOM.tradeGrossReturnVal.textContent = `${grossReturn.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.tradeNetProfitVal) {
+    DOM.tradeNetProfitVal.textContent = `${netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString(locale)} aUEC`;
+    DOM.tradeNetProfitVal.style.color = netProfit >= 0 ? 'var(--accent-cyan)' : '#f87171';
+  }
+  if (DOM.tradeMarginPerScuVal) {
+    DOM.tradeMarginPerScuVal.textContent = `${marginPerScu >= 0 ? '+' : ''}${marginPerScu.toLocaleString(locale)} aUEC`;
+  }
+  if (DOM.tradeRoiPercentVal) {
+    DOM.tradeRoiPercentVal.textContent = `${roi >= 0 ? '+' : ''}${roi}%`;
+  }
+}
+
+function financeTradeFromTreasury() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const locale = getLocale();
+  const scu = parseFloat(DOM.tradeCargoScuInput?.value) || 0;
+  const buyPrice = parseFloat(DOM.tradeBuyPriceInput?.value) || 0;
+  const capitalRequired = Math.round(scu * buyPrice * 100);
+
+  if (capitalRequired <= 0) {
+    showToast('Montant du capital requis invalide.');
+    sfx.playWarning();
+    return;
+  }
+
+  if (capitalRequired > state.guildTreasuryBalance) {
+    sfx.playWarning();
+    showToast(`Trésorerie insuffisante ! Requis : ${capitalRequired.toLocaleString(locale)} aUEC (Solde : ${state.guildTreasuryBalance.toLocaleString(locale)} aUEC)`);
+    return;
+  }
+
+  state.guildTreasuryBalance -= capitalRequired;
+  saveGuildTreasury();
+  renderGuildTreasury();
+
+  // Log as corpo expense / advance
+  const commId = DOM.tradeCommoditySelect ? DOM.tradeCommoditySelect.value : 'goods';
+  const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === commId);
+  const commName = comm ? (getLocalized(comm, 'name') || comm.name_fr) : commId;
+
+  const expenseItem = {
+    id: 'trade_exp_' + Date.now(),
+    category: 'other',
+    amount: capitalRequired,
+    author: state.callsign || 'CITIZEN-1',
+    location: DOM.tradeOriginInput ? DOM.tradeOriginInput.value : 'Origine Fret',
+    note: `Avance Trésorerie Achat Cargo : ${scu} SCU ${commName}`,
+    timestamp: Date.now()
+  };
+  state.guildExpenses.unshift(expenseItem);
+  saveGuildExpenses();
+  renderGuildExpenses();
+  updateGuildNetWorthMetrics();
+
+  sfx.playSuccess();
+  triggerHaptic(25);
+  showToast(t.toastTradeFinanced || '🏦 Achat financé avec succès depuis la trésorerie de guilde !');
+  broadcastTreasuryToFleet(true);
+}
+
+function addTradeRunToStockpile() {
+  const t = I18N[state.currentLang] || I18N.fr;
+  const scu = parseFloat(DOM.tradeCargoScuInput?.value) || 0;
+  const buyPrice = parseFloat(DOM.tradeBuyPriceInput?.value) || 0;
+  const sellPrice = parseFloat(DOM.tradeSellPriceInput?.value) || 0;
+  const origin = DOM.tradeOriginInput ? DOM.tradeOriginInput.value : 'Station Fret';
+  const commId = DOM.tradeCommoditySelect ? DOM.tradeCommoditySelect.value : 'goods';
+
+  if (scu <= 0) {
+    showToast('Volume SCU invalide.');
+    return;
+  }
+
+  const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === commId);
+  const commName = comm ? (getLocalized(comm, 'name') || comm.name_fr) : commId;
+  const capitalRequired = Math.round(scu * buyPrice * 100);
+  const grossReturn = Math.round(scu * sellPrice * 100);
+
+  const newLot = {
+    id: 'trade_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    category: 'commodity',
+    stationId: origin.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 20),
+    stationName: origin,
+    mineralId: commId,
+    mineralName: commName,
+    scu: scu,
+    unitBuyCost: buyPrice,
+    status: 'refined_ready',
+    rawVal: capitalRequired,
+    refinedVal: grossReturn,
+    depositedBy: state.callsign || 'CITIZEN-1',
+    timestamp: Date.now()
+  };
+
+  state.guildStockpile.unshift(newLot);
+  saveGuildStockpile();
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
+
+  sfx.playSuccess();
+  triggerHaptic(20);
+
+  const msg = (t.toastTradeDeposited || '📥 Cargaison de {scu} SCU ({commodity}) ajoutée à l\'inventaire de guilde !')
+    .replace('{scu}', scu)
+    .replace('{commodity}', commName);
+  showToast(msg);
+
+  broadcastStockpileToFleet(true);
+}
+
+function renderPopularTradeRoutes() {
+  if (!DOM.popularTradeRoutesGrid) return;
+  const locale = getLocale();
+  DOM.popularTradeRoutesGrid.innerHTML = '';
+
+  (MINING_DATA.popularTradeRoutes || []).forEach(route => {
+    const item = document.createElement('div');
+    item.className = 'trade-route-item';
+
+    const riskClass = route.risk || 'safe';
+    const riskLabel = riskClass === 'extreme' ? '🔴 Extrême' : (riskClass === 'moderate' ? '🟡 Modéré' : '🟢 Sûr');
+
+    item.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+        <strong style="color:#fff; font-family:var(--font-hud); font-size:0.83rem;">${escapeHtml(route.name)}</strong>
+        <span class="trade-risk-badge ${riskClass}" style="font-size:0.65rem; padding:1px 5px;">${riskLabel}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted);">
+        <span>Achat: ${route.buyPrice} ➔ Vente: ${route.sellPrice} aUEC</span>
+        <strong style="font-family:var(--font-mono); color:var(--accent-emerald);">+${route.marginPerScu.toLocaleString(locale)} aUEC/SCU</strong>
+      </div>
+    `;
+
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.trade-route-item').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      loadTradePresetRoute(route.id);
+      sfx.playBeep(650, 'sine', 0.04);
+    });
+
+    DOM.popularTradeRoutesGrid.appendChild(item);
+  });
+}
+
+function broadcastTradeToFleet(silent = false) {
+  const t = I18N[state.currentLang] || I18N.fr;
+  if (fleetNet && fleetNet.status === 'connected') {
+    const payload = {
+      routeId: DOM.tradePresetRouteSelect ? DOM.tradePresetRouteSelect.value : null,
+      commodityId: DOM.tradeCommoditySelect ? DOM.tradeCommoditySelect.value : null,
+      origin: DOM.tradeOriginInput ? DOM.tradeOriginInput.value : null,
+      destination: DOM.tradeDestinationInput ? DOM.tradeDestinationInput.value : null,
+      buyPrice: parseFloat(DOM.tradeBuyPriceInput?.value) || 0,
+      sellPrice: parseFloat(DOM.tradeSellPriceInput?.value) || 0,
+      scu: parseFloat(DOM.tradeCargoScuInput?.value) || 0,
+      timestamp: Date.now()
+    };
+    const sent = fleetNet.broadcastCorpoTradeSync(payload);
+    if (sent && !silent) {
+      showToast(t.toastTradeSync || '📡 Routes de trading et cargaisons synchronisées avec la flotte !');
+      sfx.playSuccess();
+    }
+  } else if (!silent) {
+    showToast('FLEET-NET non connecté. Rejoignez une escadre pour synchroniser le trading.');
+  }
+}
+
+function handleIncomingCorpoTradeSync(tradeSync, senderCallsign) {
+  if (!tradeSync) return;
+  const t = I18N[state.currentLang] || I18N.fr;
+
+  if (DOM.tradeOriginInput && tradeSync.origin) DOM.tradeOriginInput.value = tradeSync.origin;
+  if (DOM.tradeDestinationInput && tradeSync.destination) DOM.tradeDestinationInput.value = tradeSync.destination;
+  if (DOM.tradeBuyPriceInput && tradeSync.buyPrice) DOM.tradeBuyPriceInput.value = tradeSync.buyPrice.toString();
+  if (DOM.tradeSellPriceInput && tradeSync.sellPrice) DOM.tradeSellPriceInput.value = tradeSync.sellPrice.toString();
+  if (DOM.tradeCargoScuInput && tradeSync.scu) DOM.tradeCargoScuInput.value = tradeSync.scu.toString();
+  if (DOM.tradeCommoditySelect && tradeSync.commodityId) DOM.tradeCommoditySelect.value = tradeSync.commodityId;
+
+  calculateTradeMetrics();
+  sfx.playBeep(700, 'sine', 0.05);
+
+  const msg = (t.toastTradeSync || '📡 Route de trading partagée par {callsign} !')
+    .replace('{callsign}', senderCallsign || 'Négociant');
+  showToast(msg);
+}
+
+// ----------------------------------------------------
+// REFINING JOBS & DESKTOP TIMERS
+// ----------------------------------------------------
 function addRefineryJobFromHold() {
   const t = I18N[state.currentLang] || I18N.fr;
   if (state.holdSCU <= 0 && state.sessionLog.length === 0) {
     sfx.playWarning();
-    showToast(t.toastHoldEmpty);
+    showToast(t.toastHoldEmpty || 'Soute vide.');
     return;
   }
 
   populateRefineryModalSelects();
+  switchStockpileTab('refining');
   openModal(DOM.refineryModal);
 }
 
 function confirmCreateRefineryJob() {
   const t = I18N[state.currentLang] || I18N.fr;
-  const stationId = DOM.refineryOrderStationSelect.value;
-  const methodId = DOM.refineryOrderMethodSelect.value;
+  const stationId = DOM.refineryOrderStationSelect ? DOM.refineryOrderStationSelect.value : 'arc_l1';
+  const methodId = DOM.refineryOrderMethodSelect ? DOM.refineryOrderMethodSelect.value : 'dinyx';
 
   const station = MINING_DATA.refineryStations.find(s => s.id === stationId) || MINING_DATA.refineryStations[0];
   const method = MINING_DATA.refiningMethods.find(m => m.id === methodId) || MINING_DATA.refiningMethods[0];
@@ -7521,7 +11220,6 @@ function confirmCreateRefineryJob() {
   const bonus = (station.bonusMineral === state.selectedMineral.id) ? (1 + station.bonusRate) : 1.0;
   const refinedVal = Math.round(totalRaw * method.yieldRate * 1.85 * bonus);
 
-  // Duration scaled for interactive UI (e.g. ~45s to 2min per order for live feedback)
   const durationSec = Math.max(30, Math.round(totalSCU * (method.durationHoursPerSCU || 0.3) * 60));
   const now = Date.now();
 
@@ -7539,20 +11237,50 @@ function confirmCreateRefineryJob() {
     endTime: now + (durationSec * 1000),
     durationSec: durationSec,
     completed: false,
-    collected: false
+    collected: false,
+    pushNotified: false
   };
 
   state.refineryJobs.unshift(newJob);
   saveRefineryJobs();
 
-  // Empty ship hold since cargo has been handed to refinery
+  // Also add to guild stockpile as in-refining lot
+  const stockLot = {
+    id: 'lot_' + now,
+    stationId: station.id,
+    stationName: station.name,
+    mineralId: state.selectedMineral.id,
+    mineralName: newJob.mineral,
+    scu: parseFloat(totalSCU.toFixed(1)),
+    status: 'refining',
+    methodName: method.name,
+    rawVal: totalRaw,
+    refinedVal: refinedVal,
+    depositedBy: state.callsign || 'CITIZEN-1',
+    timestamp: now
+  };
+  state.guildStockpile.unshift(stockLot);
+  saveGuildStockpile();
+
+  // Empty ship hold
   clearHold();
 
   renderRefineryJobs();
+  renderGuildStockpile();
+  updateGuildNetWorthMetrics();
   updateRefineryBadge();
   sfx.playSuccess();
   triggerHaptic(20);
-  showToast(t.toastRefinerySubmitted);
+
+  showToast(t.toastRefinerySubmitted || 'Commande de raffinage lancée avec succès !');
+
+  if (fleetNet && fleetNet.status === 'connected') {
+    fleetNet.broadcastCorpoStockSync({
+      action: 'deposit',
+      lot: stockLot,
+      allLots: state.guildStockpile
+    });
+  }
 }
 
 function startRefineryTimerLoop() {
@@ -7572,8 +11300,25 @@ function tickRefineryJobs() {
     if (!job.completed && now >= job.endTime) {
       job.completed = true;
       updated = true;
-      sfx.playSuccess();
-      showToast(t.toastRefineryReady.replace('{station}', job.stationName));
+
+      // Update matching lot in guild stockpile to ready
+      const matchingLot = state.guildStockpile.find(l => l.id === job.id);
+      if (matchingLot) {
+        matchingLot.status = 'refined_ready';
+        saveGuildStockpile();
+        renderGuildStockpile();
+        updateGuildNetWorthMetrics();
+      }
+
+      // Send desktop Web Push Notification & Cockpit audio
+      if (!job.pushNotified) {
+        job.pushNotified = true;
+        const pushTitle = (t.toastPushReadyTitle || '🔔 Raffinerie {station}').replace('{station}', job.stationName);
+        const pushBody = (t.toastPushReadyBody || 'Votre commande de {scu} SCU de {mineral} est prête au chargement !')
+          .replace('{scu}', job.scu.toFixed(1))
+          .replace('{mineral}', job.mineral);
+        sendDesktopPushNotification(pushTitle, pushBody);
+      }
     }
   });
 
@@ -7594,12 +11339,24 @@ function collectRefineryJob(jobId) {
   state.refineryJobs = state.refineryJobs.filter(j => j.id !== jobId);
   saveRefineryJobs();
 
+  // Mark lot ready or sold in stockpile
+  const stockLot = state.guildStockpile.find(l => l.id === jobId);
+  if (stockLot) {
+    stockLot.status = 'refined_ready';
+    saveGuildStockpile();
+    renderGuildStockpile();
+    updateGuildNetWorthMetrics();
+  }
+
   renderRefineryJobs();
   updateRefineryBadge();
   updateLedgerDisplay();
   sfx.playSuccess();
   triggerHaptic(25);
-  showToast(t.toastRefineryCollectedVal.replace('{auec}', job.refinedVal.toLocaleString(getLocale())));
+
+  const msg = (t.toastRefineryCollectedVal || 'Lot récupéré ! +{auec} aUEC')
+    .replace('{auec}', job.refinedVal.toLocaleString(getLocale()));
+  showToast(msg);
 }
 
 function renderRefineryJobs() {
@@ -7610,7 +11367,7 @@ function renderRefineryJobs() {
 
   const activeJobs = state.refineryJobs.filter(j => !j.collected);
   if (DOM.refineryActiveCount) {
-    DOM.refineryActiveCount.textContent = `${activeJobs.length} ${activeJobs.length > 1 ? t.refineryBatchPlural : t.refineryBatchSingle}`;
+    DOM.refineryActiveCount.textContent = `${activeJobs.length} ${activeJobs.length > 1 ? (t.refineryBatchPlural || 'Lots') : (t.refineryBatchSingle || 'Lot')}`;
   }
   const totalRefVal = activeJobs.reduce((acc, j) => acc + j.refinedVal, 0);
   if (DOM.refineryTotalValueDisplay) {
@@ -7619,7 +11376,7 @@ function renderRefineryJobs() {
 
   DOM.refineryJobsList.innerHTML = '';
   if (activeJobs.length === 0) {
-    DOM.refineryJobsList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px;">${t.noActiveJobs}</div>`;
+    DOM.refineryJobsList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px;">${t.noActiveJobs || 'Aucune commande de raffinage active.'}</div>`;
     return;
   }
 
@@ -7634,7 +11391,7 @@ function renderRefineryJobs() {
 
     let timerHtml = '';
     if (isReady) {
-      timerHtml = `<span class="refinery-timer-badge ready">${t.refineryJobReady}</span>`;
+      timerHtml = `<span class="refinery-timer-badge ready">${t.refineryJobReady || '🟢 PRÊT AU CHARGEMENT'}</span>`;
     } else {
       const min = Math.floor(remainingSec / 60);
       const sec = remainingSec % 60;
@@ -7656,7 +11413,7 @@ function renderRefineryJobs() {
         <span style="font-family:var(--font-mono); font-size:0.85rem; color:var(--accent-emerald); font-weight:700;">
           +${job.refinedVal.toLocaleString(locale)} aUEC
         </span>
-        ${isReady ? `<button class="btn-collect-job" data-collect-id="${job.id}">${t.btnCollectJob}</button>` : `<span style="font-size:0.75rem; color:var(--text-muted);">${t.refineryJobInProgress}</span>`}
+        ${isReady ? `<button class="btn-collect-job" data-collect-id="${job.id}">${t.btnCollectJob || 'Récupérer'}</button>` : `<span style="font-size:0.75rem; color:var(--text-muted);">${t.refineryJobInProgress || 'En cours...'}</span>`}
       </div>
     `;
 
@@ -7679,6 +11436,15 @@ function updateRefineryBadge() {
     DOM.refineryBadge.style.display = 'inline-flex';
   } else {
     DOM.refineryBadge.style.display = 'none';
+  }
+
+  if (DOM.dockRefineryBadge) {
+    if (count > 0) {
+      DOM.dockRefineryBadge.textContent = count;
+      DOM.dockRefineryBadge.style.display = 'inline-flex';
+    } else {
+      DOM.dockRefineryBadge.style.display = 'none';
+    }
   }
 }
 
@@ -8040,7 +11806,7 @@ function registerServiceWorker() {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
         .then(reg => {
-          console.log('[AARON MFD] ServiceWorker actif (v1.8.0):', reg.scope);
+          console.log('[AARON MFD] ServiceWorker actif (v2.0.0):', reg.scope);
 
           // Force update check
           reg.update().catch(() => {});
@@ -8050,9 +11816,9 @@ function registerServiceWorker() {
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[AARON MFD] Nouvelle version v1.8.0 disponible en cache.');
+                  console.log('[AARON MFD] Nouvelle version v2.0.0 disponible en cache.');
                   const t = I18N[state.currentLang] || I18N.fr;
-                  showToast(t.toastCacheCleared || 'Mise à jour v1.8.0 disponible !');
+                  showToast(t.toastCacheCleared || 'Mise à jour v2.0.0 disponible !');
                 }
               });
             }
@@ -8078,7 +11844,7 @@ function forceRefreshCache() {
   const t = I18N[state.currentLang] || I18N.fr;
   sfx.playSuccess();
   triggerHaptic(25);
-  showToast(t.toastCacheCleared || 'Cache vidé ! Rechargement v1.8.0...');
+  showToast(t.toastCacheCleared || 'Cache vidé ! Rechargement v2.0.0...');
 
   const cleanCaches = 'caches' in window
     ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))

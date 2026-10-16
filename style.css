@@ -591,22 +591,6 @@ html[data-layout="classic"] body {
   font-weight: 700;
 }
 
-/* Active Laser Strip in Panel 1 */
-.active-laser-strip {
-  transition: all 0.2s ease;
-}
-.active-laser-strip:hover {
-  border-color: var(--accent-cyan) !important;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
-}
-.active-laser-strip select:focus {
-  outline: none;
-}
-.active-laser-strip option {
-  background: #08121f;
-  color: #fff;
-  font-family: var(--font-hud);
-}
 
 /* Right Header Controls */
 .mg-header-right {
@@ -1865,96 +1849,6 @@ html[data-layout="classic"] body {
   padding: 1px 5px;
   border-radius: 3px;
   border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-/* 2. Active Laser & Module Strip */
-.active-laser-strip {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(135deg, rgba(8, 22, 44, 0.9) 0%, rgba(5, 14, 28, 0.95) 100%);
-  border: 1px solid rgba(0, 240, 255, 0.35);
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(0, 240, 255, 0.06);
-}
-.als-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.als-laser-info {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.als-ship-tag {
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  background: rgba(0, 240, 255, 0.15);
-  padding: 1px 5px;
-  border-radius: 3px;
-}
-.als-head-name {
-  font-family: var(--font-hud);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #fff;
-}
-.als-modules-list {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-.als-module-badge {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 1px 6px;
-  border-radius: 3px;
-  color: var(--text-muted);
-}
-.als-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.als-power-display {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-.als-power-val {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent-emerald);
-}
-.als-power-sub {
-  font-size: 0.6rem;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-}
-.als-edit-btn {
-  background: rgba(0, 240, 255, 0.1);
-  border: 1px solid rgba(0, 240, 255, 0.4);
-  color: var(--accent-cyan);
-  font-family: var(--font-hud);
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-.als-edit-btn:hover {
-  background: rgba(0, 240, 255, 0.25);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
 }
 
 /* 3. Optimal Loadout Card (Solver) */
@@ -4266,3 +4160,1494 @@ html[data-layout="classic"] body {
   background: rgba(168, 85, 247, 0.1);
   transform: translateY(-1px);
 }
+
+/* ==========================================================================
+   JALON 4: COORDINATION TACTIQUE, SOLVEUR OPTIMAL & ALERTE ROUGE
+   ========================================================================== */
+
+/* Red Alert Triggers */
+.btn-red-alert, .mg-red-alert-btn {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+  color: #f87171 !important;
+  font-weight: 700 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-red-alert:hover, .mg-red-alert-btn:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important;
+  transform: scale(1.02);
+}
+
+.red-alert-dot, .red-alert-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: redAlertPulse 1s infinite alternate;
+}
+
+@keyframes redAlertPulse {
+  0% { opacity: 0.4; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1.25); box-shadow: 0 0 12px #ff2222; }
+}
+
+/* Red Alert Banner */
+.red-alert-banner {
+  background: linear-gradient(90deg, rgba(153, 27, 27, 0.95), rgba(76, 5, 5, 0.98), rgba(153, 27, 27, 0.95));
+  border-top: 2px solid #ef4444;
+  border-bottom: 2px solid #ef4444;
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.6), inset 0 0 20px rgba(239, 68, 68, 0.3);
+  padding: 12px 18px;
+  position: relative;
+  z-index: 10005;
+  animation: redAlertStrobe 1.5s infinite alternate;
+}
+
+@keyframes redAlertStrobe {
+  0% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+  100% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.8), inset 0 0 25px rgba(255, 34, 34, 0.5); }
+}
+
+body.red-alert-active {
+  box-shadow: inset 0 0 35px rgba(239, 68, 68, 0.45);
+}
+
+.red-alert-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.red-alert-beacon-icon {
+  font-size: 2.2rem;
+  animation: sirenFlash 0.6s infinite alternate;
+}
+
+@keyframes sirenFlash {
+  0% { transform: rotate(-10deg) scale(0.95); }
+  100% { transform: rotate(10deg) scale(1.15); filter: drop-shadow(0 0 10px #ff2222); }
+}
+
+.red-alert-info {
+  flex: 1;
+  min-width: 280px;
+}
+
+.red-alert-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.red-alert-title {
+  font-family: var(--font-hud);
+  font-size: 1.05rem;
+  color: #fff;
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+.red-alert-badge {
+  background: #ef4444;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+.red-alert-desc {
+  font-size: 0.82rem;
+  color: #fecaca;
+  margin-top: 3px;
+}
+
+.red-alert-vector-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 4px 10px;
+  border-radius: 4px;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+.red-alert-vector-label {
+  font-size: 0.68rem;
+  font-family: var(--font-hud);
+  color: var(--accent-amber);
+}
+
+.red-alert-vector-coords {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.red-alert-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-red-alert-action {
+  background: #ef4444;
+  color: #fff;
+  border: 1px solid #ff7777;
+  font-family: var(--font-hud);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+  transition: all 0.2s ease;
+}
+
+.btn-red-alert-action:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.btn-red-alert-dismiss {
+  background: rgba(0, 0, 0, 0.4);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: var(--font-hud);
+  font-size: 0.78rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-red-alert-dismiss:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Joint Fire Coordinator Card */
+.joint-fire-card {
+  background: rgba(6, 14, 26, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.joint-fire-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.joint-fire-title {
+  font-family: var(--font-hud);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.joint-fire-status-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: var(--accent-cyan);
+}
+
+.joint-fire-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fire-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  transition: all 0.2s ease;
+}
+
+.fire-step-item.active {
+  background: rgba(0, 240, 255, 0.08);
+  border-color: rgba(0, 240, 255, 0.4);
+}
+
+.fire-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.fire-step-item.active .fire-step-num {
+  background: var(--accent-cyan);
+  color: #000;
+}
+
+.fire-step-content {
+  flex: 1;
+  font-size: 0.78rem;
+}
+
+.fire-step-content strong {
+  display: block;
+  font-family: var(--font-hud);
+  font-size: 0.76rem;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.fire-step-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.fire-step-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.fire-step-badge.lancet {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+
+.fire-step-badge.helix {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--accent-amber);
+}
+
+.fire-step-badge.stabilize {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--accent-emerald);
+}
+
+/* Fire State Radio Buttons */
+.fire-state-btn.active {
+  box-shadow: 0 0 10px currentColor;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   JALON 5: PHYSICALIZED CARGO GRID MASTER & FREIGHT LOGISTICS
+   ========================================================================== */
+
+.cargo-grid-master-card {
+  margin-bottom: 12px;
+  background: rgba(0, 240, 255, 0.02);
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.cargo-grid-master-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.cargo-master-title {
+  font-family: var(--font-hud);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  letter-spacing: 0.8px;
+}
+
+.cargo-master-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.hauler-tractor-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.cargo-hauler-select-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.hauler-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.hauler-stat-pill {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.hauler-stat-pill .pill-lbl {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hauler-stat-pill .pill-val {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.hauler-stat-pill .pill-val.cyan { color: var(--accent-cyan); }
+.hauler-stat-pill .pill-val.emerald { color: var(--accent-emerald); }
+.hauler-stat-pill .pill-val.amber { color: var(--accent-amber); }
+
+.cargo-grid-visual-section {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.cargo-visual-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 48px;
+  align-items: center;
+}
+
+.cargo-box-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  min-width: 65px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.cargo-box-slot.has-quant {
+  border-color: var(--accent-rose);
+  background: rgba(244, 63, 94, 0.12);
+  animation: quantPulse 1.8s infinite alternate;
+}
+
+@keyframes quantPulse {
+  0% { box-shadow: 0 0 4px rgba(244, 63, 94, 0.3); }
+  100% { box-shadow: 0 0 12px rgba(244, 63, 94, 0.7); }
+}
+
+.cargo-box-slot .box-ore {
+  font-family: var(--font-hud);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+}
+
+.cargo-box-slot.has-quant .box-ore {
+  color: var(--accent-rose);
+}
+
+.cargo-box-slot .box-scu {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.cargo-box-slot .box-origin {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.cargo-box-empty-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 8px 4px;
+}
+
+.hauler-valuation-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.hauler-valuation-row .h-val-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.hauler-valuation-row .h-val-lbl {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-hud);
+}
+
+.hauler-valuation-row .h-val-num {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.hauler-valuation-row .h-val-num.amber { color: var(--accent-amber); }
+.hauler-valuation-row .h-val-num.emerald { color: var(--accent-emerald); }
+
+.cargo-pending-pickups-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.pending-pickups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pending-pickup-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 6px 10px;
+  transition: border-color 0.2s ease;
+}
+
+.pending-pickup-item:hover {
+  border-color: rgba(0, 240, 255, 0.4);
+}
+
+.pending-pickup-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pending-pickup-caller {
+  font-family: var(--font-hud);
+  font-size: 0.78rem;
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.pending-pickup-details {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.btn-tractor-dock {
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-family: var(--font-hud);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-tractor-dock:hover {
+  background: var(--accent-cyan);
+  color: #000;
+  box-shadow: 0 0 10px var(--cyan-glow);
+}
+
+.quant-warning-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(244, 63, 94, 0.2);
+  border: 1px solid var(--accent-rose);
+  color: var(--accent-rose);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* ========================================================
+   JALON 6: BOURSE COMMERCIALE, ARBITRAGE & UEX CORP
+   ======================================================== */
+
+.uex-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.uex-sync-badge.cached {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+.uex-sync-badge.corpo {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+
+.sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-sync 1.8s infinite ease-in-out;
+}
+
+@keyframes pulse-sync {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.uex-refresh-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.2s ease;
+}
+
+.uex-refresh-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.uex-refresh-btn.spinning svg {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* Sub-tabs inside Market Card */
+.mkt-subtabs-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mkt-subtab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-hud);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 5px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mkt-subtab-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mkt-subtab-btn.active {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: rgba(0, 240, 255, 0.4);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
+}
+
+/* Arbitrage Recommendation Banner */
+.mkt-arbitrage-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.12), rgba(0, 240, 255, 0.06));
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+}
+
+.mkt-badge-roi {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #10b981;
+}
+
+/* Methods Comparison Grid */
+.mkt-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mkt-method-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  padding: 7px 8px;
+  transition: all 0.2s ease;
+}
+
+.mkt-method-card.best {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.mkt-method-card.raw-card {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.mkt-method-name {
+  font-family: var(--font-hud);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.mkt-method-meta {
+  font-size: 0.64rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.mkt-method-payout {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mkt-method-delta {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  margin-top: 2px;
+}
+
+.mkt-method-delta.pos {
+  color: #10b981;
+}
+
+.mkt-method-delta.neg {
+  color: #f43f5e;
+}
+
+/* System Filter Buttons */
+.mkt-filter-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.mkt-filter-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mkt-filter-btn.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* Terminals Ranked Table */
+.mkt-terminals-table {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.mkt-terminal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 0.74rem;
+  transition: all 0.2s ease;
+}
+
+.mkt-terminal-row:hover {
+  background: rgba(0, 240, 255, 0.05);
+  border-color: rgba(0, 240, 255, 0.25);
+}
+
+.mkt-term-name {
+  font-family: var(--font-hud);
+  font-weight: 700;
+  color: #fff;
+}
+
+.mkt-term-loc {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.mkt-demand-pill {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.mkt-demand-pill.high, .mkt-demand-pill.extreme {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.mkt-demand-pill.medium {
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.mkt-demand-pill.low {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Tour Card */
+.mkt-tour-card {
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px dashed rgba(0, 240, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.mkt-tour-stop-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.mkt-tour-stop-item:last-child {
+  border-bottom: none;
+}
+
+/* Scout Form */
+.mkt-scout-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 6px;
+  padding: 9px;
+}
+
+/* ==========================================================================
+   JALON 7: GUILD STOCKPILE & SHARED EXPENSE LEDGER (ALPHA 4.10)
+   ========================================================================== */
+
+/* Sub-tabs Navigation inside Stockpile Modal */
+.stockpile-subtabs-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  overflow-x: auto;
+}
+
+.stockpile-subtab-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  font-family: var(--font-hud);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.stockpile-subtab-btn:hover {
+  background: rgba(0, 240, 255, 0.08);
+  border-color: rgba(0, 240, 255, 0.35);
+  color: #fff;
+}
+
+.stockpile-subtab-btn.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+}
+
+.stockpile-pane {
+  display: none;
+}
+
+.stockpile-pane.active {
+  display: block;
+}
+
+/* Guild Net Worth Hero Card */
+.guild-networth-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 78, 59, 0.15) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+}
+
+.guild-nw-val {
+  font-family: var(--font-mono);
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--accent-emerald);
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+/* Stockpile Filter & Quick Actions Bar */
+.stockpile-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.stockpile-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.stockpile-status-pills {
+  display: flex;
+  gap: 4px;
+}
+
+.stock-pill-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-family: var(--font-hud);
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stock-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.stock-pill-btn.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* Stockpile Batches List */
+.stockpile-batches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 14px;
+}
+
+.stockpile-lot-card {
+  background: rgba(16, 27, 44, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.stockpile-lot-card:hover {
+  border-color: rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+
+.stockpile-lot-card.status-ready {
+  border-left: 4px solid var(--accent-emerald);
+}
+
+.stockpile-lot-card.status-refining {
+  border-left: 4px solid var(--accent-amber);
+}
+
+.stockpile-lot-card.status-raw {
+  border-left: 4px solid #94a3b8;
+}
+
+.lot-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lot-station-badge {
+  font-family: var(--font-hud);
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lot-status-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.lot-status-pill.ready {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.lot-status-pill.refining {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.lot-status-pill.raw {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.lot-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.lot-depositor-tag {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.lot-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+}
+
+/* Push Notification Setup Card */
+.push-notif-card {
+  background: rgba(0, 240, 255, 0.03);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.push-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-hud);
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.push-status-badge.granted {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.push-status-badge.prompt,
+.push-status-badge.default {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.push-status-badge.denied {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Expense Ledger Styles */
+.expense-input-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.expense-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+  padding-right: 4px;
+}
+
+.expense-row-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.expense-row-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.expense-amount-tag {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f87171;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   GUILD MANAGEMENT: TREASURY, MO.TRADER & CRAFTING 4.0 WISHLIST
+   ========================================================================== */
+
+/* Treasury Hero Card */
+.treasury-hero-card {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(161, 98, 7, 0.18) 100%);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.12);
+}
+
+.treasury-balance-val {
+  font-family: var(--font-mono);
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #facc15;
+  text-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+}
+
+/* mo.Trader Transfer Table */
+.motrader-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.motrader-table-container {
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+.motrader-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.motrader-table th {
+  font-family: var(--font-hud);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.5px;
+}
+
+.motrader-table td {
+  padding: 8px 10px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+}
+
+.motrader-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.motrader-status-pill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-block;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.motrader-status-pill.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.motrader-status-pill.paid {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+/* Crafting Goals Card & Progress Gauges */
+.crafting-goals-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.crafting-goal-card {
+  background: rgba(16, 27, 44, 0.85);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.crafting-goal-card:hover {
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+.crafting-goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.crafting-gauge-container {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.crafting-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.crafting-minerals-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.crafting-req-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.crafting-req-pill.fulfilled {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* ======================================================== */
+/* JALON 7 MODULE: COMMODITY TRADING & CARGO ROUTES SOLVER   */
+/* ======================================================== */
+.trade-solver-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.trade-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.trade-metric-box {
+  background: rgba(16, 27, 44, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trade-metric-val {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.trade-risk-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.trade-risk-badge.safe {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--accent-emerald);
+}
+
+.trade-risk-badge.moderate {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--accent-amber);
+}
+
+.trade-risk-badge.extreme {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.trade-routes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.trade-route-item {
+  background: rgba(16, 27, 44, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trade-route-item:hover, .trade-route-item.selected {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.commodity-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+}
+
+
+
+
