@@ -738,7 +738,8 @@ class SoundFX {
     }
   }
 
-  playBeep(freq = 600, type = 'sine', duration = 0.05) {
+  // Tactical tone synthesizer reserved for security alerts and alarms
+  playTone(freq = 600, type = 'sine', duration = 0.05, volume = 0.08) {
     if (!state.audioEnabled) return;
     try {
       this.init();
@@ -747,7 +748,7 @@ class SoundFX {
       const gain = this.ctx.createGain();
       osc.type = type;
       osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+      gain.gain.setValueAtTime(volume, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -758,30 +759,36 @@ class SoundFX {
     }
   }
 
+  // Click sounds removed per user request: 100% silent clicks
+  playBeep(freq = 600, type = 'sine', duration = 0.05) {
+    // Intentionally silent on user interactions
+    return;
+  }
+
+  // UI confirmation chime silenced per user request
   playSuccess() {
-    if (!state.audioEnabled) return;
-    this.playBeep(520, 'sine', 0.08);
-    setTimeout(() => this.playBeep(780, 'sine', 0.12), 90);
+    // Intentionally silent on user interactions
+    return;
   }
 
   playWarning() {
     if (!state.audioEnabled) return;
-    this.playBeep(320, 'sawtooth', 0.15);
-    setTimeout(() => this.playBeep(320, 'sawtooth', 0.15), 180);
+    this.playTone(320, 'sawtooth', 0.15, 0.10);
+    setTimeout(() => this.playTone(320, 'sawtooth', 0.15, 0.10), 180);
   }
 
   playCritical() {
     if (!state.audioEnabled) return;
-    this.playBeep(880, 'square', 0.12);
-    setTimeout(() => this.playBeep(440, 'square', 0.16), 140);
+    this.playTone(880, 'square', 0.12, 0.12);
+    setTimeout(() => this.playTone(440, 'square', 0.16, 0.12), 140);
   }
 
   playAlarm() {
     if (!state.audioEnabled) return;
-    this.playBeep(920, 'sawtooth', 0.14);
-    setTimeout(() => this.playBeep(680, 'sawtooth', 0.14), 150);
-    setTimeout(() => this.playBeep(920, 'sawtooth', 0.14), 300);
-    setTimeout(() => this.playBeep(680, 'sawtooth', 0.14), 450);
+    this.playTone(920, 'sawtooth', 0.14, 0.15);
+    setTimeout(() => this.playTone(680, 'sawtooth', 0.14, 0.15), 150);
+    setTimeout(() => this.playTone(920, 'sawtooth', 0.14, 0.15), 300);
+    setTimeout(() => this.playTone(680, 'sawtooth', 0.14, 0.15), 450);
   }
 }
 
@@ -6965,9 +6972,19 @@ function initOcrScanner() {
 // UX HELPERS: THEMES, WAKE LOCK, HAPTICS & DISCORD
 // ==========================================
 function triggerHaptic(duration = 15) {
-  if ('vibrate' in navigator) {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try { navigator.vibrate(duration); } catch (e) {}
   }
+}
+
+// Global mobile/tablet haptic feedback on interactive elements (silent physical touch)
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', (e) => {
+    const target = e.target.closest('button, .tab-btn, .subtab-btn, .stockpile-subtab-btn, .pill, .filter-chip, select, input[type="checkbox"], input[type="radio"], .interactive, .laser-card, .mineral-badge, .route-card');
+    if (target) {
+      triggerHaptic(12);
+    }
+  }, { passive: true });
 }
 
 function showToast(msg) {
