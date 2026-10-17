@@ -254,54 +254,127 @@ export const miningCalc = {
   },
 
   /**
-   * Évaluation complète et dynamique d'un rocher face aux capacités du vaisseau actif
+   * Évaluation complète et dynamique d'un rocher face aux capacités du vaisseau actif (Star Citizen 4.x)
+   * Intègre la physique réelle SC : dissipation par la Résistance et compression de fenêtre / surtension par l'Instabilité
    */
   calculateLiveRockEvaluation(rock, shipCap) {
     const mass = Math.max(1, Number(rock.massKg) || 18420);
     const resistance = Math.max(0, Math.min(100, Number(rock.resistance) || 31));
     const instability = Math.max(0, Math.min(100, Number(rock.instability) || 42.6));
 
-    // Résistance résiduelle après lasers et modules
-    const effectiveResistance = Math.max(0, resistance - (shipCap?.resistanceReductionPct || 0));
+    // 1. RÉSISTANCE EFFECTIVE & PÉNÉTRATION THERMIQUE (Star Citizen 4.x)
+    // La résistance agit comme un bouclier thermique dissipant directement l'énergie du laser.
+    const resReduction = shipCap?.resistanceReductionPct || 0;
+    const effectiveResistance = Math.max(0, Math.min(95, Math.round((resistance - resReduction) * 10) / 10));
 
-    // Puissance nécessaire pour la zone verte
-    const powerRequired = Math.round((mass * 0.95) * (1 + (effectiveResistance / 75)));
+    // Taux de pénétration de l'énergie (e.g. 85% de résistance = seulement 15% d'énergie transmise)
+    const penetrationRatio = Math.max(0.05, Math.round((100 - effectiveResistance) * 10) / 1000);
+    const penetrationPct = Math.round(penetrationRatio * 100);
+
     const laserPower = shipCap?.totalPowerWatts || 1400;
+    const effectiveLaserPower = Math.round(laserPower * penetrationRatio);
+
+    // Énergie thermique de base nécessaire selon la masse de la roche (étalonnée SC 4.x)
+    const basePowerRequired = Math.round(mass * 0.28);
+    // Puissance brute du laser nécessaire pour franchir la dissipation thermique
+    const powerRequired = Math.round(basePowerRequired / penetrationRatio);
     const powerRatio = Math.round((laserPower / powerRequired) * 100) / 100;
 
-    // Solo vs Fleet chances
+    // Calcul pour tourelle 1 (Solo)
     const t1Power = shipCap?.turrets?.[0]?.powerWatts || laserPower;
     const t1ResRed = shipCap?.turrets?.[0]?.resistanceReductionPct || 0;
-    const t1EffRes = Math.max(0, resistance - t1ResRed);
-    const t1PowerReq = (mass * 0.95) * (1 + (t1EffRes / 75));
-    const soloChancePct = Math.min(99, Math.max(8, Math.round((t1Power / t1PowerReq) * 88)));
+    const t1EffRes = Math.max(0, Math.min(95, Math.round((resistance - t1ResRed) * 10) / 10));
+    const t1Penetration = Math.max(0.05, (100 - t1EffRes) / 100);
+    const t1PowerReq = Math.round(basePowerRequired / t1Penetration);
+    const rawSoloChance = Math.min(99, Math.max(5, Math.round((t1Power / t1PowerReq) * 85)));
+    const rawFleetChance = Math.min(99, Math.max(rawSoloChance, Math.round(Math.min(1.5, powerRatio) * 90)));
 
-    // Multi-laser ou multi-crew chance
-    const fleetChancePct = Math.min(99, Math.max(soloChancePct, Math.round(Math.min(1.5, powerRatio) * 92)));
+    // 2. INSTABILITÉ GÉOLOGIQUE & FENÊTRE OPTIMALE (ZONE VERTE SC 4.x)
+    // L'instabilité comprime la zone verte et provoque de violents à-coups d'énergie pouvant entraîner une explosion en zone rouge.
+    const instMod = shipCap?.instabilityModPct || 0;
+    const effectiveInstability = Math.max(0, Math.min(100, Math.round((instability + instMod) * 10) / 10));
 
+    // Taille de la zone verte optimale (Base ~12%, réduite jusqu'à -72% par l'instabilité, modifiée par les têtes laser)
+    const instabilityWindowPenalty = (effectiveInstability / 100) * 0.72;
+    const optWinMod = (shipCap?.optimalWindowModPct || 0) / 100;
+    const optimalWindowPct = Math.max(1.0, Math.round((12 * (1 - instabilityWindowPenalty) * (1 + optWinMod)) * 10) / 10);
+
+    // Classification de la fenêtre verte
+    let windowClass = 'green';
+    let windowLabel = 'Large (Sécurisée)';
+    if (optimalWindowPct < 3.2) {
+      windowClass = 'red';
+      windowLabel = 'Ultra-Fine (Critique)';
+    } else if (optimalWindowPct < 5.5) {
+      windowClass = 'amber';
+      windowLabel = 'Étroite (Délicate)';
+    } else if (optimalWindowPct < 8.5) {
+      windowClass = 'cyan';
+      windowLabel = 'Moyenne (Standard)';
+    }
+
+    // Risque d'emballement thermique et surtension explosive
+    let dangerLevel = 'FAIBLE';
+    let dangerText = 'Zone verte stable. Risque d\'emballement minime.';
+    let dangerBadge = 'STABLE';
+    let dangerClass = 'green';
+    let stabilitySoloPenalty = 0;
+
+    if (effectiveInstability >= 75) {
+      dangerLevel = 'CRITIQUE';
+      dangerText = 'Surtension explosive fulgurante en zone rouge : explosion mortelle quasi-instantanée sans gadget Sabir/BoreMax ou module Brandt/Focus.';
+      dangerBadge = 'VOLATILITÉ EXTRÊME';
+      dangerClass = 'red';
+      stabilitySoloPenalty = 35; // L'instabilité extrême réduit drastiquement les chances de réussite solo sans aide
+    } else if (effectiveInstability >= 50) {
+      dangerLevel = 'ÉLEVÉ';
+      dangerText = `Violentes oscillations d'énergie thermique (±${Math.round(effectiveInstability * 0.35)} %). Risque d'emballement rapide en zone rouge.`;
+      dangerBadge = 'HAUTE INSTABILITÉ';
+      dangerClass = 'amber';
+      stabilitySoloPenalty = 20;
+    } else if (effectiveInstability >= 25) {
+      dangerLevel = 'MODÉRÉ';
+      dangerText = 'Oscillations modérées. Maintien et réactivité au potentiomètre nécessaires.';
+      dangerBadge = 'INSTABILITÉ MOYENNE';
+      dangerClass = 'cyan';
+      stabilitySoloPenalty = 5;
+    }
+
+    const soloChancePct = Math.max(5, Math.min(99, rawSoloChance - stabilitySoloPenalty));
+    const fleetChancePct = Math.max(soloChancePct, Math.min(99, Math.round(rawFleetChance - (stabilitySoloPenalty * 0.4))));
+
+    // 3. VERDICT COMBINÉ : PUISSANCE THERMIQUE + VOLATILITÉ
     let verdictLabel = 'Fleet conseillée';
     let verdictClass = 'amber';
     let verdictBadge = 'FRACTURE DIFFICILE';
 
-    if (powerRatio >= 1.25) {
-      verdictLabel = 'Fracture facile';
+    if (powerRatio < 0.65) {
+      verdictLabel = 'Fleet / Gadget Requis';
+      verdictClass = 'red';
+      verdictBadge = effectiveResistance >= 65 ? 'RÉSISTANCE TROP FORTE' : 'MASSE TROP LOURDE';
+    } else if (powerRatio < 0.95) {
+      verdictLabel = 'Solo Très Difficile';
+      verdictClass = 'amber';
+      verdictBadge = 'PUISSANCE LIMITE';
+    } else if (effectiveInstability >= 75) {
+      verdictLabel = 'Danger Surtension';
+      verdictClass = 'red';
+      verdictBadge = 'EXPLOSION CRITIQUE';
+    } else if (effectiveInstability >= 55 || optimalWindowPct < 4.0) {
+      verdictLabel = 'Solo Délicat (Instable)';
+      verdictClass = 'amber';
+      verdictBadge = 'ZONE VERTE ÉTROITE';
+    } else if (powerRatio >= 1.25) {
+      verdictLabel = 'Fracture Facile';
       verdictClass = 'green';
       verdictBadge = 'SURPUISSANCE';
-    } else if (powerRatio >= 0.95) {
-      verdictLabel = 'Solo faisable';
+    } else {
+      verdictLabel = 'Solo Faisable';
       verdictClass = 'green';
       verdictBadge = 'OPTIMAL';
-    } else if (powerRatio >= 0.70) {
-      verdictLabel = 'Fleet conseillée';
-      verdictClass = 'amber';
-      verdictBadge = 'TRÈS DIFFICILE';
-    } else {
-      verdictLabel = 'Fleet requise';
-      verdictClass = 'red';
-      verdictBadge = 'HORS DE PORTÉE';
     }
 
-    const summaryText = `${shipCap?.nickname || 'Vaisseau'} seul : ${soloChancePct} % de chance · avec la fleet : ${fleetChancePct} %`;
+    const summaryText = `${shipCap?.nickname || 'Vaisseau'} : ${soloChancePct} % solo · Fleet : ${fleetChancePct} % · Zone verte : ${optimalWindowPct} %`;
 
     // Analyse économique et soute
     const refineryAnalysis = this.compareAllRefineryMethods({ massKg: mass, composition: rock.composition });
@@ -310,13 +383,17 @@ export const miningCalc = {
     const cargoFillPct = Math.min(100, Math.round((usefulSCU / cargoSCU) * 100));
     const cargoOverflow = usefulSCU > cargoSCU;
 
-    // Évaluation approfondie de la rentabilité de fracture
+    // Évaluation approfondie de la rentabilité de fracture avec données d'instabilité
     const profitability = this.evaluateRockProfitability({
       massKg: mass,
       composition: rock.composition,
       refineryAnalysis,
       powerRatio,
-      shipCap
+      shipCap,
+      effectiveResistance,
+      effectiveInstability,
+      optimalWindowPct,
+      dangerLevel
     });
 
     // Score de qualité du gisement (0 à 1 000, Star Citizen 4.0)
@@ -337,11 +414,22 @@ export const miningCalc = {
     return {
       massKg: mass,
       resistance,
-      effectiveResistance: Math.round(effectiveResistance * 10) / 10,
-      instability,
-      powerRequiredWatts: powerRequired,
+      effectiveResistance,
+      penetrationRatio,
+      penetrationPct,
       laserPowerWatts: laserPower,
+      effectiveLaserPower,
+      powerRequiredWatts: powerRequired,
       powerRatio,
+      instability,
+      effectiveInstability,
+      optimalWindowPct,
+      windowClass,
+      windowLabel,
+      dangerLevel,
+      dangerText,
+      dangerBadge,
+      dangerClass,
       verdictLabel,
       verdictClass,
       verdictBadge,
@@ -501,7 +589,7 @@ export const miningCalc = {
    * Évalue précisément la rentabilité économique d'un rocher et sa pertinence de fracture
    * @param {Object} params - { massKg, composition, refineryAnalysis, powerRatio, shipCap }
    */
-  evaluateRockProfitability({ massKg, composition, refineryAnalysis, powerRatio, shipCap }) {
+  evaluateRockProfitability({ massKg, composition, refineryAnalysis, powerRatio, shipCap, effectiveResistance = 30, effectiveInstability = 40, optimalWindowPct = 7.0, dangerLevel = 'MODÉRÉ' }) {
     const usefulSCU = refineryAnalysis?.usefulSCU || 0;
     const rawGrossUEC = refineryAnalysis?.rawGrossUEC || 0;
     const hasQuantanium = Boolean(refineryAnalysis?.hasQuantanium);
@@ -630,16 +718,26 @@ export const miningCalc = {
       isProfitable = false;
     }
 
-    // Diagnostic tactique croisé : Rentabilité Économique + Faisabilité Laser du vaisseau
+    // Diagnostic tactique croisé : Rentabilité Économique + Résistance & Instabilité (SC 4.x)
     let tacticalDiagnostic = '';
     const ratio = Number(powerRatio) || 1.0;
     if (isProfitable) {
       if (ratio >= 0.95) {
-        tacticalDiagnostic = 'Rentable & Solo faisable (Laser OK)';
-      } else if (ratio >= 0.70) {
-        tacticalDiagnostic = 'Rentable mais laser limite (Surge ou Ailier)';
+        if (effectiveInstability >= 75) {
+          tacticalDiagnostic = `Rentable mais DANGER : Surtension critique (Zone verte ${optimalWindowPct} %) · Sabir/Brandt requis`;
+        } else if (effectiveInstability >= 55 || optimalWindowPct < 4.2) {
+          tacticalDiagnostic = `Rentable & Solo faisable · Fenêtre étroite (${optimalWindowPct} %) : Potentiomètre sensible`;
+        } else {
+          tacticalDiagnostic = 'Rentable & Solo faisable (Laser & Stabilité OK)';
+        }
+      } else if (ratio >= 0.65) {
+        if (effectiveResistance >= 60) {
+          tacticalDiagnostic = `Rentable mais Résistance élevée (${effectiveResistance} %) : Puissance dissipée (Surge/Helix requis)`;
+        } else {
+          tacticalDiagnostic = 'Rentable mais laser limite (Surge ou Ailier requis)';
+        }
       } else {
-        tacticalDiagnostic = 'Rentable mais TROP DUR solo (Gadget Sabir ou MOLE requis)';
+        tacticalDiagnostic = `Rentable mais TROP DUR solo (${effectiveResistance >= 65 ? `Résistance ${effectiveResistance} %` : 'Masse trop lourde'}) : Sabir ou MOLE requis`;
       }
     } else {
       if (ratio >= 0.95) {

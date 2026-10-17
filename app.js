@@ -2221,10 +2221,16 @@ function evaluateAndRenderMiningRock() {
     }
   }
 
-  // Résistance effective après lasers
+  // Résistance effective & pénétration laser
   const effResLabel = document.getElementById('miningEffectiveResLabel');
   if (effResLabel) {
-    effResLabel.textContent = `Résistance effective : ${evalResult.effectiveResistance} % (brute : ${evalResult.resistance} % − lasers : ${cap.resistanceReductionPct} %)`;
+    effResLabel.innerHTML = `🛡 Résistance effective : <strong style="color:#fff;">${evalResult.effectiveResistance} %</strong> (Pénétration : <strong style="color:var(--accent-cyan);">${evalResult.penetrationPct} %</strong> · <strong style="color:var(--accent-green);">${evalResult.effectiveLaserPower.toLocaleString('fr-FR')} W</strong> transmis)`;
+  }
+
+  // Instabilité effective & Fenêtre verte (SC 4.x)
+  const effInstLabel = document.getElementById('miningEffectiveInstabilityLabel');
+  if (effInstLabel) {
+    effInstLabel.innerHTML = `<span>Zone verte : <strong style="color:var(--accent-${evalResult.windowClass || 'cyan'});">${evalResult.optimalWindowPct} % (${evalResult.windowLabel})</strong></span> <span class="vo-badge ${evalResult.dangerClass || 'cyan'}" style="font-size:0.65rem; padding:1px 5px;">${evalResult.dangerBadge}</span>`;
   }
 
   // 1. KPI Faisabilité
@@ -2241,7 +2247,7 @@ function evaluateAndRenderMiningRock() {
     feasSub.textContent = evalResult.summaryText;
   }
   if (ratioLabel) {
-    ratioLabel.textContent = `${Math.round(evalResult.powerRatio * 100)} %`;
+    ratioLabel.textContent = `${Math.round(evalResult.powerRatio * 100)} % (Pén. ${evalResult.penetrationPct}%)`;
   }
   if (gaugeBar) {
     const pct = Math.min(100, Math.max(10, Math.round(evalResult.powerRatio * 80)));
