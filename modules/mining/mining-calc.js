@@ -3,10 +3,10 @@
 // Formules de fracturation, analyse économique (Brut vs Raffiné) et stations optimales
 // ============================================================================
 
-import { MINERALS, REFINING_METHODS, REFINERY_STATIONS, ROCK_ARCHETYPES, FRONTIER_MINEABLES, getFrontierPreset } from '../../data/index.js';
+import { MINERALS, REFINING_METHODS, REFINERY_STATIONS, ROCK_ARCHETYPES, FRONTIER_MINEABLES, getFrontierPreset, GADGETS } from '../../data/index.js';
 import { getLaser, getModule, getShip, totalScu } from '../fleet/fleet-service.js';
 
-export { ROCK_ARCHETYPES, FRONTIER_MINEABLES, getFrontierPreset };
+export { ROCK_ARCHETYPES, FRONTIER_MINEABLES, getFrontierPreset, GADGETS };
 
 export const ROCK_ARCHETYPES_CONFIG = [
   {
@@ -150,6 +150,10 @@ export const miningCalc = {
   FRONTIER_MINEABLES,
   getFrontierPreset,
   buildRockComposition,
+  GADGETS,
+  getGadget(id) {
+    return GADGETS.find(g => g.id === id) || GADGETS[0];
+  },
 
   /**
    * Calculer les capacités minières et la puissance laser déployée par le vaisseau actif
@@ -255,17 +259,34 @@ export const miningCalc = {
 
   /**
    * Évaluation complète et dynamique d'un rocher face aux capacités du vaisseau actif (Star Citizen 4.x)
-   * Intègre la physique réelle SC : dissipation par la Résistance et compression de fenêtre / surtension par l'Instabilité
+   * Intègre la physique réelle SC : dissipation par la Résistance, compression de fenêtre / surtension par l'Instabilité
+   * et atténuation par les gadgets miniers de surface (Sabir, BoreMax, Stalwart, WaveShift, OptiMax)
+   * @param {Object} rock - Propriétés du rocher scanné (massKg, resistance, instability, composition)
+   * @param {Object} shipCap - Capacités minières du vaisseau actif
+   * @param {string|Object} gadgetIdOrObj - Gadget de surface envisagé ou sélectionné
    */
-  calculateLiveRockEvaluation(rock, shipCap) {
+  calculateLiveRockEvaluation(rock, shipCap, gadgetIdOrObj = 'none') {
     const mass = Math.max(1, Number(rock.massKg) || 18420);
     const resistance = Math.max(0, Math.min(100, Number(rock.resistance) || 31));
     const instability = Math.max(0, Math.min(100, Number(rock.instability) || 42.6));
 
+    // Gadget de surface minier (Greycat Sabir, BoreMax, Stalwart, WaveShift, OptiMax)
+    let gadget = null;
+    if (typeof gadgetIdOrObj === 'object' && gadgetIdOrObj !== null) {
+      gadget = gadgetIdOrObj;
+    } else {
+      const gId = (typeof gadgetIdOrObj === 'string' && gadgetIdOrObj) ? gadgetIdOrObj : (rock.gadgetId || 'none');
+      gadget = GADGETS.find(g => g.id === gId) || GADGETS[0];
+    }
+
     // 1. RÉSISTANCE EFFECTIVE & PÉNÉTRATION THERMIQUE (Star Citizen 4.x)
-    // La résistance agit comme un bouclier thermique dissipant directement l'énergie du laser.
+    // Le gadget de surface modifie d'abord la résistance physique brute de la roche
+    const gadgetResMod = gadget?.resMod || 0;
+    const resistanceAfterGadget = Math.max(0, Math.min(100, Math.round(resistance * (1 + gadgetResMod) * 10) / 10));
+
+    // La tête laser et les modules du vaisseau réduisent ensuite la résistance
     const resReduction = shipCap?.resistanceReductionPct || 0;
-    const effectiveResistance = Math.max(0, Math.min(95, Math.round((resistance - resReduction) * 10) / 10));
+    const effectiveResistance = Math.max(0, Math.min(95, Math.round((resistanceAfterGadget - resReduction) * 10) / 10));
 
     // Taux de pénétration de l'énergie (e.g. 85% de résistance = seulement 15% d'énergie transmise)
     const penetrationRatio = Math.max(0.05, Math.round((100 - effectiveResistance) * 10) / 1000);
@@ -283,21 +304,26 @@ export const miningCalc = {
     // Calcul pour tourelle 1 (Solo)
     const t1Power = shipCap?.turrets?.[0]?.powerWatts || laserPower;
     const t1ResRed = shipCap?.turrets?.[0]?.resistanceReductionPct || 0;
-    const t1EffRes = Math.max(0, Math.min(95, Math.round((resistance - t1ResRed) * 10) / 10));
+    const t1EffRes = Math.max(0, Math.min(95, Math.round((resistanceAfterGadget - t1ResRed) * 10) / 10));
     const t1Penetration = Math.max(0.05, (100 - t1EffRes) / 100);
     const t1PowerReq = Math.round(basePowerRequired / t1Penetration);
     const rawSoloChance = Math.min(99, Math.max(5, Math.round((t1Power / t1PowerReq) * 85)));
     const rawFleetChance = Math.min(99, Math.max(rawSoloChance, Math.round(Math.min(1.5, powerRatio) * 90)));
 
     // 2. INSTABILITÉ GÉOLOGIQUE & FENÊTRE OPTIMALE (ZONE VERTE SC 4.x)
-    // L'instabilité comprime la zone verte et provoque de violents à-coups d'énergie pouvant entraîner une explosion en zone rouge.
-    const instMod = shipCap?.instabilityModPct || 0;
-    const effectiveInstability = Math.max(0, Math.min(100, Math.round((instability + instMod) * 10) / 10));
+    // Le gadget de surface modifie l'instabilité de la roche (ex: Stalwart -70%, WaveShift -40%, Sabir -30%)
+    const gadgetInstMod = gadget?.instMod || 0;
+    const instabilityAfterGadget = Math.max(0, Math.min(100, Math.round(instability * (1 + gadgetInstMod) * 10) / 10));
 
-    // Taille de la zone verte optimale (Base ~12%, réduite jusqu'à -72% par l'instabilité, modifiée par les têtes laser)
+    const instMod = shipCap?.instabilityModPct || 0;
+    const effectiveInstability = Math.max(0, Math.min(100, Math.round((instabilityAfterGadget + instMod) * 10) / 10));
+
+    // Taille de la zone verte optimale (Base ~12%, modifiée par l'instabilité et par les têtes laser + gadget)
     const instabilityWindowPenalty = (effectiveInstability / 100) * 0.72;
     const optWinMod = (shipCap?.optimalWindowModPct || 0) / 100;
-    const optimalWindowPct = Math.max(1.0, Math.round((12 * (1 - instabilityWindowPenalty) * (1 + optWinMod)) * 10) / 10);
+    const gadgetWinBonus = (gadget?.windowMod || 0);
+    const totalWinMod = optWinMod + gadgetWinBonus;
+    const optimalWindowPct = Math.max(1.0, Math.round((12 * (1 - instabilityWindowPenalty) * (1 + totalWinMod)) * 10) / 10);
 
     // Classification de la fenêtre verte
     let windowClass = 'green';
@@ -423,13 +449,26 @@ export const miningCalc = {
 
     // Recommandations tactiques de contre-mesures (Loadout & Gadgets)
     const countermeasures = [];
+    if (gadget && gadget.id !== 'none') {
+      countermeasures.push({
+        type: 'gadget_active',
+        category: 'Gadget de Surface Déployé',
+        icon: '🧲',
+        equipment: gadget.name,
+        gadgetId: gadget.id,
+        isActive: true,
+        advice: `Actif sur la roche : ${gadget.desc_fr} (Résistance : ${resistance}% ➔ ${resistanceAfterGadget}%, Instabilité : ${instability}% ➔ ${instabilityAfterGadget}%)`
+      });
+    }
+
     if (effectiveResistance >= 60) {
       countermeasures.push({
         type: 'resistance',
         category: 'Dissipation Thermique Élevée',
         icon: '🛡️',
         equipment: 'Gadget Sabir (-50 % rés.) ou Tête Helix / Klein (-30 % à -45 %)',
-        advice: `La roche dissipe ${effectiveResistance} % de l'énergie (pénétration : ${penetrationPct} %). Utilisez un laser perce-blindage ou un gadget Sabir pour abaisser le seuil d'énergie requise.`
+        recommendedGadgetId: 'sabir',
+        advice: `La roche dissipe ${effectiveResistance} % de l'énergie (pénétration : ${penetrationPct} %). Utilisez un laser perce-blindage ou déployez un gadget Sabir 21 pour abaisser le seuil d'énergie requise.`
       });
     }
     if (effectiveInstability >= 50) {
@@ -437,14 +476,17 @@ export const miningCalc = {
         type: 'stability',
         category: 'Volatilité & Pertes de Minerai',
         icon: '⚡',
-        equipment: 'Gadget BoreMax / Waveshift ou Modules Brandt / Focus',
-        advice: `Instabilité à ${effectiveInstability} % (oscillations ±${bounceAmplitudePct} %) : risque de vaporiser -${oreLossRiskPct} % de minerai utile (-${estimatedOreLossUEC.toLocaleString('fr-FR')} aUEC). Installez des stabilisateurs pour élargir la zone verte (${optimalWindowPct} %) et sécuriser 100 % de votre cargaison.`
+        equipment: 'Gadget Stalwart (-70 % instab.) ou WaveShift (-40 % instab.)',
+        recommendedGadgetId: 'stalwart',
+        advice: `Instabilité à ${effectiveInstability} % (oscillations ±${bounceAmplitudePct} %) : risque de vaporiser -${oreLossRiskPct} % de minerai utile (-${estimatedOreLossUEC.toLocaleString('fr-FR')} aUEC). Déployez un gadget Stalwart pour élargir la zone verte (${optimalWindowPct} %) et sécuriser 100 % de votre cargaison.`
       });
     }
 
     return {
       massKg: mass,
       resistance,
+      rawResistance: resistance,
+      resistanceAfterGadget,
       effectiveResistance,
       penetrationRatio,
       penetrationPct,
@@ -453,6 +495,8 @@ export const miningCalc = {
       powerRequiredWatts: powerRequired,
       powerRatio,
       instability,
+      rawInstability: instability,
+      instabilityAfterGadget,
       effectiveInstability,
       optimalWindowPct,
       windowClass,
@@ -461,6 +505,7 @@ export const miningCalc = {
       oreLossRiskPct,
       estimatedOreLossUEC,
       volatileNetUEC,
+      appliedGadget: gadget,
       countermeasures,
       dangerLevel,
       dangerText,

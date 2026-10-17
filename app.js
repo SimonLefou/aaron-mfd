@@ -2248,10 +2248,30 @@ function renderMiningScannerUI() {
   }
 }
 
+let selectedTacticalGadgetId = 'none';
+
 function evaluateAndRenderMiningRock() {
   const activeShipEntry = fleetService.getActiveShip();
   const cap = miningCalc.computeShipMiningCapabilities(activeShipEntry, currentMiningFiringMode);
-  const evalResult = miningCalc.calculateLiveRockEvaluation(currentMiningScan, cap);
+  const evalResult = miningCalc.calculateLiveRockEvaluation(currentMiningScan, cap, selectedTacticalGadgetId);
+
+  // Synchroniser le menu déroulant du gadget tactique
+  const gadgetSelect = document.getElementById('miningTacticalGadgetSelect');
+  if (gadgetSelect && gadgetSelect.value !== selectedTacticalGadgetId) {
+    gadgetSelect.value = selectedTacticalGadgetId;
+  }
+
+  const gadgetEffectBadge = document.getElementById('miningGadgetEffectBadge');
+  if (gadgetEffectBadge) {
+    if (evalResult.appliedGadget && evalResult.appliedGadget.id !== 'none') {
+      gadgetEffectBadge.style.display = 'inline-flex';
+      gadgetEffectBadge.className = 'vo-badge cyan';
+      gadgetEffectBadge.textContent = `🧲 ${evalResult.appliedGadget.name} actif`;
+      gadgetEffectBadge.title = evalResult.appliedGadget.desc_fr;
+    } else {
+      gadgetEffectBadge.style.display = 'none';
+    }
+  }
 
   // 0. VERDICT TACTIQUE & RENTABILITÉ DE FRACTURE
   const prof = evalResult.profitability;
@@ -2342,15 +2362,40 @@ function evaluateAndRenderMiningRock() {
   if (tacticalContent) {
     if (evalResult.countermeasures && evalResult.countermeasures.length > 0) {
       tacticalContent.innerHTML = evalResult.countermeasures.map(cm => `
-        <div style="margin-top:3px; padding-top:3px; border-top:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:1px;">
-          <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:5px;">
-            <span>${cm.icon}</span>
-            <span style="color:var(--accent-cyan);">${cm.category} :</span>
-            <span style="color:var(--accent-amber);">${cm.equipment}</span>
+        <div style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div style="flex:1; display:flex; flex-direction:column; gap:1px;">
+            <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:5px;">
+              <span>${cm.icon}</span>
+              <span style="color:var(--accent-cyan);">${cm.category} :</span>
+              <span style="color:var(--accent-amber);">${cm.equipment}</span>
+              ${cm.isActive ? '<span class="vo-badge green" style="font-size:0.6rem; padding:1px 4px;">DÉPLOYÉ</span>' : ''}
+            </div>
+            <div style="font-size:0.71rem; color:var(--text-dim);">${cm.advice}</div>
           </div>
-          <div style="font-size:0.71rem; color:var(--text-dim);">${cm.advice}</div>
+          ${cm.recommendedGadgetId && selectedTacticalGadgetId !== cm.recommendedGadgetId ? `
+            <button type="button" class="vo-btn outline btn-quick-select-gadget" data-gadget-id="${cm.recommendedGadgetId}" style="padding:2px 8px; font-size:0.68rem; white-space:nowrap; border-color:var(--accent-cyan); color:var(--accent-cyan);" title="Simuler l'effet de ce gadget immédiatement">
+              Tester ce gadget
+            </button>
+          ` : ''}
         </div>
       `).join('');
+
+      // Clic rapide pour tester le gadget conseillé
+      tacticalContent.querySelectorAll('.btn-quick-select-gadget').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const gId = btn.getAttribute('data-gadget-id');
+          if (gId) {
+            selectedTacticalGadgetId = gId;
+            currentMiningScan.gadgetId = gId;
+            const sel = document.getElementById('miningTacticalGadgetSelect');
+            if (sel) sel.value = gId;
+            evaluateAndRenderMiningRock();
+            triggerHaptic(10);
+            showToast(`🧲 Gadget ${gId.toUpperCase()} activé : recalcul immédiat !`);
+          }
+        });
+      });
     } else {
       tacticalContent.innerHTML = '<span style="color:var(--accent-green);">✓ Paramètres de tir optimaux :</span> Ce rocher peut être fracturé avec votre configuration actuelle sans risque de perte de minerai ou de surtension explosive.';
     }
@@ -5552,6 +5597,20 @@ function initEventBindings() {
     handleQualityChange(roll, false);
     triggerHaptic(12);
     showToast(`🎲 Nouveau jet de qualité scanner : Q${roll}`);
+  });
+
+  // Choix du gadget minier envisagé dans les conseils tactiques (Recalcul live)
+  document.getElementById('miningTacticalGadgetSelect')?.addEventListener('change', (e) => {
+    selectedTacticalGadgetId = e.target.value || 'none';
+    currentMiningScan.gadgetId = selectedTacticalGadgetId;
+    evaluateAndRenderMiningRock();
+    triggerHaptic(10);
+    const selText = e.target.options[e.target.selectedIndex]?.text || selectedTacticalGadgetId;
+    if (selectedTacticalGadgetId !== 'none') {
+      showToast(`🧲 Gadget simulé : ${selText.split('(')[0].trim()}`);
+    } else {
+      showToast('🧲 Simulation sans gadget.');
+    }
   });
 
   // Choix du type de roche géologique (Archétype Star Citizen 4.10)
