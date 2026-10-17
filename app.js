@@ -15,6 +15,8 @@ import {
   getModule,
   inventoryService,
   miningCalc,
+  FRONTIER_MINEABLES,
+  getFrontierPreset,
   craftingService,
   tradeService,
   uexService,
@@ -38,6 +40,8 @@ if (typeof window !== 'undefined') {
     fleetService,
     inventoryService,
     miningCalc,
+    FRONTIER_MINEABLES,
+    getFrontierPreset,
     craftingService,
     tradeService,
     uexService,
@@ -1756,17 +1760,73 @@ function openOCRDrawer() {
 // Type de roche (Archétypes), 1 ou 2 minerais max + matériaux inertes automatiques
 // ============================================================================
 let currentMiningScan = {
+  presetId: 'quantainium',
   archetypeId: 'basalt',
   massKg: 18420,
-  resistance: 55,
-  instability: 40,
-  quality: 780,
+  resistance: 65,
+  instability: 75,
+  radarSignature: 3170,
+  densityCategory: 'High',
+  primaryQualityOptions: [550, 950],
+  selectedQualityIndex: 1, // 0: Standard, 1: Haute / Riche
+  quality: 950,
   mineral1Id: 'quantainium',
   pct1: 28,
-  mineral2Id: 'bexalite',
+  mineral2Id: 'beryl',
   pct2: 14,
-  composition: miningCalc.buildRockComposition('quantainium', 28, 'bexalite', 14)
+  mineral3Id: null,
+  pct3: 0,
+  composition: miningCalc.buildRockComposition('quantainium', 28, 'beryl', 14, null, 0)
 };
+
+/**
+ * Applique un preset officiel Frontier Consolidated avec compositions liées et 2 qualités primaires
+ */
+function applyFrontierMiningPreset(presetId, qualityIndex = null) {
+  const preset = getFrontierPreset(presetId);
+  if (!preset) return;
+
+  currentMiningScan.presetId = preset.id;
+  currentMiningScan.mineral1Id = preset.primaryId;
+  currentMiningScan.mineral2Id = preset.secondaryId || null;
+  currentMiningScan.mineral3Id = preset.tertiaryId || null;
+  currentMiningScan.radarSignature = preset.radarSignature;
+  currentMiningScan.instability = preset.instabilityPct;
+  currentMiningScan.resistance = preset.resistancePct;
+  currentMiningScan.densityCategory = preset.density;
+  currentMiningScan.primaryQualityOptions = [...preset.qualities];
+
+  if (qualityIndex !== null && qualityIndex >= 0 && qualityIndex < preset.qualities.length) {
+    currentMiningScan.selectedQualityIndex = qualityIndex;
+  } else if (currentMiningScan.selectedQualityIndex == null || currentMiningScan.selectedQualityIndex >= preset.qualities.length) {
+    currentMiningScan.selectedQualityIndex = 1;
+  }
+  currentMiningScan.quality = currentMiningScan.primaryQualityOptions[currentMiningScan.selectedQualityIndex] ?? preset.qualities[1];
+
+  // Ajustement de pourcentages initiaux selon le nombre de minerais
+  if (currentMiningScan.mineral3Id) {
+    currentMiningScan.pct1 = 30;
+    currentMiningScan.pct2 = 14;
+    currentMiningScan.pct3 = 8;
+  } else if (currentMiningScan.mineral2Id) {
+    currentMiningScan.pct1 = 32;
+    currentMiningScan.pct2 = 16;
+    currentMiningScan.pct3 = 0;
+  } else {
+    currentMiningScan.pct1 = 45;
+    currentMiningScan.pct2 = 0;
+    currentMiningScan.pct3 = 0;
+  }
+
+  currentMiningScan.composition = miningCalc.buildRockComposition(
+    currentMiningScan.mineral1Id,
+    currentMiningScan.pct1,
+    currentMiningScan.mineral2Id,
+    currentMiningScan.pct2,
+    currentMiningScan.mineral3Id,
+    currentMiningScan.pct3
+  );
+}
 
 let currentMiningFiringMode = 'all'; // 't1', 't1_t2', ou 'all'
 let quantaniumTimerInterval = null;
@@ -1833,6 +1893,8 @@ let isMiningMineralsPopulated = false;
 function populateMiningMineralSelects() {
   const m1Select = document.getElementById('miningMineral1Select');
   const m2Select = document.getElementById('miningMineral2Select');
+  const m3Select = document.getElementById('miningMineral3Select');
+  const presetSelect = document.getElementById('miningPresetSelect');
   if (!m1Select || !m2Select || isMiningMineralsPopulated) return;
 
   const sortedMinerals = [...MINERALS].sort((a, b) => {
@@ -1841,6 +1903,15 @@ function populateMiningMineralSelects() {
     return nameA.localeCompare(nameB);
   });
 
+  // 1. Presets officiels Frontier Consolidated
+  if (presetSelect && Array.isArray(FRONTIER_MINEABLES)) {
+    presetSelect.innerHTML = FRONTIER_MINEABLES.map(p => {
+      const comps = [p.name, p.secondaryName, p.tertiaryName].filter(Boolean).join(' + ');
+      return `<option value="${p.id}">${p.name} · RS ${p.radarSignature.toLocaleString('fr-FR')} (${comps})</option>`;
+    }).join('');
+  }
+
+  // 2. Sélecteurs individuels de composants
   const m1OptionsHtml = sortedMinerals.map(m => {
     const sym = m.symbol ? ` [${m.symbol}]` : '';
     const vol = m.isVolatile ? ' ⚠️' : '';
@@ -1855,13 +1926,81 @@ function populateMiningMineralSelects() {
   }).join('');
   m2Select.innerHTML = m2OptionsHtml;
 
+  if (m3Select) {
+    const m3OptionsHtml = '<option value="">— Aucun —</option>' + sortedMinerals.map(m => {
+      const sym = m.symbol ? ` [${m.symbol}]` : '';
+      const vol = m.isVolatile ? ' ⚠️' : '';
+      return `<option value="${m.id}">${m.name_fr || m.name}${sym}${vol} · ${m.rawPrice} aUEC</option>`;
+    }).join('');
+    m3Select.innerHTML = m3OptionsHtml;
+  }
+
   isMiningMineralsPopulated = true;
 }
 
 function renderMiningScannerUI() {
   populateMiningMineralSelects();
 
-  // 1. Archétype de roche géologique
+  // 1. Presets Frontier Consolidated (Compositions Liées SC 4.0)
+  const presetSelect = document.getElementById('miningPresetSelect');
+  const presetRsBadge = document.getElementById('miningPresetRsBadge');
+  const presetDensityBadge = document.getElementById('miningPresetDensityBadge');
+  const presetCompsDesc = document.getElementById('miningPresetCompsDesc');
+
+  const curPreset = getFrontierPreset(currentMiningScan.presetId || currentMiningScan.mineral1Id);
+  if (presetSelect && curPreset) {
+    presetSelect.value = curPreset.id;
+  }
+  if (presetRsBadge) {
+    const rsVal = curPreset?.radarSignature || currentMiningScan.radarSignature;
+    presetRsBadge.textContent = rsVal ? `RS ${rsVal.toLocaleString('fr-FR')}` : 'RS —';
+  }
+  if (presetDensityBadge) {
+    const densVal = curPreset?.density || currentMiningScan.densityCategory || 'Medium';
+    const densLabel = densVal === 'High' ? 'Densité Élevée' : (densVal === 'Low' ? 'Densité Faible' : 'Densité Moyenne');
+    presetDensityBadge.textContent = densLabel;
+    presetDensityBadge.className = `vo-badge ${densVal === 'High' ? 'cyan' : (densVal === 'Low' ? 'gray' : 'amber')}`;
+  }
+  if (presetCompsDesc && curPreset) {
+    const c1 = curPreset.name;
+    const c2 = curPreset.secondaryName || 'Aucun';
+    const c3 = curPreset.tertiaryName || 'Aucun';
+    presetCompsDesc.textContent = `Composition liée : 1. ${c1} · 2. ${c2} · 3. ${c3}`;
+  }
+
+  // 2. Sélecteur des 2 Qualités de la roche Primary
+  const q0 = currentMiningScan.primaryQualityOptions?.[0] ?? (curPreset?.qualities[0] || 500);
+  const q1 = currentMiningScan.primaryQualityOptions?.[1] ?? (curPreset?.qualities[1] || 850);
+  const isQ0 = currentMiningScan.selectedQualityIndex === 0;
+
+  const btnQ1 = document.getElementById('btnPrimaryQual1');
+  const btnQ2 = document.getElementById('btnPrimaryQual2');
+  const labelQ1 = document.getElementById('labelPrimaryQual1Val');
+  const labelQ2 = document.getElementById('labelPrimaryQual2Val');
+  const primaryQBadge = document.getElementById('miningPrimaryQualityBadge');
+
+  if (labelQ1) labelQ1.textContent = `Q${q0}`;
+  if (labelQ2) labelQ2.textContent = `Q${q1}`;
+
+  if (btnQ1) {
+    btnQ1.classList.toggle('active', isQ0);
+    btnQ1.style.borderColor = isQ0 ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.15)';
+    btnQ1.style.background = isQ0 ? 'rgba(0, 212, 255, 0.15)' : 'rgba(255,255,255,0.03)';
+  }
+  if (btnQ2) {
+    btnQ2.classList.toggle('active', !isQ0);
+    btnQ2.style.borderColor = !isQ0 ? 'var(--accent-green)' : 'rgba(255,255,255,0.15)';
+    btnQ2.style.background = !isQ0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.03)';
+  }
+
+  const curQ = typeof currentMiningScan.quality === 'number' ? currentMiningScan.quality : (isQ0 ? q0 : q1);
+  if (primaryQBadge && craftingService.getQualityTier) {
+    const tier = craftingService.getQualityTier(curQ);
+    primaryQBadge.className = `quality-badge ${tier.badgeClass}`;
+    primaryQBadge.textContent = `⭐ Q${curQ} ${tier.shortName}`;
+  }
+
+  // 3. Archétype de roche géologique
   const rockSelect = document.getElementById('miningRockTypeSelect');
   const rockBadge = document.getElementById('miningRockTypeBadge');
   const rockNotes = document.getElementById('miningRockTypeNotes');
@@ -1887,7 +2026,7 @@ function renderMiningScannerUI() {
     }
   }
 
-  // 2. Paramètres physiques
+  // 4. Paramètres physiques
   const massInput = document.getElementById('miningInputMass');
   const massSlider = document.getElementById('miningSliderMass');
   if (massInput && massInput !== document.activeElement) massInput.value = currentMiningScan.massKg;
@@ -1908,11 +2047,10 @@ function renderMiningScannerUI() {
   if (resInput && resInput !== document.activeElement) resInput.value = currentMiningScan.resistance;
   if (resSlider && resSlider !== document.activeElement) resSlider.value = currentMiningScan.resistance;
 
-  // Qualité du matériau géologique (SC 4.0)
+  // Qualité du matériau géologique (slider / input alternatif)
   const qInput = document.getElementById('miningInputQuality');
   const qSlider = document.getElementById('miningSliderQuality');
   const qBadge = document.getElementById('miningQualityBadge');
-  const curQ = typeof currentMiningScan.quality === 'number' ? currentMiningScan.quality : 780;
   if (qInput && qInput !== document.activeElement) qInput.value = curQ;
   if (qSlider && qSlider !== document.activeElement) qSlider.value = curQ;
   if (qBadge && craftingService.getQualityTier) {
@@ -1925,7 +2063,7 @@ function renderMiningScannerUI() {
     btn.classList.toggle('active', Math.abs(qVal - curQ) < 30);
   });
 
-  // 3. Minerais 1 & 2
+  // 5. Composants 1, 2 et 3
   const m1Select = document.getElementById('miningMineral1Select');
   const pct1Input = document.getElementById('miningPct1Input');
   const pct1Slider = document.getElementById('miningPct1Slider');
@@ -1935,6 +2073,13 @@ function renderMiningScannerUI() {
   const pct2Input = document.getElementById('miningPct2Input');
   const pct2Slider = document.getElementById('miningPct2Slider');
   const comp2Dot = document.getElementById('miningComp2Dot');
+  const comp2Container = document.getElementById('miningComp2Container');
+
+  const m3Select = document.getElementById('miningMineral3Select');
+  const pct3Input = document.getElementById('miningPct3Input');
+  const pct3Slider = document.getElementById('miningPct3Slider');
+  const comp3Dot = document.getElementById('miningComp3Dot');
+  const comp3Container = document.getElementById('miningComp3Container');
 
   const min1 = MINERALS.find(m => m.id === currentMiningScan.mineral1Id) || MINERALS[0];
   if (m1Select) m1Select.value = currentMiningScan.mineral1Id;
@@ -1955,15 +2100,36 @@ function renderMiningScannerUI() {
     if (pct2Slider !== document.activeElement) pct2Slider.value = hasComp2 ? currentMiningScan.pct2 : 0;
   }
   if (comp2Dot) comp2Dot.style.backgroundColor = hasComp2 ? (min2?.color || 'var(--accent-cyan)') : '#64748b';
+  if (comp2Container) {
+    comp2Container.style.opacity = hasComp2 ? '1' : '0.6';
+  }
 
-  // 4. Inerte (100 - Pct1 - Pct2)
-  const inertPct = Math.max(0, Math.round((100 - currentMiningScan.pct1 - (hasComp2 ? currentMiningScan.pct2 : 0)) * 10) / 10);
+  const hasComp3 = Boolean(currentMiningScan.mineral3Id);
+  const min3 = hasComp3 ? MINERALS.find(m => m.id === currentMiningScan.mineral3Id) : null;
+  if (m3Select) m3Select.value = currentMiningScan.mineral3Id || '';
+
+  if (pct3Input) {
+    pct3Input.disabled = !hasComp3;
+    if (pct3Input !== document.activeElement) pct3Input.value = hasComp3 ? currentMiningScan.pct3 : 0;
+  }
+  if (pct3Slider) {
+    pct3Slider.disabled = !hasComp3;
+    if (pct3Slider !== document.activeElement) pct3Slider.value = hasComp3 ? currentMiningScan.pct3 : 0;
+  }
+  if (comp3Dot) comp3Dot.style.backgroundColor = hasComp3 ? (min3?.color || 'var(--accent-purple)') : '#64748b';
+  if (comp3Container) {
+    comp3Container.style.opacity = hasComp3 ? '1' : '0.6';
+  }
+
+  // 6. Inerte & pureté (100 - Pct1 - Pct2 - Pct3)
+  const usefulPct = Math.round((currentMiningScan.pct1 + (hasComp2 ? currentMiningScan.pct2 : 0) + (hasComp3 ? currentMiningScan.pct3 : 0)) * 10) / 10;
+  const inertPct = Math.max(0, Math.round((100 - usefulPct) * 10) / 10);
   const inertLabel = document.getElementById('miningInertPctLabel');
   const inertBar = document.getElementById('miningInertBar');
   if (inertLabel) inertLabel.textContent = `${inertPct} %`;
   if (inertBar) inertBar.style.width = `${inertPct}%`;
 
-  // 5. Rendu du HUD scanner (barres SC 4.10.2)
+  // 7. Rendu du HUD scanner (barres SC 4.10.2)
   const hudContainer = document.getElementById('miningHudBarsContainer');
   if (hudContainer) {
     hudContainer.innerHTML = currentMiningScan.composition.map(item => `
@@ -1983,7 +2149,6 @@ function renderMiningScannerUI() {
   }
 
   const purityLabel = document.getElementById('miningPurityLabel');
-  const usefulPct = Math.round((currentMiningScan.pct1 + (hasComp2 ? currentMiningScan.pct2 : 0)) * 10) / 10;
   if (purityLabel) {
     purityLabel.textContent = `Pureté utile : ${usefulPct} %`;
     purityLabel.style.color = usefulPct >= 30 ? 'var(--accent-green)' : (usefulPct >= 15 ? 'var(--accent-cyan)' : 'var(--text-muted)');
@@ -1991,7 +2156,7 @@ function renderMiningScannerUI() {
 
   const totalStatusLabel = document.getElementById('miningTotalStatusLabel');
   if (totalStatusLabel) {
-    const total = Math.round((currentMiningScan.pct1 + (hasComp2 ? currentMiningScan.pct2 : 0) + inertPct) * 10) / 10;
+    const total = Math.round((usefulPct + inertPct) * 10) / 10;
     if (total === 100) {
       totalStatusLabel.textContent = 'Total : 100 % (Équilibré)';
       totalStatusLabel.style.color = 'var(--text-muted)';
@@ -5179,30 +5344,63 @@ function initEventBindings() {
     showToast(`Type de roche géologique : ${arch.name}`);
   });
 
-  // Composant 1 : Minéral & Pourcentage
+  // Presets officiels Frontier Consolidated
+  document.getElementById('miningPresetSelect')?.addEventListener('change', (e) => {
+    applyFrontierMiningPreset(e.target.value);
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+    const selText = e.target.options[e.target.selectedIndex]?.text || e.target.value;
+    showToast(`Preset géologique appliqué : ${selText}`);
+  });
+
+  // Sélection des 2 Qualités de la roche Primary (Standard vs Haute/Riche)
+  document.getElementById('btnPrimaryQual1')?.addEventListener('click', () => {
+    currentMiningScan.selectedQualityIndex = 0;
+    if (currentMiningScan.primaryQualityOptions && currentMiningScan.primaryQualityOptions[0] != null) {
+      currentMiningScan.quality = currentMiningScan.primaryQualityOptions[0];
+    }
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+    triggerHaptic(8);
+  });
+
+  document.getElementById('btnPrimaryQual2')?.addEventListener('click', () => {
+    currentMiningScan.selectedQualityIndex = 1;
+    if (currentMiningScan.primaryQualityOptions && currentMiningScan.primaryQualityOptions[1] != null) {
+      currentMiningScan.quality = currentMiningScan.primaryQualityOptions[1];
+    }
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+    triggerHaptic(8);
+  });
+
+  // Composant 1 : Minéral & Pourcentage (Lié automatiquement aux compositions Frontier)
   document.getElementById('miningMineral1Select')?.addEventListener('change', (e) => {
-    currentMiningScan.mineral1Id = e.target.value;
-    currentMiningScan.composition = miningCalc.buildRockComposition(
-      currentMiningScan.mineral1Id,
-      currentMiningScan.pct1,
-      currentMiningScan.mineral2Id,
-      currentMiningScan.pct2
-    );
+    applyFrontierMiningPreset(e.target.value);
     renderMiningScannerUI();
     evaluateAndRenderMiningRock();
   });
 
   const handlePct1Change = (val) => {
     const clamped = Math.max(0, Math.min(100, Number(val) || 0));
-    if (clamped + currentMiningScan.pct2 > 100) {
-      currentMiningScan.pct2 = Math.max(0, Math.round((100 - clamped) * 10) / 10);
+    const p2 = currentMiningScan.mineral2Id ? currentMiningScan.pct2 : 0;
+    const p3 = currentMiningScan.mineral3Id ? currentMiningScan.pct3 : 0;
+    if (clamped + p2 + p3 > 100) {
+      const remaining = Math.max(0, 100 - clamped);
+      if (p2 + p3 > 0) {
+        const factor = remaining / (p2 + p3);
+        currentMiningScan.pct2 = Math.round(p2 * factor * 10) / 10;
+        currentMiningScan.pct3 = Math.round(p3 * factor * 10) / 10;
+      }
     }
     currentMiningScan.pct1 = clamped;
     currentMiningScan.composition = miningCalc.buildRockComposition(
       currentMiningScan.mineral1Id,
       currentMiningScan.pct1,
       currentMiningScan.mineral2Id,
-      currentMiningScan.pct2
+      currentMiningScan.pct2,
+      currentMiningScan.mineral3Id,
+      currentMiningScan.pct3
     );
     renderMiningScannerUI();
     evaluateAndRenderMiningRock();
@@ -5222,13 +5420,18 @@ function initEventBindings() {
     if (!val) {
       currentMiningScan.pct2 = 0;
     } else if (currentMiningScan.pct2 === 0) {
-      currentMiningScan.pct2 = Math.min(15, Math.max(0, Math.round((100 - currentMiningScan.pct1) * 10) / 10));
+      const p1 = currentMiningScan.pct1;
+      const p3 = currentMiningScan.mineral3Id ? currentMiningScan.pct3 : 0;
+      const maxAllowed = Math.max(0, Math.round((100 - p1 - p3) * 10) / 10);
+      currentMiningScan.pct2 = Math.min(15, maxAllowed);
     }
     currentMiningScan.composition = miningCalc.buildRockComposition(
       currentMiningScan.mineral1Id,
       currentMiningScan.pct1,
       currentMiningScan.mineral2Id,
-      currentMiningScan.pct2
+      currentMiningScan.pct2,
+      currentMiningScan.mineral3Id,
+      currentMiningScan.pct3
     );
     renderMiningScannerUI();
     evaluateAndRenderMiningRock();
@@ -5236,14 +5439,18 @@ function initEventBindings() {
 
   const handlePct2Change = (val) => {
     if (!currentMiningScan.mineral2Id) return;
-    const maxAllowed = Math.max(0, Math.round((100 - currentMiningScan.pct1) * 10) / 10);
+    const p1 = currentMiningScan.pct1;
+    const p3 = currentMiningScan.mineral3Id ? currentMiningScan.pct3 : 0;
+    const maxAllowed = Math.max(0, Math.round((100 - p1 - p3) * 10) / 10);
     const clamped = Math.max(0, Math.min(maxAllowed, Number(val) || 0));
     currentMiningScan.pct2 = clamped;
     currentMiningScan.composition = miningCalc.buildRockComposition(
       currentMiningScan.mineral1Id,
       currentMiningScan.pct1,
       currentMiningScan.mineral2Id,
-      currentMiningScan.pct2
+      currentMiningScan.pct2,
+      currentMiningScan.mineral3Id,
+      currentMiningScan.pct3
     );
     renderMiningScannerUI();
     evaluateAndRenderMiningRock();
@@ -5254,6 +5461,56 @@ function initEventBindings() {
   });
   document.getElementById('miningPct2Slider')?.addEventListener('input', (e) => {
     handlePct2Change(e.target.value);
+  });
+
+  // Composant 3 : Minéral (ou Aucun) & Pourcentage
+  document.getElementById('miningMineral3Select')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    currentMiningScan.mineral3Id = val || null;
+    if (!val) {
+      currentMiningScan.pct3 = 0;
+    } else if (currentMiningScan.pct3 === 0) {
+      const p1 = currentMiningScan.pct1;
+      const p2 = currentMiningScan.mineral2Id ? currentMiningScan.pct2 : 0;
+      const maxAllowed = Math.max(0, Math.round((100 - p1 - p2) * 10) / 10);
+      currentMiningScan.pct3 = Math.min(10, maxAllowed);
+    }
+    currentMiningScan.composition = miningCalc.buildRockComposition(
+      currentMiningScan.mineral1Id,
+      currentMiningScan.pct1,
+      currentMiningScan.mineral2Id,
+      currentMiningScan.pct2,
+      currentMiningScan.mineral3Id,
+      currentMiningScan.pct3
+    );
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+  });
+
+  const handlePct3Change = (val) => {
+    if (!currentMiningScan.mineral3Id) return;
+    const p1 = currentMiningScan.pct1;
+    const p2 = currentMiningScan.mineral2Id ? currentMiningScan.pct2 : 0;
+    const maxAllowed = Math.max(0, Math.round((100 - p1 - p2) * 10) / 10);
+    const clamped = Math.max(0, Math.min(maxAllowed, Number(val) || 0));
+    currentMiningScan.pct3 = clamped;
+    currentMiningScan.composition = miningCalc.buildRockComposition(
+      currentMiningScan.mineral1Id,
+      currentMiningScan.pct1,
+      currentMiningScan.mineral2Id,
+      currentMiningScan.pct2,
+      currentMiningScan.mineral3Id,
+      currentMiningScan.pct3
+    );
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+  };
+
+  document.getElementById('miningPct3Input')?.addEventListener('input', (e) => {
+    handlePct3Change(e.target.value);
+  });
+  document.getElementById('miningPct3Slider')?.addEventListener('input', (e) => {
+    handlePct3Change(e.target.value);
   });
 
   // Trigger OCR scanner modal

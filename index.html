@@ -691,7 +691,24 @@
             <div class="vo-card" id="miningScanCard">
               <div class="vo-card-header" style="margin-bottom:10px;">
                 <div class="vo-card-title">SCAN DU ROCHER</div>
-                <span class="vo-badge cyan" style="font-size:0.68rem;">SC 4.10.2</span>
+                <span class="vo-badge cyan" style="font-size:0.68rem;">Frontier Consolidated 4.0</span>
+              </div>
+
+              <!-- SÉLECTEUR OFFICIEL PRESET DE ROCHE (FRONTIER CONSOLIDATED SC 4.0) -->
+              <div style="background:linear-gradient(180deg, rgba(14,165,233,0.08) 0%, rgba(15,23,42,0.4) 100%); border:1px solid var(--accent-cyan); border-radius:8px; padding:10px 12px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label for="miningPresetSelect" style="font-size:0.72rem; color:var(--accent-cyan); font-weight:800; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
+                    <span>📐</span> PRESET DE ROCHE (FRONTIER CONSOLIDATED)
+                  </label>
+                  <span class="vo-badge cyan" id="miningPresetRsBadge" style="font-size:0.68rem; font-family:var(--font-mono);">RS: 3170</span>
+                </div>
+                <select id="miningPresetSelect" class="vo-select" style="width:100%; font-size:0.82rem; font-weight:700; padding:6px 10px; background:rgba(10,15,30,0.9); border:1px solid rgba(0,210,255,0.4); border-radius:6px; color:#fff;">
+                  <!-- Rempli dynamiquement avec les 26 roches Frontier Consolidated -->
+                </select>
+                <div id="miningPresetSummary" style="font-size:0.72rem; color:var(--text-dim); margin-top:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                  <span>Compositions liées : <strong style="color:#fff;" id="miningPresetCompsDesc">1: Quantainium · 2: Béryl · 3: Aucun</strong></span>
+                  <span id="miningPresetDensityBadge" class="vo-badge purple" style="font-size:0.65rem;">Densité Haute</span>
+                </div>
               </div>
 
               <!-- SÉLECTEUR DU TYPE DE ROCHE GÉOLOGIQUE (ARCHETYPE SC 4.10) -->
@@ -758,42 +775,46 @@
                   </div>
                 </div>
 
-                <!-- QUALITÉ DU MATÉRIAU GÉOLOGIQUE (STAR CITIZEN 4.0+) -->
-                <div style="margin-top:6px; padding:8px 10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-medium); border-radius:6px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem; margin-bottom:4px;">
-                    <span style="color:var(--text-muted); font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px;">QUALITÉ DU GISEMENT</span>
+                <!-- 2 QUALITÉS DE LA ROCHE PRIMAIRE (SÉLECTION RAPIDE STAR CITIZEN 4.0) -->
+                <div style="margin-top:4px; padding:10px 12px; background:linear-gradient(180deg, rgba(245,158,11,0.06) 0%, rgba(15,23,42,0.6) 100%); border:1px solid rgba(245,158,11,0.3); border-radius:8px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <span style="color:var(--accent-amber); font-weight:800; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px;">⭐ QUALITÉ ROCHE PRIMAIRE (2 OPTIONS)</span>
+                    <span class="quality-badge quality-high" id="miningPrimaryQualityBadge" style="font-size:0.7rem; padding:2px 8px;">Option 2 Active</span>
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;" id="primaryRockQualityBtnsContainer">
+                    <button type="button" class="vo-btn outline primary-quality-btn" id="btnPrimaryQual1" data-qindex="0" style="padding:8px 6px; font-size:0.75rem; text-align:center; display:flex; flex-direction:column; gap:2px; align-items:center; cursor:pointer;">
+                      <span style="font-weight:700; color:var(--text-muted); font-size:0.72rem;" id="labelPrimaryQual1Name">Qualité Standard</span>
+                      <strong style="font-size:0.9rem; color:#fff; font-family:var(--font-mono);" id="labelPrimaryQual1Val">Q500</strong>
+                    </button>
+                    <button type="button" class="vo-btn primary primary-quality-btn active" id="btnPrimaryQual2" data-qindex="1" style="padding:8px 6px; font-size:0.75rem; text-align:center; display:flex; flex-direction:column; gap:2px; align-items:center; border-color:var(--accent-amber); cursor:pointer;">
+                      <span style="font-weight:700; color:#fff; font-size:0.72rem;" id="labelPrimaryQual2Name">Haute Qualité</span>
+                      <strong style="font-size:0.9rem; color:var(--accent-amber); font-family:var(--font-mono);" id="labelPrimaryQual2Val">Q850</strong>
+                    </button>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-dim);">
+                    <span>Ajustement fin (Score Q) :</span>
                     <div style="display:flex; align-items:center; gap:6px;">
-                      <span class="quality-badge quality-high" id="miningQualityBadge" style="font-size:0.7rem; padding:2px 6px;">⭐ Q780 Haute</span>
-                      <input type="number" id="miningInputQuality" class="vo-search-input" value="780" min="0" max="1000" step="10" style="width:65px; text-align:right; font-weight:700; padding:2px 4px; font-size:0.8rem;">
+                      <span class="quality-badge" id="miningQualityBadge" style="font-size:0.68rem; padding:1px 6px;">⭐ Q850</span>
+                      <input type="number" id="miningInputQuality" class="vo-search-input" value="850" min="0" max="1000" step="10" style="width:58px; text-align:right; font-weight:700; padding:2px 4px; font-size:0.76rem;">
                     </div>
                   </div>
-                  <input type="range" id="miningSliderQuality" min="0" max="1000" step="10" value="780" class="vo-slider" style="width:100%; margin-bottom:6px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
-                    <span style="font-size:0.68rem; color:var(--text-dim);">Presets :</span>
-                    <div style="display:flex; gap:4px; flex-wrap:wrap;">
-                      <button type="button" class="mining-quality-preset-btn" data-quality="350">Rebut (Q350)</button>
-                      <button type="button" class="mining-quality-preset-btn" data-quality="500">Standard (Q500)</button>
-                      <button type="button" class="mining-quality-preset-btn active" data-quality="780">Haute (Q780)</button>
-                      <button type="button" class="mining-quality-preset-btn" data-quality="950">⭐ Maître (Q950)</button>
-                      <button type="button" class="mining-quality-preset-btn" id="btnMiningRandomQuality" title="Générer un jet de qualité aléatoire réaliste">🎲 Roll</button>
-                    </div>
-                  </div>
+                  <input type="range" id="miningSliderQuality" min="0" max="1000" step="10" value="850" class="vo-slider" style="width:100%; margin-top:4px;">
                 </div>
               </div>
 
-              <!-- COMPOSITION & TENEUR DU ROCHER (RÈGLE SC 4.10.2 : MAX 1 OU 2 MINERAIS + INERTE) -->
+              <!-- COMPOSITION & TENEUR DU ROCHER (3 COMPOSITIONS LIÉES SELON FRONTIER CONSOLIDATED + INERTE) -->
               <div style="margin-top:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                   <div class="vo-card-title" style="margin:0; font-size:0.8rem;">COMPOSITION &amp; TENEUR</div>
-                  <span style="font-size:0.68rem; color:var(--text-dim);">SC 4.10.2 · Max 2 minerais + inerte</span>
+                  <span style="font-size:0.68rem; color:var(--accent-cyan); font-weight:700;">Frontier Consolidated · 3 minerais liés + inerte</span>
                 </div>
 
-                <!-- COMPOSANT 1 (PRINCIPAL) -->
+                <!-- COMPOSANT 1 (PRINCIPAL / PRIMAIRE) -->
                 <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:6px 8px; margin-bottom:6px;">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
                     <div style="display:flex; align-items:center; gap:6px;">
                       <span class="comp-dot" id="miningComp1Dot" style="background-color:var(--accent-purple);"></span>
-                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">MINERAI 1 (PRINCIPAL)</span>
+                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">MINERAI 1 (PRIMAIRE)</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:4px;">
                       <input type="number" id="miningPct1Input" class="comp-input-pct" value="28" min="0" max="100" step="0.5" style="width:52px; padding:2px 4px; font-size:0.8rem;">
@@ -806,12 +827,12 @@
                   <input type="range" id="miningPct1Slider" min="0" max="100" step="0.5" value="28" class="vo-slider" style="width:100%;">
                 </div>
 
-                <!-- COMPOSANT 2 (SECONDAIRE - OPTIONNEL) -->
-                <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:6px 8px; margin-bottom:6px;">
+                <!-- COMPOSANT 2 (SECONDAIRE - LIÉ) -->
+                <div id="miningComp2Container" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:6px 8px; margin-bottom:6px;">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
                     <div style="display:flex; align-items:center; gap:6px;">
                       <span class="comp-dot" id="miningComp2Dot" style="background-color:var(--accent-cyan);"></span>
-                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">MINERAI 2 (SECONDAIRE)</span>
+                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">MINERAI 2 (SECONDAIRE LIÉ)</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:4px;">
                       <input type="number" id="miningPct2Input" class="comp-input-pct" value="14" min="0" max="100" step="0.5" style="width:52px; padding:2px 4px; font-size:0.8rem;">
@@ -820,9 +841,26 @@
                   </div>
                   <select id="miningMineral2Select" class="vo-select" style="width:100%; font-size:0.78rem; padding:3px 6px; margin-bottom:4px;">
                     <option value="">— Aucun (Rocher mono-minerai) —</option>
-                    <!-- Rempli dynamiquement -->
                   </select>
                   <input type="range" id="miningPct2Slider" min="0" max="100" step="0.5" value="14" class="vo-slider" style="width:100%;">
+                </div>
+
+                <!-- COMPOSANT 3 (TERTIAIRE - LIÉ) -->
+                <div id="miningComp3Container" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:6px 8px; margin-bottom:6px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span class="comp-dot" id="miningComp3Dot" style="background-color:var(--accent-amber);"></span>
+                      <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">MINERAI 3 (TERTIAIRE LIÉ)</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                      <input type="number" id="miningPct3Input" class="comp-input-pct" value="0" min="0" max="100" step="0.5" style="width:52px; padding:2px 4px; font-size:0.8rem;">
+                      <span style="font-size:0.72rem; font-weight:700;">%</span>
+                    </div>
+                  </div>
+                  <select id="miningMineral3Select" class="vo-select" style="width:100%; font-size:0.78rem; padding:3px 6px; margin-bottom:4px;">
+                    <option value="">— Aucun (Pas de tertiaire) —</option>
+                  </select>
+                  <input type="range" id="miningPct3Slider" min="0" max="100" step="0.5" value="0" class="vo-slider" style="width:100%;">
                 </div>
 
                 <!-- MATÉRIAUX INERTES (CALCULÉ AUTOMATIQUEMENT) -->

@@ -7,6 +7,7 @@ import { QUANTUM_DRIVES, SHIELDS, POWER_PLANTS, COOLERS, TRACTOR_BEAMS, SALVAGE_
 import { MINERALS } from './game/minerals.js';
 import { REFINING_METHODS, REFINERY_STATIONS } from './game/refining.js';
 import { AARON_HALO_BANDS, MINING_HOTSPOTS, ROCK_ARCHETYPES } from './game/locations.js';
+import { FRONTIER_MINEABLES, getFrontierPreset } from './game/frontier-mineables.js';
 import { SALVAGE_SHIPS, SALVAGE_SCRAPERS, SALVAGE_WRECKS, SALVAGE_COMMODITIES } from './game/salvage.js';
 import { TRADE_TERMINALS, UEX_CONFIG, GENERAL_COMMODITIES, POPULAR_TRADE_ROUTES } from './game/trade.js';
 import { BLUEPRINTS, MINING_SPECIALIZED_BLUEPRINTS, getBlueprintsByCategory, getBlueprintById } from './game/blueprints.js';
@@ -36,6 +37,8 @@ export {
   AARON_HALO_BANDS,
   MINING_HOTSPOTS,
   ROCK_ARCHETYPES,
+  FRONTIER_MINEABLES,
+  getFrontierPreset,
   SALVAGE_SHIPS,
   SALVAGE_SCRAPERS,
   SALVAGE_WRECKS,

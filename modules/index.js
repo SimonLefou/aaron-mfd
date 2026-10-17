@@ -23,7 +23,7 @@ export {
   getModule
 } from './fleet/fleet-service.js';
 export { inventoryService } from './inventory/inventory-service.js';
-export { miningCalc, ROCK_ARCHETYPES_CONFIG, buildRockComposition } from './mining/mining-calc.js';
+export { miningCalc, ROCK_ARCHETYPES_CONFIG, buildRockComposition, FRONTIER_MINEABLES, getFrontierPreset } from './mining/mining-calc.js';
 export {
   craftingService,
   BLUEPRINT_CATEGORIES,

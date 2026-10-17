@@ -3,10 +3,10 @@
 // Formules de fracturation, analyse économique (Brut vs Raffiné) et stations optimales
 // ============================================================================
 
-import { MINERALS, REFINING_METHODS, REFINERY_STATIONS, ROCK_ARCHETYPES } from '../../data/index.js';
+import { MINERALS, REFINING_METHODS, REFINERY_STATIONS, ROCK_ARCHETYPES, FRONTIER_MINEABLES, getFrontierPreset } from '../../data/index.js';
 import { getLaser, getModule, getShip, totalScu } from '../fleet/fleet-service.js';
 
-export { ROCK_ARCHETYPES };
+export { ROCK_ARCHETYPES, FRONTIER_MINEABLES, getFrontierPreset };
 
 export const ROCK_ARCHETYPES_CONFIG = [
   {
@@ -89,14 +89,15 @@ export const ROCK_ARCHETYPES_CONFIG = [
 ];
 
 /**
- * Construit la composition standard Star Citizen 4.x (1 ou 2 minerais max + le reste en inerte)
+ * Construit la composition géologique Star Citizen 4.x (jusqu'à 3 minerais liés + le reste en inerte)
  */
-export function buildRockComposition(mineral1Id, pct1, mineral2Id = null, pct2 = 0) {
+export function buildRockComposition(mineral1Id, pct1, mineral2Id = null, pct2 = 0, mineral3Id = null, pct3 = 0) {
   const p1 = Math.max(0, Math.min(100, Number(pct1) || 0));
   const p2 = mineral2Id ? Math.max(0, Math.min(100 - p1, Number(pct2) || 0)) : 0;
-  const inertePct = Math.max(0, Math.round((100 - p1 - p2) * 10) / 10);
+  const p3 = mineral3Id ? Math.max(0, Math.min(100 - p1 - p2, Number(pct3) || 0)) : 0;
+  const inertePct = Math.max(0, Math.round((100 - p1 - p2 - p3) * 10) / 10);
 
-  const m1 = MINERALS.find(m => m.id === mineral1Id) || MINERALS[0];
+  const m1 = MINERALS.find(m => m.id === mineral1Id || m.name.toLowerCase() === (mineral1Id || '').toLowerCase()) || MINERALS[0];
   const comp = [
     {
       mineralId: m1.id,
@@ -108,7 +109,7 @@ export function buildRockComposition(mineral1Id, pct1, mineral2Id = null, pct2 =
   ];
 
   if (mineral2Id && p2 > 0) {
-    const m2 = MINERALS.find(m => m.id === mineral2Id);
+    const m2 = MINERALS.find(m => m.id === mineral2Id || m.name.toLowerCase() === (mineral2Id || '').toLowerCase());
     if (m2) {
       comp.push({
         mineralId: m2.id,
@@ -116,6 +117,19 @@ export function buildRockComposition(mineral1Id, pct1, mineral2Id = null, pct2 =
         pct: p2,
         color: m2.color || '#38bdf8',
         isVolatile: Boolean(m2.isVolatile)
+      });
+    }
+  }
+
+  if (mineral3Id && p3 > 0) {
+    const m3 = MINERALS.find(m => m.id === mineral3Id || m.name.toLowerCase() === (mineral3Id || '').toLowerCase());
+    if (m3) {
+      comp.push({
+        mineralId: m3.id,
+        name: m3.name_fr || m3.name,
+        pct: p3,
+        color: m3.color || '#facc15',
+        isVolatile: Boolean(m3.isVolatile)
       });
     }
   }
@@ -133,6 +147,8 @@ export function buildRockComposition(mineral1Id, pct1, mineral2Id = null, pct2 =
 
 export const miningCalc = {
   ROCK_ARCHETYPES_CONFIG,
+  FRONTIER_MINEABLES,
+  getFrontierPreset,
   buildRockComposition,
 
   /**
