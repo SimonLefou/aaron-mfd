@@ -3169,14 +3169,23 @@ function renderTradeCards() {
   tbody.innerHTML = evaluatedRoutes.map((r, index) => {
     const isSel = r.id === tradeState.selectedRouteId;
     const rank = index + 1;
+    const isPartial = r.isCapitalConstrained;
     return `
       <tr class="trade-route-row ${isSel ? 'sel' : ''}" data-route-id="${r.id}" style="cursor:pointer;">
         <td>${rank}</td>
         <td class="val-bold">${r.from || r.origin}</td>
         <td class="val-bold">${r.to || r.destination}</td>
         <td>${r.item || r.name}</td>
-        <td class="val-green">+${r.fullHoldProfit.toLocaleString('fr-FR')}</td>
-        <td class="val-green"><b>+${r.profitPerHourUEC.toLocaleString('fr-FR')}</b></td>
+        <td class="val-green">
+          <b>+${r.actualProfit.toLocaleString('fr-FR')}</b>
+          <div style="font-size:0.65rem; color:${isPartial ? 'var(--accent-amber, #f59e0b)' : 'var(--text-muted)'}; font-family:var(--font-mono);">
+            ${isPartial ? `${r.actualCargoSCU}/${r.shipCapacitySCU} SCU financés` : `${r.shipCapacitySCU} SCU (Plein)`}
+          </div>
+        </td>
+        <td class="val-green">
+          <b>+${r.profitPerHourUEC.toLocaleString('fr-FR')}</b>
+          <div style="font-size:0.65rem; color:var(--text-muted);">/heure</div>
+        </td>
         <td style="text-align:right;">
           <span style="font-family:var(--font-mono); font-size:0.75rem;">${r.costPerSCU.toLocaleString('fr-FR')}</span> <span style="font-size:0.65rem; color:var(--text-muted);">aUEC</span>
           <div style="font-size:0.68rem; color:var(--accent-green); font-family:var(--font-mono); font-weight:600;">+${r.marginPerSCU.toLocaleString('fr-FR')}/SCU</div>
@@ -3208,6 +3217,7 @@ function renderTradeRouteDetail(route, currentShip) {
   const titleEl = document.getElementById('tradeRouteDetailTitle');
   const buyEl = document.getElementById('tradeDetailBuy');
   const sellEl = document.getElementById('tradeDetailSell');
+  const netProfitEl = document.getElementById('tradeDetailNetProfit');
   const distEl = document.getElementById('tradeDetailDistance');
   const quantumTimeEl = document.getElementById('tradeDetailQuantumTime');
   const fillRateEl = document.getElementById('tradeDetailFillRate');
@@ -3225,17 +3235,24 @@ function renderTradeRouteDetail(route, currentShip) {
   const hold = currentShip.cargoScu;
   const costPerScu = route.costPerSCU || route.buyPricePerScu || Math.round((route.buyPrice || 10) * 100);
   const revenuePerScu = route.revenuePerSCU || route.sellPricePerScu || Math.round((route.sellPrice || 12) * 100);
-  const buyTotal = hold * costPerScu;
-  const sellTotal = hold * revenuePerScu;
+
+  // Quantité et gains réels basés sur le capital alloué
+  const maxAffordable = costPerScu > 0 ? Math.floor(tradeState.userCapital / costPerScu) : hold;
+  const actualCargoSCU = Math.min(hold, maxAffordable);
+  const actualBuyTotal = actualCargoSCU * costPerScu;
+  const actualSellTotal = actualCargoSCU * revenuePerScu;
+  const actualProfitTotal = actualSellTotal - actualBuyTotal;
+  const fillRatePct = hold > 0 ? Math.round((actualCargoSCU / hold) * 1000) / 10 : 0;
 
   if (buyEl) {
-    buyEl.textContent = `${hold} SCU × ${costPerScu.toLocaleString('fr-FR')} = ${buyTotal.toLocaleString('fr-FR')} aUEC`;
+    if (actualCargoSCU < hold) {
+      buyEl.innerHTML = `<span style="color:#fff;">${actualCargoSCU} SCU</span> × ${costPerScu.toLocaleString('fr-FR')} = <b style="color:var(--accent-cyan);">${actualBuyTotal.toLocaleString('fr-FR')} aUEC</b> <span style="font-size:0.68rem; color:var(--accent-amber, #f59e0b);">(${actualCargoSCU}/${hold} SCU)</span>`;
+    } else {
+      buyEl.innerHTML = `<span style="color:#fff;">${hold} SCU</span> × ${costPerScu.toLocaleString('fr-FR')} = <b style="color:var(--accent-cyan);">${actualBuyTotal.toLocaleString('fr-FR')} aUEC</b> <span style="font-size:0.68rem; color:var(--accent-green);">(Soute pleine)</span>`;
+    }
   }
   if (sellEl) {
-    sellEl.textContent = `${hold} SCU × ${revenuePerScu.toLocaleString('fr-FR')} = ${sellTotal.toLocaleString('fr-FR')} aUEC`;
-  }
-  if (distEl) {
-    distEl.textContent = route.distance || `${route.origin} ➔ ${route.destination}`;
+    sellEl.innerHTML = `<span style="color:#fff;">${actualCargoSCU} SCU</span> × ${revenuePerScu.toLocaleString('fr-FR')} = <b style="color:var(--accent-green);">${actualSellTotal.toLocaleString('fr-FR')} aUEC</b>`;
   }
 
   // Métriques de rotation en Quantum Full
@@ -3244,10 +3261,16 @@ function renderTradeRouteDetail(route, currentShip) {
     quantumTimeEl.textContent = `~${q.totalRotationMinutes} min A/R (${q.rotationsPerHour} rot/h · QD ${q.qdName})`;
   }
 
-  // Taux de remplissage effectif
-  const maxAffordable = costPerScu > 0 ? Math.floor(tradeState.userCapital / costPerScu) : hold;
-  const actualCargoSCU = Math.min(hold, maxAffordable);
-  const fillRatePct = hold > 0 ? Math.round((actualCargoSCU / hold) * 1000) / 10 : 0;
+  if (netProfitEl) {
+    const rotH = q.rotationsPerHour || 1;
+    const profitH = Math.round(actualProfitTotal * rotH);
+    netProfitEl.innerHTML = `<b style="color:var(--accent-green); font-size:1.05rem;">+${actualProfitTotal.toLocaleString('fr-FR')} aUEC</b> <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(+${profitH.toLocaleString('fr-FR')} aUEC/h)</span>`;
+  }
+
+  if (distEl) {
+    distEl.textContent = route.distance || `${route.origin} ➔ ${route.destination}`;
+  }
+
   if (fillRateEl) {
     fillRateEl.textContent = `${actualCargoSCU} / ${hold} SCU (${fillRatePct} %)`;
   }
@@ -3259,14 +3282,18 @@ function renderTradeRouteDetail(route, currentShip) {
 
   // Alerte 1 : Contrainte de capital
   if (warningBox && warningText) {
-    if (actualCargoSCU < hold) {
+    if (actualCargoSCU === 0) {
       warningBox.style.display = 'flex';
       warningBox.classList.remove('success');
-      warningText.textContent = `Capital insuffisant pour une soute pleine : ${actualCargoSCU} SCU max sur ${hold}`;
+      warningText.textContent = `Capital insuffisant (${tradeState.userCapital.toLocaleString('fr-FR')} aUEC) pour financer ne serait-ce qu'1 SCU de cette marchandise (${costPerScu.toLocaleString('fr-FR')} aUEC/SCU requis).`;
+    } else if (actualCargoSCU < hold) {
+      warningBox.style.display = 'flex';
+      warningBox.classList.remove('success');
+      warningText.textContent = `Capital alloué (${tradeState.userCapital.toLocaleString('fr-FR')} aUEC) : ${actualCargoSCU} SCU financés sur les ${hold} SCU du vaisseau (${fillRatePct} % de soute). Gain réel : +${actualProfitTotal.toLocaleString('fr-FR')} aUEC.`;
     } else {
       warningBox.style.display = 'flex';
       warningBox.classList.add('success');
-      warningText.textContent = `✓ Capital suffisant pour une soute pleine : ${hold} SCU financés`;
+      warningText.textContent = `✓ Capital suffisant pour financer une soute pleine : ${hold} SCU financés (+${actualProfitTotal.toLocaleString('fr-FR')} aUEC).`;
     }
   }
 
@@ -3275,8 +3302,8 @@ function renderTradeRouteDetail(route, currentShip) {
   if (oversizedBox && oversizedText) {
     if (isOversized) {
       oversizedBox.style.display = 'flex';
-      const actualProfitH = Math.round(actualCargoSCU * (route.marginPerScu || 592) * q.rotationsPerHour);
-      oversizedText.textContent = `Vaisseau surdimensionné : seulement ${actualCargoSCU} SCU transportés sur les ${hold} SCU du ${currentShip.name} (${fillRatePct} %). Mobiliser un C2 pour ${actualCargoSCU} SCU en Quantum Full génère un profit horaire dérisoire (+${actualProfitH.toLocaleString('fr-FR')} aUEC/h). Utilisez un transport plus agile (Cutlass 46 SCU) ou financez une soute pleine.`;
+      const actualProfitH = Math.round(actualProfitTotal * q.rotationsPerHour);
+      oversizedText.textContent = `Vaisseau surdimensionné : seulement ${actualCargoSCU} SCU transportés sur les ${hold} SCU du ${currentShip.name} (${fillRatePct} %). Mobiliser ce vaisseau pour ${actualCargoSCU} SCU en Quantum Full génère un profit horaire dérisoire (+${actualProfitH.toLocaleString('fr-FR')} aUEC/h). Utilisez un transport plus agile ou augmentez la somme allouée.`;
     } else {
       oversizedBox.style.display = 'none';
     }
@@ -3292,7 +3319,7 @@ function renderTradeRouteDetail(route, currentShip) {
       return `
         <tr class="trade-ship-candidate-row ${isCurrentActive ? 'sel' : ''}" data-ship-name="${s.shipName}" style="cursor:pointer;" title="Cliquez pour sélectionner ce vaisseau">
           <td class="val-bold"><b>${s.shipName}</b></td>
-          <td>${s.cargoScu} SCU</td>
+          <td><b>${s.affordableScu}</b> <span style="font-size:0.7rem; color:var(--text-muted);">/ ${s.cargoScu} SCU</span></td>
           <td class="val-green"><b>+${s.profitPerHourUEC.toLocaleString('fr-FR')}/h</b></td>
           <td>
             <span class="tag ${s.owned ? 't-g' : 't-r'}">${s.owned ? 'Possédé' : 'Non possédé'}</span>

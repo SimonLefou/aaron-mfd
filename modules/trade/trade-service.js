@@ -185,10 +185,12 @@ export const tradeService = {
       const actualProfitPerHourUEC = Math.round(actualProfitPerRotation * quantumRoute.rotationsPerHour);
       const fullHoldProfitPerHourUEC = Math.round(fullHoldProfitPerRotation * quantumRoute.rotationsPerHour);
 
-      // Alertes contextuelles
+      // Alertes contextuelles basées sur le capital alloué
       const isCapitalConstrained = actualCargoSCU < cargoSCU;
       const capitalWarning = isCapitalConstrained
-        ? `⚠ Capital insuffisant pour une soute pleine : ${actualCargoSCU} SCU max sur ${cargoSCU}`
+        ? (actualCargoSCU === 0
+            ? `⚠ Capital alloué (${userCapitalUEC.toLocaleString('fr-FR')} aUEC) insuffisant pour financer ne serait-ce qu'1 SCU (${costPerSCU.toLocaleString('fr-FR')} aUEC/SCU)`
+            : `⚠ Capital alloué : ${actualCargoSCU} SCU financés sur les ${cargoSCU} SCU du vaisseau (${fillRatePct} % de soute)`)
         : null;
 
       const oversizedWarning = isOversized
@@ -202,8 +204,10 @@ export const tradeService = {
         revenuePerSCU,
         marginPerSCU,
         quantumRoute,
-        fullHoldProfit: fullHoldProfitPerRotation,
         actualCargoSCU,
+        actualProfit: actualProfitPerRotation,
+        profit: actualProfitPerRotation,
+        fullHoldProfit: fullHoldProfitPerRotation,
         fillRatePct,
         isHoldFull,
         isCapitalConstrained,
@@ -213,13 +217,14 @@ export const tradeService = {
         totalInvestmentUEC,
         totalRevenueUEC,
         netProfitUEC,
-        profitPerHourUEC: fullHoldProfitPerHourUEC,
+        profitPerHourUEC: actualProfitPerHourUEC,
         actualProfitPerHourUEC,
+        fullHoldProfitPerHourUEC,
         roiPct
       };
     });
 
-    // Trier par profit/heure potentiel décroissant
+    // Trier par profit/heure réel (prenant en compte le capital alloué) décroissant
     return evaluatedRoutes
       .sort((a, b) => b.profitPerHourUEC - a.profitPerHourUEC)
       .slice(0, maxResults);
@@ -330,15 +335,9 @@ export const tradeService = {
       const fullProfit = s.cargoScu * marginPerSCU;
       const actualProfit = affordableSCU * marginPerSCU;
 
-      // Profit par heure réel basé sur les rotations Quantum Full
-      let profitPerHour = Math.round(fullProfit * qRoute.rotationsPerHour);
-
-      // Si calibré sur r1 (Agricium) avec capital standard, maintenir les chiffres de référence
-      if (route.id === 'r1' && userCapitalUEC >= 1000000) {
-        if (s.name.includes('Caterpillar')) profitPerHour = 301000;
-        if (s.name.includes('Hercules')) profitPerHour = 318000;
-        if (s.name.includes('Hull C')) profitPerHour = 890000;
-      }
+      // Profit par heure réel basé sur la somme allouée et les rotations Quantum Full
+      const profitPerHour = Math.round(actualProfit * qRoute.rotationsPerHour);
+      const fullProfitPerHour = Math.round(fullProfit * qRoute.rotationsPerHour);
 
       const fillRatePct = s.cargoScu > 0 ? Math.round((affordableSCU / s.cargoScu) * 1000) / 10 : 0;
       const isOversized = affordableSCU <= 10 || (fillRatePct < 15 && s.cargoScu >= 100);
@@ -355,6 +354,7 @@ export const tradeService = {
         netProfitUEC: Math.round(actualProfit),
         fullProfitUEC: Math.round(fullProfit),
         profitPerHourUEC: profitPerHour,
+        fullHoldProfitPerHourUEC: fullProfitPerHour,
         isFull: affordableSCU >= s.cargoScu
       };
     }).sort((a, b) => b.profitPerHourUEC - a.profitPerHourUEC);
