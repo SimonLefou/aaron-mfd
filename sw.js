@@ -1,5 +1,5 @@
-// Service Worker for AARON MFD - 100% Offline Capability (v2.2.0 Alpha 4.10)
-const CACHE_NAME = 'aaron-mfd-v2.2.0';
+// Service Worker for AARON MFD - 100% Offline Capability (v3.0.0 Star Citizen 4.0)
+const CACHE_NAME = 'aaron-mfd-v3.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,6 +9,25 @@ const ASSETS_TO_CACHE = [
   './peerjs.min.js',
   './i18n.js',
   './mining-data.js',
+  './data/index.js',
+  './data/game/ships.js',
+  './data/game/lasers.js',
+  './data/game/modules.js',
+  './data/game/gadgets.js',
+  './data/game/components.js',
+  './data/game/minerals.js',
+  './data/game/refining.js',
+  './data/game/locations.js',
+  './data/game/salvage.js',
+  './data/game/trade.js',
+  './modules/salvage/salvage-calc.js',
+  './modules/salvage/salvage-service.js',
+  './modules/starmap/aaron-halo-calc.js',
+  './modules/starmap/starmap-service.js',
+  './modules/starmap/starmap-canvas.js',
+  './data/defaults/factory-loadouts.js',
+  './data/defaults/guild-defaults.js',
+  './data/defaults/changelog.js',
   './manifest.json',
   './ROADMAP.md',
   './assets/icon-192.png',
@@ -18,7 +37,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[AARON Service Worker] Caching app shell v2.2.0');
+      console.log('[AARON Service Worker] Caching app shell v2.3.0');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );

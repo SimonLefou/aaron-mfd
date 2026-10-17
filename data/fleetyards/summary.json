@@ -1,0 +1,13 @@
+{
+  "extractedAt": "2026-10-17T15:24:34.718Z",
+  "source": "https://fleetyards.net",
+  "api": "https://api.fleetyards.net/v1",
+  "counts": {
+    "commodities": 232,
+    "blueprints": 1618,
+    "locations": 1909,
+    "components": 3310,
+    "equipment": 4656,
+    "tradeRoutes": 7506
+  }
+}

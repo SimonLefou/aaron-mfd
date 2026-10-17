@@ -1,0 +1,36 @@
+// AARON MFD Guild Defaults (Stockpile, Expenses, Role Permissions)
+export const DEFAULT_GUILD_STOCKPILE = [];
+
+export const DEFAULT_GUILD_EXPENSES = [];
+
+export const GUILD_ROLE_PERMISSIONS = {
+  ADMIRALTY: [
+    'MANAGE_GUILD',
+    'MANAGE_TREASURY',
+    'WITHDRAW_TREASURY',
+    'EDIT_TAX',
+    'DISPATCH_OPS',
+    'MANAGE_ROSTER',
+    'EXPORT_BACKUP',
+    'DEPOSIT_STOCK',
+    'DECLARE_EXPENSE'
+  ],
+  FLIGHT_LEAD: [
+    'DISPATCH_OPS',
+    'MANAGE_ROSTER',
+    'DEPOSIT_STOCK',
+    'DECLARE_EXPENSE'
+  ],
+  TREASURER: [
+    'MANAGE_TREASURY',
+    'WITHDRAW_TREASURY',
+    'DEPOSIT_STOCK',
+    'DECLARE_EXPENSE',
+    'EXPORT_BACKUP'
+  ],
+  MEMBER: [
+    'DEPOSIT_STOCK',
+    'DECLARE_EXPENSE'
+  ],
+  RECRUIT: []
+};

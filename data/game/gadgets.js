@@ -1,0 +1,87 @@
+// Star Citizen Mining Surface Gadgets (Greycat Industrial Official Database)
+export const GADGETS = [
+  {
+    id: 'none',
+    name: 'Aucun gadget',
+    name_fr: 'Aucun gadget',
+    name_en: 'No gadget',
+    manufacturer: 'None',
+    resMod: 0,
+    instMod: 0,
+    windowMod: 0,
+    desc_fr: 'Emplacement vide - Aucun gadget de surface déployé.',
+    desc_en: 'Empty slot - No surface gadget deployed.',
+    idealFor_fr: 'Roches standard faciles à fracturer.',
+    idealFor_en: 'Standard easy rocks.'
+  },
+  {
+    id: 'sabir',
+    name: 'Greycat Sabir 21',
+    name_fr: 'Greycat Sabir 21',
+    name_en: 'Greycat Sabir 21',
+    manufacturer: 'Greycat Industrial',
+    resMod: -0.50,
+    instMod: -0.30,
+    windowMod: 0.15,
+    desc_fr: '-50% Résistance, -30% Instabilité, +15% Zone Verte.',
+    desc_en: '-50% Resistance, -30% Instability, +15% Green Window.',
+    idealFor_fr: 'Roches denses à haute teneur en Quantainium ou Taranite.',
+    idealFor_en: 'Dense rocks with high Quantainium or Taranite content.'
+  },
+  {
+    id: 'boremax',
+    name: 'Greycat BoreMax',
+    name_fr: 'Greycat BoreMax',
+    name_en: 'Greycat BoreMax',
+    manufacturer: 'Greycat Industrial',
+    resMod: -0.75,
+    instMod: 0.20,
+    windowMod: -0.10,
+    desc_fr: '-75% Résistance extrême, +20% Instabilité, -10% Zone Verte.',
+    desc_en: '-75% Extreme Resistance, +20% Instability, -10% Green Window.',
+    idealFor_fr: 'Colosses rocheux massifs (> 20 000 kg) ou roches ultra-résistantes à briser d\'urgence.',
+    idealFor_en: 'Massive heavy boulders (> 20,000 kg) or high-resistance rocks.'
+  },
+  {
+    id: 'stalwart',
+    name: 'Greycat Stalwart',
+    name_fr: 'Greycat Stalwart',
+    name_en: 'Greycat Stalwart',
+    manufacturer: 'Greycat Industrial',
+    resMod: -0.10,
+    instMod: -0.70,
+    windowMod: 0.40,
+    desc_fr: '-70% Instabilité massive, -10% Résistance, +40% Zone Verte.',
+    desc_en: '-70% Massive Instability, -10% Resistance, +40% Green Window.',
+    idealFor_fr: 'Roches hautement volatiles et instables (Quantainium brut, Sadaryx).',
+    idealFor_en: 'Highly volatile & unstable ores (Raw Quantainium, Sadaryx).'
+  },
+  {
+    id: 'waveshift',
+    name: 'Greycat WaveShift',
+    name_fr: 'Greycat WaveShift',
+    name_en: 'Greycat WaveShift',
+    manufacturer: 'Greycat Industrial',
+    resMod: -0.30,
+    instMod: -0.40,
+    windowMod: 0.25,
+    desc_fr: '-30% Résistance, -40% Instabilité, +25% Zone Verte régulée.',
+    desc_en: '-30% Resistance, -40% Instability, +25% Regulated Green Window.',
+    idealFor_fr: 'Minage polyvalent sécurisé en solo ou en duo.',
+    idealFor_en: 'Balanced versatile mining in solo or wing.'
+  },
+  {
+    id: 'optimax',
+    name: 'Greycat OptiMax',
+    name_fr: 'Greycat OptiMax',
+    name_en: 'Greycat OptiMax',
+    manufacturer: 'Greycat Industrial',
+    resMod: -0.15,
+    instMod: -0.15,
+    windowMod: 0.60,
+    desc_fr: '+60% Zone Verte élargie, -15% Résistance, -15% Instabilité.',
+    desc_en: '+60% Widened Green Window, -15% Resistance, -15% Instability.',
+    idealFor_fr: 'Minage de précision sans risque de surchauffe ou d\'explosion.',
+    idealFor_en: 'Precision mining minimizing overcharge shatter risk.'
+  }
+];

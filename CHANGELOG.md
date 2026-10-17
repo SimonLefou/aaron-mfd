@@ -7,6 +7,379 @@
 ## 🇫🇷 Journal des Versions (Français)
 
 Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et correctifs apportés à **AARON MFD** (Stanton Tactical Mining OS).
+### [3.0.0] - 2026-10-17 - *Salvage & Recyclage Industriel 4.0 & Starmap Vectoriel Aaron Halo*
+
+#### 🔨 Module Salvage & Recyclage de Coques (`data/game/salvage.js`, `modules/salvage/`, `#viewSalvage`)
+- **Prise en charge officielle des vaisseaux de recyclage** : Intégration du **Drake Vulture** (solo, 12 SCU tampon de broyage, 13 SCU grille physique), de l'**Aegis Reclaimer** (plateforme industrielle lourde 240+ SCU avec griffe colossale de démantèlement) et de l'**Argo SRV** (remorqueur utilitaire à rayon tracteur lourd S3).
+- **Catalogue complet des épaves & rentabilité** : Profils réalistes SC 4.0 pour MISC Prospector, Drake Cutlass Black, Crusader C1 Spirit, RSI Constellation Andromeda, Crusader C2 Hercules et Aegis Hammerhead (rendements RMC et Construction Materials, durées estimées et loot de composants).
+- **Simulateur de Tampon de Broyage (Buffer)** : Suivi en direct du remplissage du broyeur avec seuils d'alerte visuelle (alerte à 90%, blocage critique à 100%) et bouton d'éjection physique vers la grille de soute.
+- **Arbitrage Stratégique Salvage** :
+  - `[ 🛠️ Réserver pour Craft ]` : Injection du RMC dans l'inventaire joueur avec tag de réservation craft pour la forge de plaques de blindage et réparations de coque.
+  - `[ 💰 Vendre RMC (TDD) ]` : Revente directe instantanée au comptoir TDD (Area18, New Babbage, Orison, Lorville) au cours du marché avec crédit immédiat au solde aUEC.
+  - `[ 🏗️ Vendre Matériaux de Construction ]` : Liquidation des volumes de fracturation structurelle (CM).
+
+#### 🗺️ Cartographie Spatiale & Dropper Aaron Halo (`modules/starmap/`, `#viewStarmap`)
+- **Radar Orbital 2D Vectoriel Canvas à 60 FPS** :
+  - Modélisation graphique des systèmes **Stanton** et **Pyro** (SC 4.0) avec Soleil, planètes majeures, orbites concentriques et points de saut inter-systèmes.
+  - **Visualisation de l'anneau de l'Aaron Halo** : Représentation d'une ceinture toroïdale de plus de 200 particules d'astéroïdes en rotation orbitale, avec mise en surbrillance dorée de la **Bande 5** ultra-dense.
+  - Commandes interactives de zoom (+, -, réinitialisation) et panoramique tactile/souris fluide.
+- **Calculateur de Coupure Quantum Drive (100% Visuel & Silencieux)** :
+  - Prise en charge des 10 sous-bandes géométriques d'Aaron Halo et des routes majeures (ArcCorp ➔ HUR-L3, HUR-L3 ➔ ArcCorp, CRU-L1 ➔ ArcCorp, etc.).
+  - Calcul de la distance kilométrique exacte de coupure ($13\,600\,000\text{ km}$ pour la Bande 5) tenant compte de la vitesse de croisière du Quantum Drive équipé (Atlas S1, VK-00, XL-1, Crossfield, TS-2...).
+  - **Guidage 100% visuel sans son** : Jauge de progression dynamique, alertes visuelles d'approche progressive et bandeau holographique flash à fort contraste `[ 🛑 COUPEZ LE QUANTUM DRIVE MAINTENANT ! (TOUCHE B) ]`.
+#### 🧹 Nettoyage Intégral des Données par Défaut & Démos (Clean Slate)
+- **Démarrage vierge sans escadre par défaut (`#viewFleets`)** : Un nouveau joueur ne commence plus rattaché à une escadre pré-générée (`coopService.hasActiveSession() === false`). Affichage d'un état d'accueil vierge (`#fleetEmptyStateContainer`) avec choix immédiat entre créer sa propre escadre, rejoindre un salon P2P ou charger un modèle d'entraînement.
+- **Suppression intégrale des joueurs et pseudos démo** : Retrait définitif de `Nico_Claey`, `RockHound`, `Vex`, `Aura-7`, `CargoKing` et `Talon` au profit du profil réel du joueur connecté et de désignations opérationnelles neutres (*Pilote Leader*, *Ailier Foreur*, *Tourelle Centre*...).
+- **Clôture et Dissolution Instantanée d'Escadre (`btnCloseLiveSession`)** :
+  - Cliquer sur « Clôturer & Virement mo.Trader » dissout immédiatement l'escadre (`coopService.closeSession()`), stoppe le chronomètre et réinitialise l'affichage vers l'état d'accueil vierge sans laisser d'escadre fantôme.
+  - Ouverture automatique du volet récapitulatif mo.Trader détaillant la recette brute, les déductions/taxes et l'ensemble des commandes `/pay <Callsign> <Montant>` prêtes à coller en jeu avec copie en un clic.
+  - Sécurisation contre les valeurs nulles sur toutes les fonctions de calcul financier, de tirs synchronisés et de gestion d'équipage.
+- **Suppression du jeu de données démo automatique** : Suppression définitive de la liste de 300 lignes `sampleItems` (16 articles injectés) et désactivation des appels automatiques `seedInitialInventory()`.
+- **Inventaire vierge par défaut** : L'inventaire unifié démarre désormais à 0 SCU / 0 article, permettant aux utilisateurs d'alimenter leur stock via le minage réel, le recyclage, le commerce ou l'import OCR.
+- **Remise à zéro des stocks et dépenses de guilde** : `DEFAULT_GUILD_STOCKPILE` et `DEFAULT_GUILD_EXPENSES` initialisés à des tableaux vides `[]`.
+- **Blueprints & Crafting dynamiques** : Suppression du déblocage forcé des 6 premiers schémas ; la possession dépend désormais uniquement des schémas réellement débloqués par le joueur, et le stock de craft est synchronisé en temps réel avec l'inventaire effectif.
+- **Tableau de bord & Vues nettoyées** : Suppression des libellés *"données d'exemple"*, réinitialisation des métriques KPI à zéro et affichage d'états vides professionnels avec invitations à l'action.
+- **Purge automatique du stockage local** : Nettoyage proactif au démarrage (`initApp`) des éventuels éléments d'exemples mis en cache lors des sessions antérieures.
+
+### [2.9.0] - 2026-10-17 - *Arbitrage Stratégique des Minerais : Qualité des Matériaux, Craft & Vente Brute / Raffinée (Star Citizen 4.0)*
+
+#### 💎 Arbitrage Économique par Qualité des Matériaux (`modules/mining/`, `modules/inventory/`, `index.html`)
+- **Évaluation Stratégique Automatique selon la Qualité (Q0 à Q1000)** :
+  - **Matériaux Exceptionnels (Q ≥ 750 / Q900+ Maître-Ouvrier)** : Recommandation prioritaire de **GARDER POUR LE CRAFT** (`intendedUse: 'craft'`). Explication détaillée du potentiel d'overclocking (+15% à +45% de bonus aux statistiques des têtes laser, boucliers et modules de minage forgés en atelier).
+  - **Matériaux Standards (Q400 à Q749)** : Recommandation d'arbitrage **RAFFINER & VENDRE** pour maximiser le gain net en aUEC, ou **GARDER** si besoin de pièces de grade militaire.
+  - **Matériaux Dégradés / Rebut (Q < 400)** : Recommandation de **VENTE BRUTE IMMÉDIATE** au comptoir sans frais ni délai de raffinage.
+- **Actions Directes dans le Calculateur de Minage (`#viewMining`)** :
+  - Nouveau bloc d'action stratégique avec 3 cartes interactives :
+    - `[ 🛠️ Garder pour Craft ]` : Extrait et stocke immédiatement le lot dans l'inventaire personnel (verrouillé pour l'atelier de craft).
+    - `[ 💰 Vendre Brut ]` : Vente directe instantanée sans raffinage créditant le solde aUEC du joueur en temps réel.
+    - `[ 🏭 Raffiner & Vendre ]` : Crée l'ordre de raffinage optimal (Dinyx Solvent à CRU-L1) et incrémente le suivi du tableau de bord.
+  - Nouveau sélecteur et curseur de **Qualité du Gisement** (Q0-Q1000) dans le scanner avec presets rapides (Q350 Rebut, Q500 Standard, Q780 Haute, Q950 Maître) et dé aléatoire réaliste SC 4.0.
+- **Gestion Avancée des Minerais dans l'Inventaire (`#viewInventory`)** :
+  - **Badges de Qualité Dédiés** : Affichage systématique du grade (`⭐ Q880 Haute Qualité`, `⭐ Q920 Maître`, etc.) sur chaque lot de minerai brut et raffiné.
+  - **Bouton d'Usage Stratégique Interactif** : Pastille cliquable `[ 🛠️ Réservé Craft ]` / `[ 💰 Vente Brute ]` / `[ 💎 Vente Raffinée ]` permettant de basculer la destination du lot en un clic.
+  - **Actions Opérationnelles par Ligne** :
+    - Bouton `[ 🛠️ Craft / 🔓 Vente ]` : Verrouille le lot contre la vente accidentelle.
+    - Bouton `[ 💰 Vendre ]` : Vente brute immédiate au cours de commodité avec multiplicateur de qualité.
+    - Bouton `[ 🏭 Raffiner ]` : Envoi en raffinerie Dinyx avec calcul automatique du rendement et déduction des frais.
+    - Bouton `[ 💎 Vendre ]` : Vente au cours raffiné officiel.
+  - **Filtre Multicritères par Destination** : Sélecteur d'usage (Tous / Réservé Craft / À Vendre Brut / À Vendre Raffiné / Haute Qualité Q750+).
+
+### [2.8.0] - 2026-10-17 - *Intégration Complète des Fleets & Opérations Multi-Crew (Star Citizen 4.0)*
+
+#### 🚀 Centre d'Opérations d'Escadre & Coordination Multi-Joueurs (`#viewFleets`, `modules/coop/`)
+- **Prise en Charge Intégrale des Deux Modes de Jeu Coopératifs** :
+  - **1. Multi-Crew à Bord d'un Même Vaisseau (ARGO MOLE, Orion, Arrastra)** :
+    - Découpage par postes opérationnels individuels : *Pilote / Chef de bord*, *Tourelle Laser Centre*, *Tourelles Lasers Latérales Bâbord/Tribord*, *Opérateur Scanner & Gadgets*, *Opérateur Rayon Tracteur & Pods*.
+    - Visualisation des callsigns de chaque joueur, statut en ligne, laser minier équipé (Watts S1/S2, réduction de résistance Lancet) et pourcentage de rémunération assigné.
+    - Ajout rapide et réassignation interactive des postes d'équipage à la volée.
+  - **2. Escadre Mixte Multi-Vaisseaux (Wing Operations)** :
+    - Coordination de flottes hétérogènes : vaisseaux de minage lourds multi-crew (MOLE), mineurs solos agiles (MISC Prospector), transporteurs de fret et ramasseurs de sacs/saddlebags 32 SCU (Crusader C2 Hercules, Constellation Taurus) et chasseurs d'escorte armée / patrouille (Aegis Gladius).
+    - Métriques d'escadre consolidées en temps réel : capacité totale de soute (SCU), puissance laser combinée (MW), effectif global et niveau de sécurité.
+- **Simulateur de Tir Synchronisé & Physique de Fracture Conjointe (`#fleetSubViewJointFire`)** :
+  - Sélection individuelle des têtes laser actives pointées simultanément sur le rocher.
+  - Calcul physique de la réduction de résistance cumulée (modèle non-linéaire Star Citizen 4.0 pour lasers Lancet & Hofstede).
+  - Évaluation dynamique du franchissement du seuil d'énergie en Watts par rapport à la masse et à la résistance effective de l'astéroïde.
+  - Jauge HUD temps réel de transfert d'énergie avec alerte de surchauffe/surcharge (>180% de puissance) et verdict immédiat avec estimation du temps jusqu'à rupture.
+- **Répartition Financière & Générateur Automatique mo.Trader (`#fleetSubViewPayouts`)** :
+  - Calculateur financier complet déduisant automatiquement les frais de carburant/réparation, la caisse de réserve de flotte et la taxe de guilde.
+  - Modes de rémunération commutables : **Pondéré par Rôle / Poste** ou **Parts Égales** entre tous les participants.
+  - Générateur automatique de commandes officielles in-game pour le mobiGlas : `/pay <Callsign> <Montant>` avec bouton de copie en un clic pour payer tout l'équipage en quelques secondes sans erreur.
+- **Liaison Multijoueur P2P Temps Réel (WebRTC & BroadcastChannel)** :
+  - Intégration complète du moteur hybride [`AaronFleetNet`](file:///g:/Star%20Citizen%20Mining/fleet-net.js) avec [peerjs.min.js](file:///g:/Star%20Citizen%20Mining/peerjs.min.js) et serveurs STUN Google (`stun:stun.l.google.com:19302`).
+  - **Barre d'état réseau en direct** (`#fleetNetBar`) dans `#viewFleets` et pastille cliquable dans la topbar (`#topbarFleetBadge`) affichant le statut en ligne (`HÔTE`, `AILIER`, `SOLO`), le code de salon, le nombre d'ailiers et le ping en ms.
+  - **Modal de liaison d'escadre** (`#modalWingNet`) pour créer ou rejoindre une escadre avec un code (ex: `WING-4982`) ou lien d'invitation URL direct (`?fleet=WING-XXXX`).
+  - **Synchronisation en direct du tir des lasers** : l'activation d'une tourelle sur l'écran d'un joueur allume instantanément sa jauge chez tous les autres coéquipiers connectés et recalcule le verdict de fracture.
+  - **Synchronisation bidirectionnelle du journal de bord et des scans** : les alertes, détections de minerais et événements sont propagés en temps réel entre tous les postes.
+
+### [2.7.0] - 2026-10-17 - *Taxonomie Complète des Catégories de Craft & Blueprints (1 660 Schémas Industriels)*
+
+#### 🛠️ Classification Industrielle Star Citizen 4.0 & Ergonomie de l'Atelier (`#viewCrafting`)
+- **16 Catégories Industrielles Normalisées (Couverture 100% des 1 660 schémas)** :
+  - `⛏️ Tête de minage` (19) : lasers S1 & S2 (Lancet, Helix, Hofstede, Klein, Arbor, Impact).
+  - `⚡ Module de minage` (18) : modules passifs et actifs (Surge, Stampede, Focus, Brandt, Torpid, Lifeline, Rieger-C3).
+  - `🧲 Gadget de minage` (4) : dispositifs déployables sur rocher (Sabir, Waverider, Optimax, Boreas).
+  - `🎒 Sacs & Conteneurs SCU` (10) : sacs miniers détachables Prospector (32 SCU), MOLE (96 SCU) et pods cargo.
+  - `♻️ Tête de recyclage` (4) : outils de raclage de coque et désossage (Abrade 1, Trawler).
+  - `🛡️ Bouclier vaisseau` (13) : générateurs de bouclier (FR-66, FR-76, FR-86, Sukoran, Rampart, Palisade, 5SA/6SA/7SA).
+  - `🌌 Moteur quantique` (14) : propulseurs de saut (Atlas, Crossfield, Voyage, Siren, Beacon, Colossus, Pontes).
+  - `🔋 Générateur d’énergie` (12) : centrales électriques (JS-300, JS-400, Quadracell, DayBreak, SuperNova).
+  - `❄️ Refroidisseur vaisseau` (7) : dissipateurs thermiques (UltraFlow, Glacier, IceFlush, Zero-G, Avalanche).
+  - `🚀 Arme vaisseau` (90) : canons laser, répéteurs balistiques et tourelles de bord (Omnisky, CF-series, Mantis, Deadbolt, Rhino).
+  - `🔫 Arme FPS` (175) : fusils d’assaut, snipers, SMG et pistolets (Gemini C54, Behring P6-LR, FS-9 LMG, P4-AR, Custodian, Karna).
+  - `🔧 Outil & Rayon tracteur` (14) : Multi-Tool Pyro RYT, fusils tracteurs MaxLift S2 et embouts de découpe.
+  - `🦺 Armure & Combinaison` (902) : combinaisons environnementales (Novikov, Morozov) et armures lourdes/moyennes/légères ADP.
+  - `💊 Munitions & Consommables` (27) : chargeurs balistiques, cartouches énergétiques, MedPens et filtres de survie.
+  - `⚙️ Composant vaisseau` (310) : pièces détachées, servomoteurs et modules aéronavals divers.
+  - `📦 Équipement & Accessoire` (41) : optiques, scanners et modules utilitaires.
+- **Sélecteur de Catégories Ergonomique (`<select id="craftCategorySelect">`)** :
+  - Menu déroulant structuré en 4 optgroups clairs (*Minage & Recyclage*, *Composants Vaisseau*, *Armement & Combat*, *Équipement Personnel*) avec emojis et décomptes précis.
+  - Interface compacte et épurée sans barre de défilement redondante, maintenant une visibilité maximale sur le tableau de résultats.
+- **Moteur d'Auto-Résolution `resolveBlueprintCategory()` & `BLUEPRINT_CATEGORIES`** :
+  - Heuristiques de catégorisation robustes dans [`modules/crafting/crafting-service.js`](file:///g:/Star%20Citizen%20Mining/modules/crafting/crafting-service.js) et export centralisé dans [`modules/index.js`](file:///g:/Star%20Citizen%20Mining/modules/index.js).
+  - Sous-titre dynamique du catalogue affichant en temps réel le décompte filtré et le libellé de catégorie actif.
+
+### [2.6.0] - 2026-10-17 - *Qualité des Matériaux & Surcadençage des Équipements Craftés (Star Citizen 4.0+)*
+
+#### 🧪 Qualité des Matériaux & Moteur de Surcadençage (`modules/crafting/`, `modules/inventory/`)
+- **Échelle Officielle de Qualité des Matériaux (0 à 1 000)** :
+  - Implémentation du système complet de craft de Star Citizen 4.0 avec 5 paliers officiels :
+    - `0 – 399` : **Rebut / Basse Qualité** (`quality-low`, malus stats jusqu'à -25%, décote commerciale).
+    - `400 – 599` : **Standard Usine** (`quality-standard`, spécifications de base du commerce retail, ±5%).
+    - `600 – 749` : **Supérieur / Militaire** (`quality-enhanced`, bonus +5% à +15%).
+    - `750 – 899` : **Haute Qualité Industrielle** (`quality-high`, bonus +15% à +28%, surcote ×1.95).
+    - `900 – 1 000` : **⭐ Maître-Ouvrier / Prototype** (`quality-masterwork`, surcadençage +28% à +45%, surcote ×3.2 à ×4.0).
+- **Moteur de Qualité Composite Pondérée (`calculateCompositeQuality`)** :
+  - Calcul dynamique de la qualité résultante de l'objet en fonction du volume (SCU/unités) et de la note de qualité de chaque ingrédient injecté :
+    $$Q_{\text{composite}} = \frac{\sum (Q_i \times W_i)}{\sum W_i}$$
+- **Scaling Statistique Dynamique (`calculateCraftedStats`)** :
+  - *Têtes de Minage (Mining Lasers)* : Scaling proportionnel de la puissance effective (Watts, jusqu'à +28%), de l'annulation de résistance rocheuse (jusqu'à +35%) et de la fenêtre optimale de zone verte (jusqu'à +40%).
+  - *Modules & Gadgets de Minage* : Renforcement de l'atténuation d'instabilité, boost d'extraction SCU/s et charges supplémentaires à Q900+.
+  - *Armes & Équipements de Vaisseau* : Augmentation du DPS alpha, dissipation thermique accélérée et portée effective accrue.
+- **Atelier de Craft Interactif & Prévisualisation Temps Réel (`#viewCrafting`)** :
+  - Curseurs (sliders) de qualité individuels pour chaque matériau avec 4 presets instantanés : `[Rebut Q250]`, `[Standard Q500]`, `[Militaire Q750]`, `[⭐ Maître Q950]`.
+  - Jauge HUD de qualité composite avec barre de progression néon colorée selon le palier.
+  - Grille comparative dynamique des performances : *Spécifications usine de base vs Équipement artisanal surcadencé* avec pastilles de deltas verts (`+XX%`).
+  - Déduction automatique des ressources et persistance dans l'inventaire avec badges de qualité et stats détaillées.
+- **Valorisation Marchande & Marché de Guilde (`modules/inventory/`, `#viewGuild`)** :
+  - Facteur d'évaluation économique basé sur la qualité : les équipements *Maître-Ouvrier (Q900+)* voient leur valeur marchande démultipliée (jusqu'à 3.5× la cotation catalogue).
+  - Affichage des badges de qualité et des bonus statistiques sur les cartes d'inventaire et les offres de vente de la Bourse Inter-Guilde.
+
+### [2.5.0] - 2026-10-17 - *Inventaire d'Équipements, Traçabilité de Provenance (Acheté / Looté / Crafté), Cotation & Bourse de Commerce Inter-Guilde*
+
+#### 📦 Inventaire d'Équipements & Provenance (`modules/inventory/`)
+- **Modèle de Données Enrichi (`createInventoryItem`)** :
+  - Support natif des 3 origines : **🛒 Acheté** (boutiques/terminaux in-game), **🏴‍☠️ Trouvé / Looté** (épaves spatiales, caisses de bunker, Ruin Station), et **🛠 Crafté** (fabricator et ateliers spécialisés).
+  - Traçabilité de l'état/santé de l'objet (`conditionPct`), n° de série et callsign du propriétaire.
+- **Autocomplétion Connectée FleetYards (7 966 Références)** :
+  - Modal moderne d'inventorisation (`#equipmentInventoryModal`) avec recherche instantanée client-side sur 3 310 composants de vaisseaux et 4 656 équipements FPS (armures, armes, combinaisons, gadgets de minage).
+  - Remplissage automatique du type, de la taille, du grade et du cours catalogue officiel FleetYards.
+- **Cotation & Vente Personnalisée** :
+  - Prix de vente fixé librement par le joueur en **aUEC**.
+  - Champ de **proposition de troc** (ex: *« Échange contre 8 SCU Quantainium raffiné ou RMC »*).
+  - Portée de diffusion paramétrable : **🌐 Commerce Inter-Guilde** vs **🏛 Interne Guilde uniquement**.
+  - Filtres d'inventaire dynamiques : par lieu spatial, par provenance et bascule rapide *« Tous / 🏷️ En vente uniquement »*.
+
+#### 🏪 Bourse de Guilde & Manifeste de Commerce Inter-Guilde (`modules/guild/`)
+- **Nouveau Sous-Onglet Dédié dans la Vue Guilde** :
+  - Ajout de l'onglet **`🏪 Bourse & Marché`** consolidant toutes les offres de vente des membres de l'organisation.
+  - Deck KPI du marché : Nombre de lots en vente, valeur cotée totale, lots exportables et propositions avec troc.
+  - Fiches d'offres complètes : prix en aUEC, provenance, lieu physique, indicatif vendeur (`@Callsign`), encart de troc et bouton direct **« Réserver »**.
+- **Générateur de Manifeste Inter-Guilde 1-Clic** :
+  - Bouton `📋 Exporter le Manifeste Inter-Guilde` produisant un catalogue formaté en Markdown prêt à l'emploi.
+  - Regroupement automatique par catégories (Composants vaisseaux, Lasers minage, Armes FPS, Armures) avec mention des prix, du troc et des contacts.
+  - Bouton de copie directe dans le presse-papier avec notification toast pour diffusion sur **Discord** ou **Spectrum**.
+- **Passerelle Commerce (`viewTrade`)** :
+  - Raccourci d'accès direct vers la bourse corporative depuis l'écran Commerce.
+
+### [2.4.2] - 2026-10-16 - *Architecture Modulaire & Découplage Complet des Données (Modular Data Layer)*
+
+#### 📊 Découplage Architectural des Données (`/data/`)
+- **Création du Répertoire Dédié `/data/`** :
+  - Séparation stricte et élégante entre le code logique/applicatif (`app.js`, `fleet-net.js`, `i18n.js`) et les données de référence du jeu Star Citizen ainsi que les configurations d'usine.
+  - **Sous-dossier `data/game/` (Données de Référence Star Citizen)** :
+    - `ships.js` : Spécifications des vaisseaux de minage et de transport/support (soutes SCU, hardpoints, fabricant).
+    - `lasers.js` : Têtes laser de minage S0, S1, S2 (Watts, résistance, instabilité, portée).
+    - `modules.js` : Sous-modules passifs et actifs.
+    - `gadgets.js` : Gadgets de surface déployables.
+    - `components.js` : Composants internes (Quantum Drives, Boucliers, Générateurs, Refroidisseurs).
+    - `minerals.js` : Minerais bruts et raffinés, densités, volatilités et cours de base.
+    - `refining.js` : Procédés de raffinage (Dinyx, Cormack...) et stations avec bonus/malus.
+    - `locations.js` : Coordonnées des bandes de l'Aaron Halo, hotspots planétaires et archétypes de roches.
+    - `trade.js` : Terminaux marchands, configuration UEXcorp, commodités générales et routes types.
+  - **Sous-dossier `data/defaults/` (Configurations & Presets d'Usine)** :
+    - `factory-loadouts.js` : Presets d'usine d'armement minier (`FACTORY_LOADOUT_PRESETS`).
+    - `guild-defaults.js` : Stocks types (`DEFAULT_GUILD_STOCKPILE`), dépenses types (`DEFAULT_GUILD_EXPENSES`) et matrice de sécurité RBAC (`GUILD_ROLE_PERMISSIONS`).
+    - `changelog.js` : Historique complet bilingue des versions (`CHANGELOG_DATA`).
+- **Allègement Majeur de `app.js` (-638 lignes de données brutes)** :
+  - `app.js` est nettoyé de toutes ses constantes de données statiques en dur, se concentrant exclusivement sur l'état dynamique, la réactivité DOM et la télémétrie réseau.
+- **Façade Unifiée & Rétrocompatibilité Totale (`data/index.js` & `mining-data.js`)** :
+  - `data/index.js` centralise et ré-assemble l'exact même objet `MINING_DATA` pour garantir 100% de rétrocompatibilité.
+  - `mining-data.js` agit comme passerelle transparente (`export * from './data/index.js'`), préservant tous les imports et tests existants sans aucune régression.
+- **Support PWA Hors-Ligne (`sw.js`)** :
+  - Tous les fichiers du dossier `/data/` sont automatiquement intégrés au cache du Service Worker pour une autonomie complète sans connexion réseau.
+
+### [2.4.1] - 2026-10-16 - *Gestion de "Ma Flotte" (Hangar Personnel Multi-Vaisseaux, Sélecteur ASOP & Configuration par Vaisseau)*
+
+#### 🚀 Hangar Personnel & Gestion de "Ma Flotte" (`#paneMyFleetHangar`)
+- **Gestion Multi-Vaisseaux Complète pour le Joueur** :
+  - L'onglet principal devient **MA FLOTTE** (`#btnWorkflowShip`), regroupant la gestion de tous les vaisseaux possédés par le joueur dans son Hangar Personnel.
+  - **Sous-Navigation Intuitive à Deux Volets** :
+    - 🚀 **Hangar Personnel (Ma Flotte)** : Vue d'ensemble de la flotte avec métriques KPI, filtres rapides par métier, recherche instantanée et grille de fiches ASOP.
+    - ⚙️ **Systèmes & Fit du Vaisseau (Mon Vaisseau)** : Fenêtre détaillée de configuration (laser, sous-modules, composants internes QD/Boucliers/Énergie/Refroidisseurs, télémétrie) s'ouvrant automatiquement dès la sélection d'un vaisseau.
+- **Grille de Cartes ASOP Interactives (`#myFleetCardsGrid`)** :
+  - Affichage de chaque vaisseau possédé avec son avatar métier, nom personnalisé, modèle, fabricant, port d'attache, capacité de soute SCU, spécifications du Quantum Drive et des boucliers.
+  - Badge distinctif lumineux `★ COMMANDES ACTIVES` identifiant immédiatement le vaisseau actuellement aux commandes.
+  - **Prise de Commandes 1-Clic (`🚀 Prendre les commandes`)** : Permet de désigner n'importe quel vaisseau de son hangar comme vaisseau actif, synchronisant instantanément l'ensemble des solveurs de bord (minage, soute cargo, trading, diffusion P2P).
+  - **Bouton Configurer (`⚙️ Configurer Systèmes`)** : Ouvre instantanément la fenêtre détaillée des systèmes de bord pour ce vaisseau.
+  - **Retirer du Hangar (`🗑️`)** : Permet de retirer un vaisseau de sa flotte avec confirmation de sécurité (protection conservant au moins un vaisseau).
+- **Deck de Télémétrie KPI & Filtres Rapides** :
+  - KPI dynamiques calculant le nombre total de vaisseaux, la capacité de fret cumulée en SCU et le vaisseau actuellement en service.
+  - Puces de filtrage 1-clic : *Tous*, *Minage*, *Fret*, *Salvage*, *Combat*.
+  - Barre de recherche textuelle temps réel filtrant par nom de baptême, châssis ou station.
+- **Ajout de Vaisseau au Hangar (`#addPersonalShipModal`)** :
+  - Modal d'enregistrement permettant d'ajouter n'importe quel vaisseau jouable parmi le catalogue Star Citizen (Prospector, MOLE, C2, Taurus, Vulture, Scorpius, etc.), avec attribution d'un nom de baptême et sélection du port d'attache (Stanton & Pyro).
+- **Barre d'Outils Ergonomique dans la Fenêtre de Configuration** :
+  - Bouton retour `◀ Retour au Hangar (Ma Flotte)`.
+  - Sélecteur déroulant rapide de changement de vaisseau (`#myFleetQuickSwitchSelect`).
+  - Bouton dynamique `🚀 PRENDRE LES COMMANDES (ACTIF)` / `✅ VAISSEAU ACTIF (EN SERVICE)`.
+- **Édition Directe du Nom de Baptême In-Place** :
+  - Suppression du champ de saisie déporté dans les paramètres.
+  - Le joueur clique directement sur le nom du vaisseau dans l'en-tête de la fiche de bord pour le renommer (avec icône crayon ✎, validation touche Entrée, désélection auto-save et synchronisation immédiate), en conservant fidèlement le style typographique HUD CIG (`.ship-hero-name`).
+
+### [2.4.0] - 2026-10-16 - *Onglet Clé de Voûte "Mon Vaisseau" (Source Unique de Vérité, Composants Internes & Télémétrie Flotte P2P)*
+
+#### 🚀 Onglet Clé de Voûte "Mon Vaisseau" (`#viewMyShipHub`)
+- **Single Source of Truth (Source Unique de Vérité)** :
+  - Ajout d'un nouvel onglet de premier niveau dans la barre maîtresse (`#btnWorkflowShip` : **🚀 MON VAISSEAU**).
+  - Définition centrale du vaisseau actif, de son équipement de rôle et de ses **composants internes authentiques** (Quantum Drive, Boucliers, Génératrice, Refroidisseurs).
+  - **Répercussion Automatique et Bidirectionnelle** :
+    - Dans la boucle d'extraction : synchronise la puissance du laser de minage, les sous-modules, le gadget et la capacité des poches (32 SCU standard vs 48 SCU poches MOLE).
+    - Dans la boucle de raffinage : synchronise la soute de transport pour l'évacuation des commandes finies.
+    - Dans la boucle de commerce : synchronise automatiquement la capacité d'emport en SCU pour le calcul de rentabilité d'achat/revente.
+    - Dans la Flotte & Roster de Guilde : répercute instantanément le modèle, l'indicatif personnalisé, la localisation et le statut du joueur.
+- **Bibliothèque Authentique de Composants Internes Star Citizen** :
+  - **Moteurs Quantiques (QD)** : S1 (Atlas, VK-00, Voyage, Spectre, Beacon), S2 (Crossfield, XL-1, Hemera, Yeager), S3 (TS-2, Pontes, Agni) avec vitesse c, temps de transit et consommation de carburant quantique par Gm.
+  - **Génératrices de Boucliers** : S1 (FR-66, Palisade, Mirage, AllStop), S2 (FR-76, Rampart, Umbra), S3 (FR-86, Stronghold) avec points de structure totaux et taux de régénération par seconde.
+  - **Génératrices d'Énergie** : S1 (JS-300, QuadraCell, SonicLite), S2 (JS-400, Durango), S3 (Daybreak) avec puissance en Watts et charge nominale.
+  - **Refroidisseurs** : S1 (Ultra-Flow, CoolCore, Glacier), S2 (Avalanche, IceFlush), S3 (Thermal-4) avec dissipation en kK/s.
+- **Grille de 6 Cartes de Télémétrie Temps Réel** :
+  - Soute SCU & Type de grille (sécurisée, double pont roulier, poches d'extraction).
+  - Moteur Quantique (vitesse en fraction de *c*, km/s et autonomie calculée en Gm selon le réservoir).
+  - Boucliers (HP combinés et taux de régénération en HP/s).
+  - Génératrice d'Énergie (Puissance en kW et charge nominale en %).
+  - Refroidisseurs (Capacité de dissipation thermique totale en kK/s et stabilité).
+  - Équipement Spécialisé de Rôle (Laser de minage, Rayon tracteur de soute 32 SCU, Tête de grattage RMC ou DPS d'armement de combat).
+- **Presets Rapides 1-Clic** :
+  - *Prospector All-Rounder* (Lancet S1 + Atlas S1 + FR-66 + JS-300 + Ultra-Flow).
+  - *MOLE Trio Forage* (3x Lancet S2 + Crossfield S2 + 2x FR-76 + JS-400 + 2x Avalanche).
+  - *C2 Hercules Cargo* (TS-2 S3 + 2x FR-86 + Daybreak S3 + 2x Thermal-4).
+  - *Constellation Taurus Fret* (Crossfield S2 + FR-76 + JS-400 + Avalanche).
+  - *Drake Vulture Recyclage* (Atlas S1 + FR-66 + JS-300 + Ultra-Flow).
+  - *Scorpius Escorte & Chasse* (VK-00 S1 + FR-66 + JS-300 + Ultra-Flow).
+- **Outils d'Équipage & Diffusion** :
+  - 📋 **Copier le Fit** : Formatage textuel complet du loadout prêt à coller dans Discord ou un chat de guilde.
+  - 📡 **Diffuser à l'Escadre P2P** : Émission instantanée via Fleet-Net WebRTC vers tous les ailiers connectés.
+
+#### 🏛️ Gestion de Flotte de Guilde & Ordres de Mission
+- **Présence en Direct des Pilotes Connectés** :
+  - Dès qu'un membre rejoint l'organisation ou l'escadre en ligne, son vaisseau actif apparaît automatiquement dans la feuille ASOP du Hangar corporatif avec le badge `🟢 EN VOL : [Callsign]`.
+- **Attribution d'Ordres de Mission par les Officiers** :
+  - Bouton `📡 Assigner Ordre` permettant au responsable de flotte ou chef d'opérations d'émettre des ordres de mission opérationnels (extraction prioritaire, escorte convoi, fret express) transmis en temps réel via Fleet-Net.
+
+### [2.3.3] - 2026-10-16 - *Hub Dédié Trading & Négociation Cargo 4.0 (Achat/Revente Planétaire, Marge par Ressource & Tournée Minage)*
+
+#### 📦 Séparation Nette Minage / Trading & Négociation Cargo Pure
+- **Relocalisation de la Tournée Commerciale (`#mktTourCard`) au sein du Minage / Raffinage** :
+  - Comme demandé, les informations relatives à la vente du minerai extrait (vendre brut directement vs raffiner, itinéraire de tournée commerciale recommandée avec arrêts et gains cumulés) se trouvent désormais exclusivement dans le workflow **Minage / Raffinage** (`#viewRefiningHub`).
+  - L'onglet Minage & Raffinage répond ainsi directement à la question du mineur : où vendre sa cargaison extraite pour maximiser ses aUEC.
+- **Refonte Complète de l'Onglet Commerce (`#viewTradingHub`) en Terminal de Trading Cargo Dédié** :
+  - Dédié aux pilotes voulant faire du profit en achetant des marchandises sur un avant-poste ou une station pour aller les revendre ailleurs avec marge.
+  - **Explorateur par Ressource ("Choisir à partir d'une ressource")** :
+    - Menu sélecteur dynamique (`#tradeCommoditySelect`) et filtres par catégories (Métaux, Médical, Industriel, Consommables, Marché Noir).
+    - **Meilleur Point d'Achat** : Avant-poste/station où le prix d'achat est le plus bas (avec niveau de stock et système).
+    - **Vente la plus Rentable** : Terminal TDD/ville où le prix de revente est le plus élevé (avec niveau de demande et système).
+    - **Spread & Marge Unitaire** : Marge nette par SCU et ROI en pourcentage.
+    - **Classement Détaillé des Terminaux de Revente** : Tableau interactif ordonnant tous les terminaux acheteurs du plus rentable au moins cher, avec marge unitaire et gain total calculé selon le vaisseau.
+  - **Calculateur de Rentabilité par Vaisseau & Capacité Soute** :
+    - Boutons d'accès rapide aux gabarits cargo authentiques : Cutlass (46 SCU), Hull-A (64 SCU), Freelancer MAX / RAFT (120 SCU), Constellation Taurus (174 SCU), Caterpillar (576 SCU), C2 Hercules (696 SCU) ou saisie manuelle libre.
+    - Calcul en temps réel du Capital d'achat requis, de la Recette brute, du Bénéfice net et du ROI.
+  - **Top Routes Commerciales Recommandées** :
+    - Grille de routes rentables vérifiées dans Stanton et Pyro (Laranite, Med Supplies, Titane, Béryl, Or, Alcools, Ferraille, Maze...).
+    - Filtre par système stellaire (Tous, Stanton, Pyro, Nyx) et chargement en 1 clic dans l'explorateur.
+  - **Outils de Flotte & Partage** :
+    - Bouton 📋 "Copier la Route" vers le presse-papiers avec détails d'achat, de revente et gains projetés.
+    - Financement d'achat direct depuis la Trésorerie de Guilde (`#btnFinanceTradeTreasury`) et dépôt du lot au Stockpile (`#btnAddTradeToStockpile`).
+
+### [2.3.2] - 2026-10-16 - *Architecture Métier : Boucles Industrielles Dédiées (Minage, Raffinage, Commerce, QG Guilde)*
+
+#### 🎯 Restructuration Ergonomique du Workflow Opérationnel
+- **Barre Maîtresse des Boucles Industrielles (`#masterWorkflowBar`)** :
+  - Fin du fractionnement et de la dispersion cognitive : l'application adopte une navigation métier guidée calquée sur le cycle de vie industriel authentique de Star Citizen.
+  - 4 onglets opérationnels lumineux avec micro-indicateurs et typographie Rajdhani :
+    - ⛏️ **MINAGE & EXTRACTION** (`#btnWorkflowMining`) : Scan tactile, Télémétrie laser, Solveur 4.0 et Remplissage soute direct.
+    - 🚚 **TRANSPORT & RAFFINAGE** (`#btnWorkflowRefining`) : Arbitrage des méthodes (Dinyx/Cormack...), Bonus de stations, Grille cargo physicalisée 4.0, Guide Aaron Halo et Ordres en cours.
+    - 💰 **COMMERCE, BOURSE & VENTE** (`#btnWorkflowTrading`) : Cours UEX Corp en direct, Terminaux TDD classés, Tournée commerciale optimisée, Éclaireurs de prix et Dividendes d'équipage.
+    - 🏛️ **QG GUILDE & FLOTTE** (`#btnWorkflowGuild`) : Passerelle de commandement, Roster RBAC, ASOP Hangar et Trésorerie.
+- **Boucle de Minage Complète & Zéro Allers-Retours** :
+  - Migration de la section Soute (`#btnAddToCargo`, barre de chargement `#cargoHoldBox`, sacoches détachables `#saddlebagsControlBox`, journal de session `#sessionLogList`) directement au bas de l'Analyse Tactique (`#panelTacticalAnalysis`).
+  - Le pilote de Prospector ou de MOLE peut scanner, fracturer, évaluer son volume utile et charger sa cargaison sans jamais quitter l'onglet de minage ni manipuler de menus secondaires.
+- **Hub Dédié Transport & Raffinage (`#viewRefiningHub`)** :
+  - Agencement en 2 colonnes spacieuses (sur écran large) :
+    - Colonne 1 : Carte d'arbitrage brut vs raffiné (`#stationPriceComparatorCard`), tableau comparatif des stations (`#spcTableContainer`), station recommandée et suivi des ordres actifs (`#refiningOrdersCard`).
+    - Colonne 2 : Grille de fret physicalisé 4.0 (`#cargoGridMasterCard` - transporteurs Hercules C2, Taurus, Hull-A...), carte de navigation express Aaron Halo (`#refiningHaloCard`) et raccourci Stockpile.
+- **Hub Dédié Commerce & Bourse (`#viewTradingHub`)** :
+  - Colonne 1 : Télémétrie UEX Corp en temps réel, terminaux TDD classés avec filtres de systèmes (`#mktPaneTerminals`) et calcul de tournée optimale (`#mktTourCard`).
+  - Colonne 2 : Réseau des éclaireurs de prix de guilde (`#mktPaneScout`), calculateur de partage de bénéfices multi-équipage et escorte (`#squadProfitSplitCard`) et raccourci Grand Livre comptable (`#tradingLedgerCard`).
+- **Synchronisation Birectionnelle Universelle** :
+  - Le dock mobiGlas 4.0 (`#dockBtnScanner`, `#dockBtnRefinery`, `#dockBtnLedger`, `#dockBtnGuild`) et la barre maîtresse d'en-tête sont synchronisés en temps réel avec mémorisation de l'onglet actif dans `localStorage`.
+
+### [2.3.1] - 2026-10-16 - *Refonte Ergonomique & Esthétique Globale (CIG Building Blocks 4.0 Standard)*
+
+#### 🎨 Design System, Ergonomie & Expérience Utilisateur (UX)
+- **Élimination de la Pollution Visuelle & Surcharge Néon ("Anti-Christmas-Tree")** :
+  - Suppression de l'effet scanlines CRT dégradant (opacité 0.6 avec lignes noires) au profit d'un vignettage feutré d'habitacle et de fonds ardoise mate (`#070a12`, `#0b111e`, `#10192b`), rendant tous les textes et chiffres 100% nets, lisses et lisibles sans fatigue oculaire.
+  - Remplacement des bordures néon épaisses saturées par des bordures ultra-fines de 1px avec transparence contrôlée (`rgba(56, 189, 248, 0.18)` et `rgba(255, 255, 255, 0.08)`), conformes aux interfaces CIG Building Blocks 4.0 de Star Citizen.
+  - Éclairage d'accentuation sélectif : les couleurs vives (cyan, émeraude, ambre, rose, or) sont désormais réservées aux états actifs, jauges de danger et alertes critiques.
+- **Hiérarchie Typographique & Échelle de Lisibilité** :
+  - Migration de la typographie système vers `Rajdhani` (condensé technique sans-serif haute lisibilité) et `Chakra Petch` (titrage HUD aérospatial), avec `JetBrains Mono` dédié aux mesures télémétriques et coordonnées brutes.
+  - Remplacement des micro-textes illisibles (< 11px) par une échelle ergonomique standardisée (12px à 15px pour les libellés, 1.45 de hauteur de ligne, chiffres tabulaires anti-saccades).
+- **Loi de Fitts & Cibles Tactiles Confortables** :
+  - Standardisation de toutes les cibles interactives (boutons d'en-tête, filtres, sélecteurs, déclencheurs) à une hauteur minimale de 36px à 42px avec un espacement respirant de 6px à 8px.
+  - Micro-interactions fluides : élévation subtile au survol (`translateY(-1px)`), transition `cubic-bezier(0.16, 1, 0.3, 1)` et retours d'appui tactiles (`scale(0.97)`).
+- **Structure Aérée des En-têtes mobiGlas & Cockpit HUD** :
+  - Réorganisation logique en 3 pôles équilibrés : Identité & Réseau de bord (Gauche), Horloge stellaire 2954 & Vaisseau actif (Centre), Solde aUEC, Actions rapides et Outils de vol (Droite).
+- **Cartes Tactiques & Jauges Volumétriques** :
+  - Redesign du bandeau de diagnostic (`.verdict-box`) : carte feutrée avec dégradé d'ambiance et typographie statutaire nette, remplaçant les bordures néon agressives.
+  - Jauges de puissance laser et barres de progression de coque/soute recalibrées avec séparateurs et repères discrets.
+- **Acoustique Avionique Haute Définition (`SoundFX`)** :
+  - Remplacement des oscillateurs agressifs à onde carrée et en dents de scie par un synthétiseur acoustique à ondes sinusoïdales/triangulaires avec filtre passe-bas résonant (carillon avionique harmonieux inspiré des calculateurs de bord modernes).
+
+### [2.3.0] - 2026-10-16 - *Jalon 8 : Gouvernance, Sécurité (RBAC) & Configuration de Guilde*
+
+#### 🚀 Jalon Majeur Implémenté (Milestone 8)
+- **Architecture Décentralisée Souveraine & Sécurité Locale (Phase 1 — 0€ de Serveur)** :
+  - Authentification cryptographique locale sans aucun serveur externe obligatoire : hachage et dérivation de clés par **PBKDF2 SHA-256** (100 000 itérations avec sel cryptographique aléatoire unique via l'API standard `WebCrypto`).
+  - Persistance locale résiliente dans le navigateur (`IndexedDB` / `localStorage`) et synchronisation de flotte P2P sub-100ms via le paquet WebRTC DataChannel `CORPO_GUILD_CONFIG_SYNC`.
+- **Système de Permissions & Rôles Hiérarchiques (RBAC - Role-Based Access Control)** :
+  - Gestion stricte de 5 rangs opérationnels :
+    - 👑 **Amirauté / Commandement** : Contrôle absolu sur la guilde, configuration des clés maîtres, gestion de la trésorerie, retraits financiers, politique de taxation et révocation de membres.
+    - 📋 **Chefs d'Opérations (Flight Leads)** : Planification des missions, assignation des postes de vol, supervision de la flotte et des lots de fret (retraits trésorerie verrouillés).
+    - 💰 **Trésoriers & Logisticiens Fret** : Approbation des avances de trading, retraits et dépôts sur la trésorerie corporative, gestion du stockpile (mots de passe système verrouillés).
+    - 🚀 **Membres Actifs (Pilotes Industriels & Escorte)** : Inscription aux opérations, déclaration de vaisseau, prise en charge de lots de fret et participation aux dividendes.
+    - 🔰 **Recrues & Invités** : Accès en lecture seule sur les métriques publiques et le MoTD.
+  - Verrouillage dynamique des contrôles sensibles dans l'ensemble de l'application : les boutons de retrait de trésorerie (`#btnWithdrawTreasury`) et la modification des taxes corporatives (`#treasuryTaxSelect`) sont protégés et désactivés pour les rôles non autorisés.
+  - Déverrouillage sécurisé de rôle par mot de passe avec badge néon dynamique (`role-badge-pill`) dans l'en-tête bureau et mobiGlas.
+- **Interface de Commandement CIG Spectrum Org 4.0 & mobiGlas Building Blocks** :
+  - **Insigne Héraldique & Niveaux de Préparation Opérationnelle (DEFCON)** : Blason hexagonal doré animé (`.cig-crest-badge`), ticker corporatif, sélecteur de modèle d'organisation (Syndicat Minier, Corporation Industrielle, Confrérie, PMC) et d'alignement galactique (UEE, Neutre, Outlaw), et pilule interactive DEFCON 1 (Ops Normale) / DEFCON 2 (Vigilance Minage) / DEFCON 3 (Alerte Hostile) avec pulsation rougeoyante et signal d'alerte sonore/haptique.
+  - **Pont Télémétrique KPI Holographique à 5 Cartes** : Affichage en direct du Patrimoine Global en aUEC, de la Trésorerie Disponible, du Tonnage Fret Global de Flotte (SCU), du Nombre de Pilotes en Service et de l'Accréditation RBAC active.
+  - **Hangar Corporatif & Gestionnaire de Flotte ASOP (`#guildPaneFleet`)** : Cartes de vaisseaux stylisées Building Blocks (Arrastra, MOLE, C2 Hercules, Caterpillar, Taurus, Scorpius...) avec jauge d'intégrité de coque bicolore, capacité SCU, station d'attache, système de prêt / restitution en 1 tap (`borrowGuildShip` / `returnGuildShip`), décommissionnement pour l'Amirauté et formulaire d'enregistrement de nouveaux vaisseaux.
+  - **Synthèse Logistique Stockpile & Raffinerie (`#guildPaneStockpile`)** : Décompte consolidé des cargaisons brutes, des ordres en cours de raffinage et des lots prêts au fret avec valorisation financière marchande instantanée et passerelle directe vers le kiosque de raffinage.
+  - **Registre & Enrôlement Dynamique de Pilotes (`#guildPaneRoster`)** : Filtrage de recherche instantané (par indicatif, rôle, vaisseau ou station spatiale), formulaire d'enrôlement rapide de pilotes et révocation administrative.
+  - **Mode Plein Écran mobiGlas Authentique** : Bascule 1-clic en plein écran 100vw/100vh avec coins biseautés et reticules holographiques pour un usage optimal en second écran ou tablette.
+- **Panneau de Configuration & Administration de Guilde (*Guild HQ Deck*)** :
+  - **Profil & Identité de Corporation** : Nom officiel, Ticker court (ex: `[SMS]`), système stellaire d'attache (Stanton, Pyro, Nyx), Station QG de ralliement et Message du Jour (MoTD) affiché en bannière dorée d'escadre avec directives tactiques et déploiements d'escadre (Alpha Minage, Bêta Fret, Gamma Escorte).
+  - **Passerelle Discord & Widget de Présence Live** : Configuration du lien d'invitation Discord et intégration automatique du widget officiel Discord (`discord.com/widget`) pour afficher les membres en ligne et les canaux vocaux actifs.
+  - **Politique Financière par Défaut** : Définition des taux de retenue corporative (10% à 50%), prime d'escorte horaire par défaut, commission transporteur par SCU et seuil d'alerte de réserve minimale.
+  - **Souveraineté des Données & Sauvegardes JSON 1-Clic** : Exportation intégrale de la base de guilde (profil, rôles, grand livre, trésorerie, flotte, registre des membres, stocks et ordres de raffinage) et import / restauration instantanée avec validation d'intégrité.
+- **Passe Ergonomique Professionnelle sur le Tableau de Bord de Guilde** :
+  - **Tableau des Membres & Roster Haute-Densité** :
+    - *Tri Interactif Multi-Colonnes* : En-têtes de colonnes cliquables (`Indicatif`, `Hiérarchie / Rôle`, `Statut`, `Vaisseau & Tonnage`) avec bascule instantanée croissante/décroissante et indicateurs visuels (▲ / ▼).
+    - *Filtres Rapides par Segments (Chips)* : Filtrage en 1 clic : `Tous [N]`, `🟢 En Ligne [N]`, `⛏️ En Mission [N]`, `👑 Amirauté & Officiers [N]`.
+    - *Avatar Tactique de Pilote & Pulse Dot d'État* : Badges d'initiales holographiques avec pastille de statut en direct (vert en ligne, ambre en forage, cyan en fret, rouge en patrouille).
+    - *Sélecteur de Rôle Inline pour Administrateurs* : Menu déroulant direct permettant la promotion/rétrogradation instantanée d'un membre sans rechargement.
+    - *Action Rapide Copie Callsign* : Bouton de copie en 1 clic dans le presse-papier avec confirmation toast et son CIG.
+    - *Export Officiel Discord en 1 Clic* : Bouton `📋 Discord` générant un rapport formaté en Markdown Spectrum pour diffusion dans les canaux d'annonces de guilde.
+    - *Barre Télémétrique de Pied de Tableau* : Compteur dynamique `Affichage de X sur Y pilotes • Z en opération` et calcul en temps réel du tonnage actif mobilisé en SCU.
+  - **Hangar de Flotte & Borne ASOP Réactive** :
+    - *Barre d'Outils de Flotte Complète* : Champ de recherche avec bouton d'effacement rapide `✕`, tri par Tonnage SCU (Max/Min), Santé de Coque et Nom A-Z.
+    - *Filtres par Catégorie de Vaisseau* : Filtres rapides `Tous`, `🟢 Disponibles`, `⚠️ Empruntés`, `⛏️ Mineurs (Prospector/MOLE/Arrastra/Orion)`, `🚜 Transporteurs (C2/Caterpillar/Taurus)`, `🛡️ Escorte (Scorpius)`.
+    - *Module de Maintenance & Révision de Coque* : Bouton direct `🛠️ Réviser Coque (100%)` pour réparer au hangar les vaisseaux endommagés en mission.
+  - **Stockpile & Logistique Minérale Améliorée** :
+    - *Jauge Tri-Phasée de Répartition Volumétrique* : Barre de progression segmentée calculée dynamiquement (Minerais bruts en ambre / En cours de raffinage en cyan / Prêts au fret en émeraude).
+    - *Tableau Exhaustif & Filtrable des Lots* : Vue tabulaire complète avec filtres par statut de lot et sélecteur de station de stockage (`ARC-L1`, `HUR-L1`, `MIC-L1`, `CRU-L1`, `Grim HEX`, `Pyro Gateway`...).
+  - **Navigation & Ergonomie Clavier Globale** :
+    - *Badges Notificateurs sur les Onglets* : Décompte en direct affiché sur chaque sous-onglet (`👥 REGISTRE [5]`, `🚀 FLOTTE [8]`, `📦 STOCKS [3]`).
+    - *Raccourcis Clavier Intégrés* : Touches numériques <kbd>1</kbd> à <kbd>7</kbd> pour basculer instantanément d'onglet, touche <kbd>/</kbd> pour focaliser immédiatement le champ de recherche actif, avec retours audio CIG authentiques (`sfx.playBeep`).
 
 ### [2.2.0] - 2026-10-16 - *Jalon 7 : Ordres de Raffinage, Inventaire de Guilde, Trésorerie & Trading Cargo*
 
@@ -308,7 +681,311 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
 
 ## 🇬🇧 Release Notes & Changelog (English)
 
-This document details all new features, ergonomic enhancements, and fixes in **AARON MFD** (Stanton Tactical Mining OS).
+### [3.0.0] - 2026-10-17 - *Industrial Salvage 4.0 & Aaron Halo Vectorial Starmap*
+
+#### 🔨 Salvage & Hull Recycling Module (`data/game/salvage.js`, `modules/salvage/`, `#viewSalvage`)
+- **Official Salvage Vessels Support**: Full integration of the **Drake Vulture** (solo, 12 SCU internal processing buffer, 13 SCU cargo grid), **Aegis Reclaimer** (heavy industrial 240+ SCU platform with massive structural disintegration claw) and **Argo SRV** (heavy S3 tractor beam recovery tug).
+- **Comprehensive Wrecks & Derelicts Catalog**: Realistic SC 4.0 targets for MISC Prospector, Drake Cutlass Black, Crusader C1 Spirit, RSI Constellation Andromeda, Crusader C2 Hercules and Aegis Hammerhead (RMC and Construction Materials yields, estimated scraping durations and component loot).
+- **Processing Buffer Simulator**: Real-time monitoring of internal buffer levels with visual threshold cues (90% warning, 100% critical alert) and physical cargo grid eject button.
+- **Strategic Salvage Arbitrage**:
+  - `[ 🛠️ Reserve for Craft ]`: Injects RMC directly into workshop inventory tagged for armor plating and hull repairs.
+  - `[ 💰 Sell RMC (TDD) ]`: Instant sale at trade commodity terminals (Area18, New Babbage, Orison, Lorville) with immediate wallet credit.
+  - `[ 🏗️ Sell Construction Materials ]`: Direct liquidation of structural disintegration volumes (CM).
+
+#### 🗺️ Spatial Starmap & Aaron Halo Dropper (`modules/starmap/`, `#viewStarmap`)
+- **Interactive 60 FPS 2D Vectorial Radar Canvas**:
+  - Graphical solar system models for **Stanton** and **Pyro** (SC 4.0) featuring Sun, major planets, orbits and inter-system jump points.
+  - **Aaron Halo Asteroid Belt Visualization**: Dynamic 200+ particle toroidal orbital belt, highlighting ultra-dense **Band 5** in glowing gold.
+  - Smooth pan, zoom (+, -, reset) controls tailored for desktop and cockpit tablets.
+- **Kilometer-Precise Quantum Drop Calculator (100% Silent & Visual Guidance)**:
+  - Supports all 10 Aaron Halo sub-bands and major vectors (ArcCorp ➔ HUR-L3, HUR-L3 ➔ ArcCorp, CRU-L1 ➔ ArcCorp, etc.).
+  - Calculates exact cutoff distance ($13,600,000\text{ km}$ for Band 5) adjusted for equipped Quantum Drive speed (Atlas S1, VK-00, XL-1, Crossfield, TS-2...).
+  - **100% Silent Guidance with Zero Audio**: Dynamic progress bar, approach threshold warnings, and high-contrast flashing banner `[ 🛑 CUT QUANTUM DRIVE NOW ! (KEY B) ]`.
+
+### [2.9.0] - 2026-10-17 - *Strategic Ore Arbitrage: Material Quality, Craft Storage & Raw vs Refined Selling (Star Citizen 4.0)*
+
+#### 💎 Quality-Based Economic Arbitrage & Ore Management (`modules/mining/`, `modules/inventory/`, `index.html`)
+- **Automated Strategic Advisory by Material Quality (Q0 to Q1000)**:
+  - **High-Grade Materials (Q ≥ 750 / Q900+ Masterwork)**: High-priority recommendation to **KEEP FOR CRAFTING** (`intendedUse: 'craft'`). Contextual explanation of overclocking stat scaling (+15% to +45% boosts to lasers, shields, and passive modules).
+  - **Standard Materials (Q400 to Q749)**: Strategic advisory to **REFINE & SELL** for peak aUEC profit margins, or store if military components are planned.
+  - **Scrap / Low-Grade (Q < 400)**: Recommendation for **INSTANT RAW SALE** at commodity terminals without refinery waiting times or processing fees.
+- **Direct Operational Actions in Mining Calculator (`#viewMining`)**:
+  - Interactive 3-card decision grid:
+    - `[ 🛠️ Keep for Craft ]`: Extracts and reserves the batch into personal inventory (protected for workshop assembly).
+    - `[ 💰 Sell Raw ]`: Instant sale at local commodity price with immediate wallet credit.
+    - `[ 🏭 Refine & Sell ]`: Submits refining batch (Dinyx Solvent at CRU-L1) and increments dashboard active orders.
+  - Rock scan **Material Quality** slider & input (0-1000) with quick presets (Q350 Scrap, Q500 Standard, Q780 High, Q950 Masterwork, and realistic 4.0 RNG roll).
+- **Interactive Inventory Management & Reservation (`#viewInventory`)**:
+  - **Ore Quality Badges**: Visual badges (`⭐ Q880 High Grade`, `⭐ Q920 Masterwork`) on both raw and refined ore lots.
+  - **Interactive Intended-Use Pills**: One-click toggling between `[ 🛠️ Reserved Craft ]`, `[ 💰 Sell Raw ]`, and `[ 💎 Sell Refined ]`.
+  - **Direct Row Actions**: Buttons to toggle craft reservation, sell raw ore immediately, submit to Dinyx refinery, or liquidate refined ingots.
+  - **Purpose & Quality Filter**: Multi-criteria dropdown (All / Reserved Craft / Sell Raw / Sell Refined / High Quality Q750+).
+
+### [2.8.0] - 2026-10-17 - *Complete Fleets Operations & Real-Time Multi-Crew P2P Network (Star Citizen 4.0)*
+
+#### 🚀 Fleet Operations Center & Multi-Crew Station Coordination (`#viewFleets`, `modules/coop/`)
+- **Dual Cooperative Game Modes Support**:
+  - **1. Multi-Crew Station Assignments (Single Ship: ARGO MOLE, Orion, Arrastra)**:
+    - Detailed per-seat stations: *Pilot / Wing Commander*, *Center Turret (S2)*, *Port & Starboard Lateral Turrets (S2)*, *Scanner & Gadget Operator*, *Tractor Beam & Cargo Pod Operator*.
+    - Real-time crew callsigns, online/offline status, equipped mining lasers (Watts, Lancet resistance reduction), and assigned profit share percentage.
+    - Interactive re-assignment of seats and instant addition of new crew members on the fly.
+  - **2. Heterogeneous Multi-Ship Wing Operations**:
+    - Complete support for combined wings: heavy multi-crew miners (MOLE), agile solo prospectors (MISC Prospector), cargo haulers and 32 SCU saddlebag runners (Crusader C2 Hercules, Constellation Taurus), and armed security escorts (Aegis Gladius).
+    - Consolidated fleet telemetry KPIs: total cargo capacity (SCU), combined laser power (MW), net estimated valuation (aUEC), and global crew/security status.
+- **Joint Fire Physics & Synchronized Fracture Simulator (`#fleetSubViewJointFire`)**:
+  - Interactive selection of firing laser heads pointed simultaneously at the target asteroid.
+  - Non-linear resistance reduction model stacking Lancet MH1/MH2 and Hofstede lasers:
+    $$\text{Effective Resistance} = \text{Target Resistance} \times \left(1 - \frac{\text{Combined Reduction}}{100}\right)$$
+  - Dynamic energy threshold calculation vs cumulative delivered Watts.
+  - Real-time HUD energy gauge with overload warning (>180% power) and fracture feasibility verdict with estimated time to break.
+- **Automated Profit Sharing & Star Citizen mo.Trader Command Generator (`#fleetSubViewPayouts`)**:
+  - Full operational payout calculator automatically deducting fuel, repairs, fleet reserve fund, and guild taxes.
+  - Switchable payout modes: **Role-Weighted Shares** or **Equal Shares** across all participants.
+  - One-click copy for official in-game chat commands: `/pay <Callsign> <Amount>`.
+- **Real-Time P2P WebRTC & BroadcastChannel Multiplayer Liaison (`fleet-net.js`, `peerjs.min.js`)**:
+  - Direct peer-to-peer connectivity via WebRTC DataChannels using Google STUN (`stun:stun.l.google.com:19302`) with zero server costs, plus 0ms local synchronization via BroadcastChannel.
+  - **Live P2P Network Toolbar** (`#fleetNetBar`) and clickable topbar fleet badge (`#topbarFleetBadge`) displaying online status (`HOST`, `WINGMAN`, `SOLO`), room code, peer count, and latency in ms.
+  - **Wing Network Modal** (`#modalWingNet`) to create or join wings using NATO/SC codes (e.g., `WING-4982`) or direct shareable URL invite links (`?fleet=WING-XXXX`).
+  - **Synchronized Laser Firing**: toggling a laser turret instantly lights up the energy meter across all connected wingmen in real time.
+  - **Shared Live Operations Log & Rock Scans**: instant bi-directional broadcast of scanned asteroids, mineral clusters, cargo bag drops, and security alerts.
+
+### [2.7.0] - 2026-10-17 - *Comprehensive Crafting & Blueprint Categories Taxonomy (1,660 Schematics)*
+
+#### 🛠️ Star Citizen 4.0 Industrial Classification & Workshop Ergonomics (`#viewCrafting`)
+- **16 Standardized Industrial Categories (100% Coverage of 1,660 Schematics)**:
+  - *Mining Lasers (S1/S2)*, *Mining Modules*, *Mining Gadgets*, *Saddlebags & SCU Pods*, *Salvage Heads*, *Ship Shields*, *Quantum Drives*, *Power Plants*, *Coolers*, *Ship Weapons*, *FPS Weapons*, *Tractor & Multi-Tools*, *Suits & Armors*, *Ammunition & Consumables*, *Ship Components*, and *Utility Attachments*.
+- **Ergonomic Category Selector**:
+  - Structured dropdown with 4 clear optgroups (*Mining & Salvage*, *Ship Components*, *Weapons & Combat*, *Personal Gear*) with schematic counters and icons.
+- **Dynamic Category Auto-Resolution (`resolveBlueprintCategory`)**:
+  - Centralized categorization heuristics exported in `modules/crafting/crafting-service.js`.
+
+### [2.6.0] - 2026-10-17 - *Material Quality & Overclocked Crafted Equipment Stats (Star Citizen 4.0+)*
+
+#### 🧪 Material Quality Engine & Spec Scaling (`modules/crafting/`, `modules/inventory/`)
+- **Official 0 to 1,000 Material Quality Scale**:
+  - 5 tiers: Scrap (0-399), Standard (400-599), Military Enhanced (600-749), High Grade (750-899), and Masterwork Prototype (900-1,000).
+- **Weighted Composite Quality Calculation**:
+  - Accurate calculation based on volume and individual ingredient ratings.
+- **Stat Scaling Engine (`calculateCraftedStats`)**:
+  - Mining lasers: up to +28% Watts power, +35% resistance reduction, and +40% optimal green zone window.
+  - Modules & gadgets: enhanced instability dampening, SCU/s extraction boost, and bonus charges.
+- **Interactive Workshop Previews (`#viewCrafting`)**:
+  - Material quality sliders with instant tier presets and real-time comparative specs grid.
+
+### [2.5.0] - 2026-10-17 - *Equipment Inventory, Provenance Tracking (Bought / Looted / Crafted) & Guild Marketplace*
+
+#### 📦 Inventory & Inter-Guild Trade (`modules/inventory/`, `#viewInventory`, `#viewGuild`)
+- **Item Provenance Tracking**:
+  - Distinct tracking for factory-bought, looted/salvaged, and player-crafted items.
+- **Guild Market Listings**:
+  - Players can list personal inventory items for sale or barter on the inter-guild marketplace with customized prices in aUEC.
+
+### [2.4.2] - 2026-10-16 - *Modular Architecture & Complete Data Layer Decoupling (Modular Data Layer)*
+
+#### 📊 Architectural Data Decoupling (`/data/`)
+- **Creation of Dedicated `/data/` Directory**:
+  - Clean and robust separation between application/runtime logic (`app.js`, `fleet-net.js`, `i18n.js`) and Star Citizen game reference data and factory configurations.
+  - **Subdirectory `data/game/` (Star Citizen Game Balance)**:
+    - `ships.js`: Mining and cargo/support ship specifications (SCU cargo, hardpoints, manufacturer).
+    - `lasers.js`: Mining laser heads S0, S1, S2 (Watts, resistance, instability, range).
+    - `modules.js`: Passive and active sub-modules.
+    - `gadgets.js`: Deployable surface mining gadgets.
+    - `components.js`: Ship internal components (Quantum Drives, Shields, Power Plants, Coolers).
+    - `minerals.js`: Raw and refined minerals, densities, volatilities, and base spot prices.
+    - `refining.js`: Refining methods (Dinyx, Cormack...) and refinery station bonuses/penalties.
+    - `locations.js`: Aaron Halo band boundaries, planetary hotspots, and asteroid archetypes.
+    - `trade.js`: Trade terminals, UEXcorp config, general commodities, and popular routes.
+  - **Subdirectory `data/defaults/` (Configurations & Factory Presets)**:
+    - `factory-loadouts.js`: Factory weapon & mining loadout presets (`FACTORY_LOADOUT_PRESETS`).
+    - `guild-defaults.js`: Initial stockpile (`DEFAULT_GUILD_STOCKPILE`), expenses (`DEFAULT_GUILD_EXPENSES`), and RBAC matrix (`GUILD_ROLE_PERMISSIONS`).
+    - `changelog.js`: Full bilingual release history (`CHANGELOG_DATA`).
+- **Major Codebase Diet in `app.js` (-638 Lines of Raw Data)**:
+  - `app.js` is stripped of hardcoded static data tables, focusing solely on dynamic state, DOM reactivity, and network telemetry.
+- **Unified Facade & 100% Backward Compatibility (`data/index.js` & `mining-data.js`)**:
+  - `data/index.js` reassembles and exports the identical `MINING_DATA` object with zero API divergence.
+  - `mining-data.js` acts as a transparent proxy (`export * from './data/index.js'`), guaranteeing zero regression across existing imports and automated tests.
+- **PWA Offline Pre-Caching (`sw.js`)**:
+  - All modular `/data/` files are registered in the Service Worker asset cache for seamless offline operation.
+
+### [2.4.1] - 2026-10-16 - *Personal Fleet Management ("My Fleet" Hangar Deck, ASOP Selector & Per-Ship Configuration)*
+
+#### 🚀 Personal Fleet Hangar Deck (`#paneMyFleetHangar`)
+- **Full Multi-Ship Ownership for Players**:
+  - The keystone workflow tab is elevated to **MY FLEET** (`#btnWorkflowShip`), offering comprehensive personal hangar management for all vessels owned by the pilot.
+  - **Dual-Pane Navigation Workflow**:
+    - 🚀 **Personal Hangar (My Fleet)**: Fleet overview with KPI telemetry, quick role filters, live search, and interactive ASOP terminal cards.
+    - ⚙️ **Ship Systems & Loadout (My Ship)**: Opens the complete engineering deck (lasers, submodules, internal components QD/Shields/Power/Coolers, telemetry) for whichever ship is selected from the fleet list.
+- **Interactive ASOP Fleet Cards (`#myFleetCardsGrid`)**:
+  - Each vessel card displays operational role icon, custom nickname, hull model, manufacturer badge, home station, cargo capacity in SCU, QD drive rating, and shield HP.
+  - Prominent glowing `★ COMMANDES ACTIVES` badge highlights the vessel currently commanded by the pilot.
+  - **1-Click Take Command (`🚀 Prendre les commandes`)**: Instantly designates any owned ship as active, synchronizing all mining extraction solvers, cargo capacity, trading inputs, and P2P fleet broadcasts.
+  - **Configure Button (`⚙️ Configurer`)**: Directly launches the detailed systems & loadout configuration pane for that ship.
+  - **Decommission Ship (`🗑️`)**: Secure removal from personal fleet with deletion safeguards.
+- **Hangar Telemetry KPI Deck & Quick Filters**:
+  - Real-time KPIs for Total Hulls, Combined Fleet Cargo SCU, and Active Ship on duty.
+  - 1-click filter chips: *All*, *Mining*, *Cargo*, *Salvage*, *Combat*.
+  - Live search input matching custom names, chassis models, and home stations.
+- **Add Ship to Hangar Modal (`#addPersonalShipModal`)**:
+  - Registration dialog allowing pilots to add any playable ship from the catalog, assign a custom christening name, and choose their home station across Stanton and Pyro.
+- **Config Pane Ergonomic Toolbar**:
+  - Return button `◀ Retour au Hangar (Ma Flotte)`.
+  - Quick-switch dropdown (`#myFleetQuickSwitchSelect`) to seamlessly jump between owned ships.
+  - Dynamic `🚀 PRENDRE LES COMMANDES (ACTIF)` / `✅ VAISSEAU ACTIF (EN SERVICE)` toggle button.
+- **Direct In-Place Ship Renaming**:
+  - Removed the detached input field from parameters.
+  - Pilots can now rename their ship directly by clicking on its title in the hero card header (featuring an edit pencil ✎, Enter key confirmation, auto-save on blur, and instant sync), faithfully preserving HUD CIG typography (`.ship-hero-name`).
+
+### [2.4.0] - 2026-10-16 - *Keystone Tab "My Ship & Board Systems" (Single Source of Truth, Internal Components & P2P Fleet Telemetry)*
+
+#### 🚀 Keystone Tab "My Ship & Board Systems" (`#viewMyShipHub`)
+- **Single Source of Truth**:
+  - Introduced a primary, top-level workflow hub in the master bar (`#btnWorkflowShip`: **🚀 MON VAISSEAU / MY SHIP**).
+  - Centralized specification of the active player ship, operational role, and **authentic Star Citizen internal components** (Quantum Drive, Shields, Power Plant, Coolers).
+  - **Bidirectional Automatic Synchronization**:
+    - Extraction Loop: synchronizes laser head, active/passive submodules, gadgets, and saddlebag capacity (standard 32 SCU vs MOLE 48 SCU).
+    - Refining Loop: synchronizes cargo hold capacity for finished job evacuation.
+    - Commodity Trading Loop: auto-populates cargo capacity input for instant profit calculations.
+    - Guild Fleet & Roster: instantaneously updates the player's active ship model, custom callsign, location, and presence.
+- **Authentic Star Citizen Internal Component Catalog**:
+  - **Quantum Drives (QD)**: S1 (Atlas, VK-00, Voyage, Spectre, Beacon), S2 (Crossfield, XL-1, Hemera, Yeager), S3 (TS-2, Pontes, Agni) with *c* speed, transit velocity, and quantum fuel consumption rate per Gm.
+  - **Shield Generators**: S1 (FR-66, Palisade, Mirage, AllStop), S2 (FR-76, Rampart, Umbra), S3 (FR-86, Stronghold) with total HP and HP/s regeneration rate.
+  - **Power Plants**: S1 (JS-300, QuadraCell, SonicLite), S2 (JS-400, Durango), S3 (Daybreak) with Watts power output and nominal load telemetry.
+  - **Coolers**: S1 (Ultra-Flow, CoolCore, Glacier), S2 (Avalanche, IceFlush), S3 (Thermal-4) with cooling dissipation rate in kK/s.
+- **6 Real-time Telemetry Cards**:
+  - Cargo Hold SCU & grid layout.
+  - Quantum Drive speed (*c* fraction, km/s, and calculated range in Gm).
+  - Shield health (total HP and regen rate).
+  - Power Plant draw (Watts output and load %).
+  - Coolers capacity (total cooling rate in kK/s and thermal safety).
+  - Role Specialty (Mining laser power, 32 SCU tractor beam rating, RMC scraping rate, or combat DPS).
+- **1-Click Quick Presets**:
+  - *Prospector All-Rounder* (Lancet S1 + Atlas S1 + FR-66 + JS-300 + Ultra-Flow).
+  - *MOLE Trio Mining* (3x Lancet S2 + Crossfield S2 + 2x FR-76 + JS-400 + 2x Avalanche).
+  - *C2 Hercules Heavy Hauler* (TS-2 S3 + 2x FR-86 + Daybreak S3 + 2x Thermal-4).
+  - *Constellation Taurus Cargo* (Crossfield S2 + FR-76 + JS-400 + Avalanche).
+  - *Drake Vulture Salvage* (Atlas S1 + FR-66 + JS-300 + Ultra-Flow).
+  - *Scorpius Combat Escort* (VK-00 S1 + FR-66 + JS-300 + Ultra-Flow).
+- **Crew Collaboration & Export Tools**:
+  - 📋 **Copy Fit**: Clean formatted loadout ready to paste into Discord or guild chats.
+  - 📡 **Broadcast to Wing**: Real-time transmission to all connected P2P wingmen via Fleet-Net.
+
+#### 🏛️ Guild Fleet Management & Mission Orders
+- **Real-Time Online Pilot Presence**:
+  - As soon as a player connects to their guild or P2P wing, their active ship immediately surfaces in the ASOP Hangar fleet sheet marked with `🟢 EN VOL : [Callsign]`.
+- **Officer Mission Order Dispatching**:
+  - Fleet leads and guild managers can click `📡 Assigner Ordre` to transmit mission directives (priority mineral extraction, convoy escort, urgent cargo haul) to online pilots over P2P Fleet-Net.
+
+### [2.3.3] - 2026-10-16 - *Dedicated Cargo Commodity Trading Hub 4.0 (Outpost Buying/Selling, Spread Analyzer & Mining Tour Relocation)*
+
+#### 📦 Strict Separation of Mining Extraction vs Pure Cargo Trading
+- **Relocation of Recommended Sales Tour (`#mktTourCard`) into Mining & Refining**:
+  - As requested, all information pertaining to selling mined mineral yields (selling raw immediately vs refining for optimal profit, multi-stop commercial tour with waypoint stops and accumulated payouts) is now exclusively located in the **Mining & Refining** loop (`#viewRefiningHub`).
+  - Miners now get their direct operational answer where it belongs: where to unload their mined cargo hold for maximum aUEC returns.
+- **Complete Rebuild of Trading Tab (`#viewTradingHub`) into a Dedicated Cargo Trading OS**:
+  - Engineered for traders seeking profit by purchasing bulk commodities at planetary outposts/stations and reselling them elsewhere with a healthy margin.
+  - **Commodity Explorer ("Select by Commodity & Find Maximum Profit")**:
+    - Dynamic resource selector (`#tradeCommoditySelect`) with category quick-filter pills (Metals, Medical, Industrial, Consumables, Vice/Black Market).
+    - **Best Buy Point**: Lowest purchase price terminal/outpost with real-time stock availability and star system indicator.
+    - **Most Profitable Sell Terminal**: Highest resale payout location (TDD/city/station) with demand tier and star system indicator.
+    - **Unit Spread & Margin Telemetry**: Clear gross margin per SCU and return on investment (ROI %).
+    - **Ranked Resale Terminals Breakdown**: Interactive table sorting all purchasing terminals by payout descending, highlighting the #1 top pick with gross margin per SCU and total run profit calculated for your specific ship hold.
+  - **Ship Hold Capacity Scaler & Trade Finance Calculator**:
+    - 1-click cargo preset pills for authentic haulers: Cutlass (46 SCU), Hull-A (64 SCU), Freelancer MAX / RAFT (120 SCU), Constellation Taurus (174 SCU), Caterpillar (576 SCU), C2 Hercules (696 SCU), or custom SCU input.
+    - Live financial projection cards: Required Buy Capital, Gross Resale Revenue, Net Profit, Unit Spread, and Trade Risk tier.
+  - **Top High-Yield Trade Routes Grid**:
+    - Pre-computed verified trade routes in Stanton and Pyro (Laranite, Medical Supplies, Titanium, Beryl, Gold, Spirits, Scrap, Maze...).
+    - Star system filters (All, Stanton, Pyro, Nyx) and instant 1-click loading into the simulator and Commodity Explorer.
+  - **Fleet & Clipboard Integration**:
+    - 📋 "Copy Trade Route" button to generate a clean flight brief ready for Discord or mobiGlas chat.
+    - Direct guild treasury trade advance funding (`#btnFinanceTradeTreasury`) and stockpile cargo deposit (`#btnAddTradeToStockpile`).
+
+### [2.3.2] - 2026-10-16 - *Workflow Architecture: Dedicated Industrial Loops (Mining, Refining, Trading, Guild HQ)*
+
+#### 🎯 Ergonomic Workflow Reorganization
+- **Master Industrial Workflow Bar (`#masterWorkflowBar`)**:
+  - Eliminates context-switching and mental fatigue: the entire application is streamlined around Star Citizen's authentic industrial life cycle.
+  - 4 luminous cockpit-grade tabs with micro-indicators and Rajdhani typography:
+    - ⛏️ **MINING & EXTRACTION** (`#btnWorkflowMining`): Tactile scan, laser telemetry, Solver 4.0, and direct cargo hold loading.
+    - 🚚 **HAULING & REFINING** (`#btnWorkflowRefining`): Refining methods arbitrage (Dinyx/Cormack...), station bonuses, physicalized cargo grid 4.0, Aaron Halo transit guide, and active batch orders.
+    - 💰 **COMMODITIES & TRADING** (`#btnWorkflowTrading`): Live UEX Corp price ticker, ranked TDD terminals, optimal multi-stop sales tour, scout reports, and crew dividend splits.
+    - 🏛️ **GUILD HQ & FLEET** (`#btnWorkflowGuild`): Operations Command Deck, RBAC Roster, ASOP Fleet Hangar, and Corporate Treasury.
+- **Unified Mining Loop (Zero Context Switching)**:
+  - Moved Cargo Hold controls (`#btnAddToCargo`, progress bar `#cargoHoldBox`, detachable saddlebags `#saddlebagsControlBox`, extraction log `#sessionLogList`) directly below Tactical Analysis (`#panelTacticalAnalysis`).
+  - Prospector and MOLE operators can scan, fracture, assess useful SCU volume, and scoop cargo into the hold without ever leaving the mining cockpit view.
+- **Dedicated Hauling & Refining Hub (`#viewRefiningHub`)**:
+  - Arranged into 2 spacious desktop columns:
+    - Column 1: Raw vs Refined methods comparison card (`#stationPriceComparatorCard`), refinery station bonuses comparator (`#spcTableContainer`), recommended station, and active batch tracker (`#refiningOrdersCard`).
+    - Column 2: Physicalized Cargo Grid Master 4.0 (`#cargoGridMasterCard` - Hercules C2, Taurus, Hull-A...), express Aaron Halo navigation card (`#refiningHaloCard`), and Guild Stockpile shortcut.
+- **Dedicated Commodities & Trading Hub (`#viewTradingHub`)**:
+  - Column 1: Live UEX Corp telemetry, ranked TDD terminals table with star system filters (`#mktPaneTerminals`), and optimal route calculator (`#mktTourCard`).
+  - Column 2: Guild price scouts network (`#mktPaneScout`), multi-crew dividend split calculator (`#squadProfitSplitCard`), and accounting ledger shortcut (`#tradingLedgerCard`).
+- **Universal Bidirectional Synchronization**:
+  - The bottom mobiGlas dock (`#dockBtnScanner`, `#dockBtnRefinery`, `#dockBtnLedger`, `#dockBtnGuild`) and top Master Workflow Bar stay in sync with active loop persistence in `localStorage`.
+
+### [2.3.1] - 2026-10-16 - *Global Ergonomic & Aesthetic Overhaul (CIG Building Blocks 4.0 Standard)*
+
+#### 🎨 Design System, Ergonomics & User Experience (UX)
+- **Elimination of Visual Noise & Neon Glare ("Anti-Christmas-Tree")**:
+  - Replaced aggressive CRT scanlines with an ultra-delicate cockpit vignette and matte slate backgrounds (`#070a12`, `#0b111e`, `#10192b`), rendering all labels and numbers 100% crisp, smooth, and glare-free.
+  - Replaced heavy saturated borders with ultra-fine 1px borders with controlled transparency (`rgba(56, 189, 248, 0.18)` and `rgba(255, 255, 255, 0.08)`), matching Star Citizen's CIG Building Blocks 4.0 cockpit standard.
+- **Typography Scale & Readability**:
+  - Migrated core fonts to `Rajdhani` and `Chakra Petch` with tabular numerals in `JetBrains Mono` for jitter-free live numbers.
+- **Fitts's Law & Touch Targets**:
+  - Standardized interactive buttons and steppers to comfortable 38px–42px hit targets with subtle micro-interactions (`translateY(-1px)`, `scale(0.97)`).
+- **Harmonic Avionics Synthesizer (`SoundFX`)**:
+  - Replaced harsh square/sawtooth tones with smooth sine/triangle chimes filtered through a 2400Hz low-pass filter.
+
+### [2.3.0] - 2026-10-16 - *Milestone 8: Guild Governance, Security (RBAC) & Configuration Deck*
+
+#### 🚀 Major Milestone Delivered (Milestone 8)
+- **Sovereign Decentralized Architecture & Local Security (Phase 1 — Zero Server Cost)**:
+  - Client-side cryptographic authentication with zero external servers required: passphrase hashing and key derivation via **PBKDF2 SHA-256** (100,000 iterations with unique cryptographic salt via standard `WebCrypto` API).
+  - Resilient local browser persistence (`IndexedDB` / `localStorage`) and instant sub-100ms P2P fleet synchronization via WebRTC DataChannel packet `CORPO_GUILD_CONFIG_SYNC`.
+- **Role-Based Access Control (RBAC) & Hierarchical Permissions**:
+  - Fine-grained governance across 5 operational ranks:
+    - 👑 **Admiralty / Command**: Complete control over corporation identity, master passphrases, treasury access, financial withdrawals, tax policy, and member revocations.
+    - 📋 **Flight Leads**: Operation planning, wing assignments, fleet supervision, and stockpile cargo distribution (treasury withdrawals locked).
+    - 💰 **Treasurers & Freight Logisticians**: Trade advance approvals, treasury deposits and withdrawals, stockpile management (master security settings locked).
+    - 🚀 **Active Members (Pilots & Escorts)**: Operation participation, active ship declaration, cargo assignment, and dividend claims.
+    - 🔰 **Recruits & Guests**: Read-only observation of corporation metrics, fleet status, and Admiralty MoTD.
+  - Dynamic lockdown of sensitive controls across the entire MFD interface: treasury withdrawal button (`#btnWithdrawTreasury`) and tax policy selector (`#treasuryTaxSelect`) automatically disable with visual lockout tooltips for unauthorized roles.
+  - Instant role unlock with passphrase verification and luminous neon role badges displayed across desktop HUD and mobiGlas headers.
+- **CIG Spectrum Org 4.0 & Authentic mobiGlas Building Blocks Interface**:
+  - **Heraldic Insignia & DEFCON Operational Readiness**: Animated gold hexagonal crest (`.cig-crest-badge`), corporation ticker, charter model selector (Mining Syndicate, Industrial Corporation, Faith Brotherhood, PMC), galactic alignment (UEE Registered, Neutral, Outlaw), and interactive DEFCON pill button (DEFCON 1 Normal / DEFCON 2 Mining Vigilance / DEFCON 3 Hostile Alert) featuring glowing crimson pulse and audio/haptic tone alerts.
+  - **5-Card Holographic Telemetry KPI Deck**: Live tracking of Net Worth in aUEC, Available Treasury in aUEC, Fleet Cargo Capacity in SCU, Active Pilots on duty, and active RBAC Clearance tier.
+  - **Corporate Fleet Hangar ASOP Deck (`#guildPaneFleet`)**: Authentic Building Blocks terminal cards for corporate vessels (Arrastra, MOLE, C2 Hercules, Caterpillar, Taurus, Scorpius...) with two-tone hull integrity meters, SCU capacity, home station, 1-tap ship check-out / return (`borrowGuildShip` / `returnGuildShip`), Admiralty decommissioning, and inline vessel registration.
+  - **Integrated Stockpile & Refining Deck (`#guildPaneStockpile`)**: Consolidated overview of raw ore holds, refining batches, and ready-to-haul refined lots across Stanton and Pyro with real-time market valuation and quick shortcut to the full refinery kiosk.
+  - **Dynamic Member Registry & Enlistment (`#guildPaneRoster`)**: Instant multi-attribute search filtering (by callsign, role, ship, or station), quick enlistment form (`addGuildMember`), and role revocation.
+  - **Authentic Fullscreen mobiGlas Mode**: 1-click toggle expanding the deck into an immersive 100vw/100vh HUD layout with corner reticles for second-screen or tablet use.
+- **Guild Configuration & Administration Deck (*Guild HQ Modal*)**:
+  - **Corporation Profile & Identity**: Official guild name, short ticker (e.g. `[SMS]`), home star system (Stanton, Pyro, Nyx), primary HQ rally station, and Admiralty Message of the Day (MoTD) featured in a gold wing banner with tactical directives and active wing deployments (Alpha Mining, Beta Freight, Gamma Escort).
+  - **Discord Gateway & Live Presence Widget**: Discord invite link setup and automatic live Discord Presence Widget integration (`discord.com/widget`) displaying online members and active voice channels.
+  - **Default Financial Policy**: Configurable default corporate cut (10% to 50%), combat escort hourly risk pay, heavy hauler rate per SCU, and minimal treasury reserve alert threshold.
+  - **Data Sovereignty & 1-Click JSON Backups**: Complete export of all guild databases (profile, RBAC credentials, ledger, treasury, fleet hangar, roster, stockpile, and refining orders) and 1-click restoration with JSON schema integrity validation.
+- **Installable Native Desktop Runner & Star Citizen Telemetry (`npm run desktop`)**:
+  - **Standalone Window & Borderless Frame**: Dedicated desktop client powered by Electron (`desktop-main.cjs` + `desktop-preload.cjs`) with zero browser clutter.
+  - **Live Star Citizen `Game.log` Real-Time Watcher**: Automatic discovery of `LIVE` and `PTU` installs, real-time arrival station detection (*ARC-L1, HUR-L1, MIC-L1, Grim HEX, Area18, Ruin Station...*), instant ship destruction alerts (*DEFCON 3 auto-trigger*), and quantum jumps.
+  - **Always-on-Top In-Game Overlay (`Ctrl+Shift+T` & 📌 Button)** : Pins the MFD window above Star Citizen during full-screen borderless spaceflight.
+  - **Global Cockpit Hotkey (`Ctrl+Shift+M`) & System Tray Icon**: Instant 1-tap recall of the MFD window to front without `Alt+Tab`.
+- **Professional Ergonomic & Usability Pass on the Guild Command Deck**:
+  - **High-Density Pilot Registry & Roster UX**:
+    - *Interactive Multi-Column Sorting*: Clickable headers (`Callsign`, `Rank / Role`, `Status & Location`, `Ship & Tonnage`) with ascending/descending toggle and visual arrows (▲ / ▼).
+    - *Segmented Quick-Filter Chips*: 1-click filtering: `All [N]`, `🟢 Online [N]`, `⛏️ On Mission [N]`, `👑 Command & Officers [N]`.
+    - *Tactical Pilot Avatars & Live Pulse Dots*: Holographic initial badges with live pulse status indicators (green online, amber mining, cyan hauling, red patrol).
+    - *Inline Role Selector for Officers*: Rapid promotion/demotion dropdown right in the table without opening submenus.
+    - *1-Click Callsign Clipboard Copy*: Discrete copy action button with toast confirmation and CIG audio feedback.
+    - *Official Discord Markdown Roster Export*: 1-click `📋 Discord` button generating a structured markdown squad manifest ready to post in Discord channels.
+    - *Telemetry Table Footer*: Real-time summary showing `Displaying X of Y pilots • Z on active deployment` and live total cargo capacity mobilized across all active pilots.
+  - **Fleet Hangar & ASOP Terminal Ergonomics**:
+    - *Complete Fleet Toolbar*: Search input with instant clear `✕`, sort select by Cargo SCU (Max/Min), Hull Health, and Name A-Z.
+    - *Ship Category Filter Chips*: 1-click filters for `All`, `🟢 Available`, `⚠️ Borrowed`, `⛏️ Miners`, `🚜 Transporters`, `🛡️ Combat Escort`.
+    - *Hull Maintenance & Overhaul Module*: Quick `🛠️ Overhaul Hull (100%)` action button for fleet commanders to restore ship integrity in hangar.
+  - **Refining Stockpile & Logistics Deck**:
+    - *3-Stage Visual Volume Breakdown Gauge*: Dynamically computed segmented progress bar (Raw ore in amber / Refining orders in cyan / Ready-to-haul cargo in emerald).
+    - *Exhaustive Filterable Lots Ledger*: Detailed tabular view with status filters and warehouse station selector (`ARC-L1`, `HUR-L1`, `MIC-L1`, `CRU-L1`, `Grim HEX`, `Pyro Gateway`...).
+  - **Global Navigation & Keyboard Shortcuts**:
+    - *Live Badge Counters on Sub-tabs*: Real-time lot, ship, and pilot count badges on tabs (`👥 ROSTER [5]`, `🚀 FLEET [8]`, `📦 STOCKS [3]`).
+    - *Integrated Keyboard Hotkeys*: Number keys <kbd>1</kbd> to <kbd>7</kbd> to instantly switch tabs, <kbd>/</kbd> key to focus active search input, with authentic CIG audio chimes (`sfx.playBeep`).
 
 ### [2.2.0] - 2026-10-16 - *Milestone 7: Refining Orders, Guild Stockpile, Treasury & Commodity Cargo Trading*
 

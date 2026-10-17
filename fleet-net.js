@@ -43,6 +43,10 @@ export class AaronFleetNet {
     this.onCorpoExpenseSync = options.onCorpoExpenseSync || (() => {});
     this.onCorpoTreasurySync = options.onCorpoTreasurySync || (() => {});
     this.onCorpoTradeSync = options.onCorpoTradeSync || (() => {});
+    this.onCorpoGuildConfigSync = options.onCorpoGuildConfigSync || (() => {});
+    this.onCorpoShipTelemetry = options.onCorpoShipTelemetry || (() => {});
+    this.onCorpoBlueprintSync = options.onCorpoBlueprintSync || (() => {});
+    this.onFleetLog = options.onFleetLog || (() => {});
   }
 
   // Generate a NATO / Star Citizen style room code (e.g. WING-4982)
@@ -477,6 +481,17 @@ export class AaronFleetNet {
         break;
       }
 
+      case 'FLEET_LOG': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onFleetLog) {
+          this.onFleetLog(packet.log, packet.callsign || 'Ailier');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
       case 'RED_ALERT': {
         if (this.peers.has(packet.senderId)) {
           this.peers.get(packet.senderId).lastSeen = now;
@@ -571,6 +586,42 @@ export class AaronFleetNet {
         }
         if (this.onCorpoTradeSync) {
           this.onCorpoTradeSync(packet.tradeSync, packet.callsign || 'Négociant');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_GUILD_CONFIG_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCorpoGuildConfigSync) {
+          this.onCorpoGuildConfigSync(packet.guildConfig, packet.callsign || 'Amirauté');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_SHIP_TELEMETRY_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+          if (packet.shipTelemetry) {
+            this.peers.get(packet.senderId).shipTelemetry = packet.shipTelemetry;
+          }
+        }
+        if (this.onCorpoShipTelemetry) {
+          this.onCorpoShipTelemetry(packet.shipTelemetry, packet.callsign || 'Pilote');
+        }
+        this.onMessage(packet);
+        break;
+      }
+
+      case 'CORPO_BLUEPRINT_SYNC': {
+        if (this.peers.has(packet.senderId)) {
+          this.peers.get(packet.senderId).lastSeen = now;
+        }
+        if (this.onCorpoBlueprintSync) {
+          this.onCorpoBlueprintSync(packet.blueprintSync, packet.callsign || 'Artisan');
         }
         this.onMessage(packet);
         break;
@@ -693,6 +744,21 @@ export class AaronFleetNet {
     return false;
   }
 
+  // Broadcast Live Fleet Operation Log to all peers
+  broadcastFleetLog(logData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'FLEET_LOG',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        log: logData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
   // Broadcast Cargo Pickup Request (Miner drops saddlebags in space) (Jalon 5)
   broadcastCargoPickupRequest(pickupData) {
     if (this.status === 'connected') {
@@ -798,6 +864,51 @@ export class AaronFleetNet {
     return false;
   }
 
+  // Broadcast Guild Configuration, Identity & Policies Sync (Jalon 8)
+  broadcastCorpoGuildConfigSync(guildConfigData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_GUILD_CONFIG_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        guildConfig: guildConfigData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Active Ship Telemetry & Loadout (Single Source of Truth)
+  broadcastCorpoShipTelemetry(shipTelemetryData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_SHIP_TELEMETRY_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        shipTelemetry: shipTelemetryData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Broadcast Guild Shared Blueprints Codex Sync
+  broadcastCorpoBlueprintSync(blueprintSyncData) {
+    if (this.status === 'connected') {
+      this.sendPacket({
+        type: 'CORPO_BLUEPRINT_SYNC',
+        senderId: this.peerId,
+        callsign: this.callsign,
+        blueprintSync: blueprintSyncData,
+        timestamp: Date.now()
+      });
+      return true;
+    }
+    return false;
+  }
+
   // Get array of active connected peers
   getPeersList() {
     return Array.from(this.peers.values());
@@ -805,7 +916,8 @@ export class AaronFleetNet {
 
   // Generate 1-click shareable link
   getInviteUrl() {
-    if (!this.roomCode) return window.location.origin + window.location.pathname;
+    if (typeof window === 'undefined') return '';
+    if (!this.roomCode) return (window.location.origin || '') + (window.location.pathname || '');
     const url = new URL(window.location.href);
     url.searchParams.set('fleet', this.roomCode);
     return url.toString();

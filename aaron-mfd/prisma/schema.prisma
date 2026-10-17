@@ -1,0 +1,551 @@
+// AARON MFD · schéma de base de données (PostgreSQL)
+// Toutes les données de catalogue portent gameVersion pour suivre les patchs.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────── Catalogue du jeu ─────────────
+
+model Manufacturer {
+  id    Int         @id @default(autoincrement())
+  code  String      @unique
+  name  String
+  ships ShipModel[]
+  items Item[]
+}
+
+model ShipModel {
+  id             Int          @id @default(autoincrement())
+  name           String
+  manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id])
+  manufacturerId Int
+  role           String // mining, cargo, combat, salvage…
+  cargoScu       Int          @default(0)
+  crewMax        Int          @default(1)
+  slug           String? // id de ships.js, ex. "prospector"
+  specs          Json? // stats complètes de ships.js
+  gameVersion    String
+  hardpoints     Hardpoint[]
+  owned          UserShip[]
+
+  @@unique([name, gameVersion])
+}
+
+model Hardpoint {
+  id          Int           @id @default(autoincrement())
+  shipModel   ShipModel     @relation(fields: [shipModelId], references: [id], onDelete: Cascade)
+  shipModelId Int
+  name        String // ex. "Tête de minage", "Bouclier 1"
+  category    ItemCategory
+  size        Int
+  turretIndex Int? // n° de tourelle (MOLE : 1 à 3), null pour un composant du vaisseau
+  slots       LoadoutSlot[]
+}
+
+enum ItemCategory {
+  SHIP_WEAPON
+  SHIELD
+  POWER_PLANT
+  COOLER
+  QUANTUM_DRIVE
+  MINING_HEAD
+  MINING_MODULE
+  AMMO
+  COMPONENT
+  ORE
+  REFINED
+  MATERIAL
+  CONSUMABLE
+}
+
+model Item {
+  id             Int           @id @default(autoincrement())
+  name           String
+  category       ItemCategory
+  size           Int?
+  grade          String?
+  manufacturer   Manufacturer? @relation(fields: [manufacturerId], references: [id])
+  manufacturerId Int?
+  stats          Json? // stats variables selon la catégorie
+  unit           String        @default("unit") // unit | scu | cscu
+  gameVersion    String
+
+  prices             MarketPrice[]
+  inventory          InventoryItem[]
+  loadoutSlots       LoadoutSlot[]
+  producedBy         Blueprint[]           @relation("BlueprintOutput")
+  usedIn             BlueprintIngredient[]
+  refineryInputs     RefineryJob[]         @relation("RefineryInput")
+  refineryOutputs    RefineryJob[]         @relation("RefineryOutput")
+  transferOrderLines TransferOrderLine[]
+  rockScanOres       RockScanOre[]
+
+  @@unique([name, gameVersion])
+}
+
+enum LocationType {
+  SYSTEM
+  PLANET
+  MOON
+  STATION
+  CITY
+  OUTPOST
+  LAGRANGE
+  ZONE
+}
+
+model Location {
+  id          Int          @id @default(autoincrement())
+  name        String
+  type        LocationType
+  parent      Location?    @relation("LocationTree", fields: [parentId], references: [id])
+  parentId    Int?
+  children    Location[]   @relation("LocationTree")
+  hasRefinery Boolean      @default(false)
+
+  prices        MarketPrice[]
+  inventory     InventoryItem[]
+  acquisitions  BlueprintAcquisition[]
+  refineryJobs  RefineryJob[]
+  transferFrom  TransferOrder[]        @relation("TransferFrom")
+  transferTo    TransferOrder[]        @relation("TransferTo")
+}
+
+model MarketPrice {
+  id          Int      @id @default(autoincrement())
+  item        Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId      Int
+  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId  Int
+  buyPrice    Float? // prix où le joueur achète
+  sellPrice   Float? // prix où le joueur vend
+  stockScu    Int?
+  source      String   @default("uex") // uex | manual | community
+  observedAt  DateTime @default(now())
+  gameVersion String
+
+  @@index([itemId, locationId])
+}
+
+model RefineryMethod {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique // Dinyx Solventation, Ferron Exchange…
+  yieldPct      Float
+  speed         Int // 1 lent → 3 rapide
+  costFactor    Float
+  gameVersion   String
+  jobs          RefineryJob[]
+}
+
+// ───────────── Blueprints & craft ─────────────
+
+model Blueprint {
+  id           Int                    @id @default(autoincrement())
+  name         String
+  output       Item                   @relation("BlueprintOutput", fields: [outputItemId], references: [id])
+  outputItemId Int
+  outputQty    Int                    @default(1)
+  craftMinutes Int                    @default(0)
+  stationReq   String? // atelier/fabricateur requis, si le jeu l'impose
+  gameVersion  String
+  ingredients  BlueprintIngredient[]
+  acquisitions BlueprintAcquisition[]
+  owners       UserBlueprint[]
+  guildOwners  GuildBlueprint[]
+  craftJobs    CraftJob[]
+
+  @@unique([name, gameVersion])
+}
+
+model BlueprintIngredient {
+  id          Int       @id @default(autoincrement())
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  blueprintId Int
+  item        Item      @relation(fields: [itemId], references: [id])
+  itemId      Int
+  quantity    Float
+  minQuality  Int? // qualité minimale du matériau, si applicable
+}
+
+enum AcquisitionType {
+  MISSION
+  REPUTATION
+  VENDOR
+  LOOT
+  SALVAGE
+  EVENT
+  RESEARCH
+  GUILD_UNLOCK
+  OTHER
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  COMMUNITY_CONFIRMED
+  VERIFIED
+  OUTDATED
+}
+
+// Plusieurs façons d'obtenir un même blueprint
+model BlueprintAcquisition {
+  id           Int                 @id @default(autoincrement())
+  blueprint    Blueprint           @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  blueprintId  Int
+  type         AcquisitionType
+  title        String // ex. "Shubin Interstellar · rang 3"
+  location     Location?           @relation(fields: [locationId], references: [id])
+  locationId   Int?
+  faction      String?
+  requiredRank String?
+  price        Float?
+  dropRatePct  Float?
+  conditions   String?
+  sourceUrl    String?
+  status       VerificationStatus  @default(UNVERIFIED)
+  gameVersion  String
+  reports      AcquisitionReport[]
+  createdAt    DateTime            @default(now())
+}
+
+// Signalements de la communauté (confirmer / infirmer une méthode)
+model AcquisitionReport {
+  id            Int                  @id @default(autoincrement())
+  acquisition   BlueprintAcquisition @relation(fields: [acquisitionId], references: [id], onDelete: Cascade)
+  acquisitionId Int
+  user          User                 @relation(fields: [userId], references: [id])
+  userId        Int
+  confirms      Boolean
+  comment       String?
+  gameVersion   String
+  createdAt     DateTime             @default(now())
+
+  @@unique([acquisitionId, userId, gameVersion])
+}
+
+model UserBlueprint {
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  blueprintId Int
+  acquiredAt  DateTime  @default(now())
+  wishlist    Boolean   @default(false) // true = je le cherche
+
+  @@id([userId, blueprintId])
+}
+
+model GuildBlueprint {
+  guild       Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guildId     Int
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  blueprintId Int
+
+  @@id([guildId, blueprintId])
+}
+
+enum JobStatus {
+  PLANNED
+  RUNNING
+  DONE
+  CANCELLED
+}
+
+model CraftJob {
+  id          Int       @id @default(autoincrement())
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id])
+  blueprintId Int
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  guild       Guild?    @relation(fields: [guildId], references: [id])
+  guildId     Int? // craft demandé pour la guilde
+  quantity    Int       @default(1)
+  status      JobStatus @default(PLANNED)
+  startedAt   DateTime?
+  readyAt     DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// ───────────── Joueurs, flotte, inventaire ─────────────
+
+model User {
+  id          Int      @id @default(autoincrement())
+  discordId   String   @unique
+  handle      String   @unique // pseudo RSI
+  avatarUrl   String?
+  balanceAuec Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  ships          UserShip[]
+  inventory      InventoryItem[]
+  blueprints     UserBlueprint[]
+  craftJobs      CraftJob[]
+  fleetsLed      Fleet[]             @relation("FleetLeader")
+  fleetMembers   FleetMember[]
+  rockScans      RockScan[]
+  refineryJobs   RefineryJob[]
+  payouts        Payout[]
+  guildMembers   GuildMember[]
+  reports        AcquisitionReport[]
+  guildTx        GuildTransaction[]
+  transferOrders TransferOrder[]     @relation("TransferCreatedBy")
+  transferAssign TransferOrder[]     @relation("TransferAssignee")
+}
+
+model UserShip {
+  id            Int       @id @default(autoincrement())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  shipModel     ShipModel @relation(fields: [shipModelId], references: [id])
+  shipModelId   Int
+  nickname      String?
+  isActive      Boolean   @default(false)
+  insurance     String? // LTI, 10 ans…
+  loadouts      Loadout[]
+  activeLoadout Int?
+}
+
+model Loadout {
+  id         Int           @id @default(autoincrement())
+  userShip   UserShip      @relation(fields: [userShipId], references: [id], onDelete: Cascade)
+  userShipId Int
+  name       String
+  isShared   Boolean       @default(false)
+  slots      LoadoutSlot[]
+  createdAt  DateTime      @default(now())
+}
+
+model LoadoutSlot {
+  id          Int       @id @default(autoincrement())
+  loadout     Loadout   @relation(fields: [loadoutId], references: [id], onDelete: Cascade)
+  loadoutId   Int
+  hardpoint   Hardpoint @relation(fields: [hardpointId], references: [id])
+  hardpointId Int
+  item        Item?     @relation(fields: [itemId], references: [id])
+  itemId      Int?
+  // Un module est rattaché à la tête laser de sa tourelle : son nombre de slots dépend de la tête choisie
+  parent      LoadoutSlot?  @relation("SlotModules", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId    Int?
+  modules     LoadoutSlot[] @relation("SlotModules")
+  moduleIndex Int?
+  operator    String? // joueur affecté à cette tourelle
+
+  @@unique([loadoutId, hardpointId, moduleIndex])
+}
+
+enum InventorySource {
+  MANUAL
+  OCR
+  CRAFT
+  REFINERY
+  PURCHASE
+  TRANSFER
+}
+
+// Possédé soit par un joueur, soit par une guilde
+model InventoryItem {
+  id         Int             @id @default(autoincrement())
+  item       Item            @relation(fields: [itemId], references: [id])
+  itemId     Int
+  quantity   Float
+  quality    Int?
+  location   Location?       @relation(fields: [locationId], references: [id])
+  locationId Int?
+  user       User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int?
+  guild      Guild?          @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guildId    Int?
+  source     InventorySource @default(MANUAL)
+  updatedAt  DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([guildId])
+}
+
+// ───────────── Minage & fleets ─────────────
+
+enum FleetType {
+  MINING
+  ESCORT
+  CARGO
+  SALVAGE
+  MIXED
+}
+
+model Fleet {
+  id        Int            @id @default(autoincrement())
+  name      String
+  type      FleetType
+  leader    User           @relation("FleetLeader", fields: [leaderId], references: [id])
+  leaderId  Int
+  guild     Guild?         @relation(fields: [guildId], references: [id])
+  guildId   Int?
+  plannedAt DateTime?
+  members   FleetMember[]
+  sessions  MiningSession[]
+  createdAt DateTime       @default(now())
+}
+
+model FleetMember {
+  fleet      Fleet   @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  fleetId    Int
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  role       String // mineur, escorte, transport…
+  sharePct   Float // part des gains
+  userShipId Int?
+
+  @@id([fleetId, userId])
+}
+
+model MiningSession {
+  id        Int         @id @default(autoincrement())
+  fleet     Fleet?      @relation(fields: [fleetId], references: [id])
+  fleetId   Int?
+  startedAt DateTime    @default(now())
+  endedAt   DateTime?
+  scans     RockScan[]
+  refinery  RefineryJob[]
+  payouts   Payout[]
+}
+
+model RockScan {
+  id         Int           @id @default(autoincrement())
+  session    MiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId  Int
+  user       User          @relation(fields: [userId], references: [id])
+  userId     Int
+  massKg     Float
+  resistance Float?
+  instability Float?
+  ores       RockScanOre[]
+  scannedAt  DateTime      @default(now())
+}
+
+model RockScanOre {
+  id      Int      @id @default(autoincrement())
+  scan    RockScan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  scanId  Int
+  item    Item     @relation(fields: [itemId], references: [id])
+  itemId  Int
+  pct     Float
+}
+
+model RefineryJob {
+  id           Int             @id @default(autoincrement())
+  user         User            @relation(fields: [userId], references: [id])
+  userId       Int
+  session      MiningSession?  @relation(fields: [sessionId], references: [id])
+  sessionId    Int?
+  location     Location        @relation(fields: [locationId], references: [id])
+  locationId   Int
+  method       RefineryMethod  @relation(fields: [methodId], references: [id])
+  methodId     Int
+  input        Item            @relation("RefineryInput", fields: [inputItemId], references: [id])
+  inputItemId  Int
+  inputScu     Float
+  output       Item            @relation("RefineryOutput", fields: [outputItemId], references: [id])
+  outputItemId Int
+  outputScu    Float?
+  cost         Float
+  status       JobStatus       @default(RUNNING)
+  readyAt      DateTime?
+}
+
+model Payout {
+  id        Int           @id @default(autoincrement())
+  session   MiningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId Int
+  user      User          @relation(fields: [userId], references: [id])
+  userId    Int
+  amount    Float
+  paid      Boolean       @default(false)
+  paidAt    DateTime?
+}
+
+// ───────────── Guildes ─────────────
+
+model Guild {
+  id         Int                @id @default(autoincrement())
+  name       String             @unique
+  tag        String?            @unique
+  treasury   Float              @default(0)
+  createdAt  DateTime           @default(now())
+  members    GuildMember[]
+  inventory  InventoryItem[]
+  blueprints GuildBlueprint[]
+  fleets     Fleet[]
+  craftJobs  CraftJob[]
+  txs        GuildTransaction[]
+  transfers  TransferOrder[]
+}
+
+enum GuildRole {
+  OWNER
+  OFFICER
+  MEMBER
+  RECRUIT
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  LEFT
+}
+
+model GuildMember {
+  guild    Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guildId  Int
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int
+  role     GuildRole    @default(RECRUIT)
+  status   MemberStatus @default(PENDING)
+  joinedAt DateTime     @default(now())
+
+  @@id([guildId, userId])
+}
+
+model GuildTransaction {
+  id        Int      @id @default(autoincrement())
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guildId   Int
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+  amount    Float // + dépôt / − dépense
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+model TransferOrder {
+  id           Int                 @id @default(autoincrement())
+  guild        Guild               @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guildId      Int
+  createdBy    User                @relation("TransferCreatedBy", fields: [createdById], references: [id])
+  createdById  Int
+  assignee     User?               @relation("TransferAssignee", fields: [assigneeId], references: [id])
+  assigneeId   Int?
+  from         Location?           @relation("TransferFrom", fields: [fromId], references: [id])
+  fromId       Int?
+  to           Location            @relation("TransferTo", fields: [toId], references: [id])
+  toId         Int
+  purpose      String? // ex. "Base future · Pyro"
+  status       JobStatus           @default(PLANNED)
+  dueAt        DateTime?
+  lines        TransferOrderLine[]
+  createdAt    DateTime            @default(now())
+}
+
+model TransferOrderLine {
+  id       Int           @id @default(autoincrement())
+  order    TransferOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId  Int
+  item     Item          @relation(fields: [itemId], references: [id])
+  itemId   Int
+  quantity Float
+  moved    Float         @default(0)
+}

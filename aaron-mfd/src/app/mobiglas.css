@@ -1,0 +1,424 @@
+@import url('https://fonts.googleapis.com/css2?family=Electrolize&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-title: 'Electrolize', sans-serif;
+  --font-ui: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Thème « holo », inspiré de l'interface mobiGlas de Star Citizen (style uniquement, aucun élément officiel) */
+html[data-theme="holo"] body {
+  font-family: var(--font-ui), "Segoe UI", sans-serif;
+  letter-spacing: .3px;
+  color: #bfefff;
+  background:
+    radial-gradient(ellipse at 50% -10%, #0e4a63 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 100%, #082b3d 0%, transparent 50%),
+    #02080d !important;
+}
+
+/* lignes de balayage + grain holographique */
+html[data-theme="holo"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(0deg, rgba(120, 240, 255, .035) 0 1px, transparent 1px 3px);
+  mix-blend-mode: screen;
+}
+html[data-theme="holo"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 49;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, .55) 100%);
+}
+
+html[data-theme="holo"] h1,
+html[data-theme="holo"] .screen-title,
+html[data-theme="holo"] .logo,
+html[data-theme="holo"] .topbar-brand,
+html[data-theme="holo"] .card h3,
+html[data-theme="holo"] .vo-card-title,
+html[data-theme="holo"] .big,
+html[data-theme="holo"] .kpi-main-val,
+html[data-theme="holo"] th {
+  font-family: var(--font-title), 'Electrolize', sans-serif;
+}
+
+html[data-theme="holo"] h1,
+html[data-theme="holo"] .screen-title {
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: #e9fdff;
+  text-shadow: 0 0 12px rgba(80, 230, 255, .55);
+}
+
+html[data-theme="holo"] .sub,
+html[data-theme="holo"] .screen-subtitle,
+html[data-theme="holo"] .muted,
+html[data-theme="holo"] .kpi-sub-text {
+  color: #5fa9bd;
+}
+
+/* barre du haut */
+html[data-theme="holo"] .top,
+html[data-theme="holo"] .verseops-topbar {
+  background: linear-gradient(180deg, rgba(10, 60, 80, .55), rgba(4, 20, 30, .35));
+  border-bottom: 1px solid rgba(90, 230, 255, .35);
+  box-shadow: 0 1px 18px rgba(60, 220, 255, .15);
+  backdrop-filter: blur(6px);
+}
+html[data-theme="holo"] .logo,
+html[data-theme="holo"] .topbar-brand {
+  color: #6ff3ff;
+  letter-spacing: 5px;
+  text-shadow: 0 0 10px #2fd8ff;
+}
+html[data-theme="holo"] .chip,
+html[data-theme="holo"] .topbar-meta-item,
+html[data-theme="holo"] .topbar-fleet-badge,
+html[data-theme="holo"] .topbar-version {
+  color: #5fa9bd;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+html[data-theme="holo"] .chip b,
+html[data-theme="holo"] .topbar-meta-val,
+html[data-theme="holo"] .topbar-version strong {
+  color: #e9fdff;
+  text-transform: none;
+  font-size: 13px;
+  letter-spacing: .3px;
+}
+
+/* menu latéral façon lanceur d'applis */
+html[data-theme="holo"] .side,
+html[data-theme="holo"] .verseops-sidebar {
+  background: linear-gradient(90deg, rgba(6, 40, 56, .5), rgba(2, 12, 18, .2));
+  border-right: 1px solid rgba(90, 230, 255, .25);
+}
+html[data-theme="holo"] .nav,
+html[data-theme="holo"] .sidebar-nav-item {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #6fbcd0;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+html[data-theme="holo"] .nav .ic,
+html[data-theme="holo"] .sidebar-nav-item .nav-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(90, 230, 255, .45);
+  border-radius: 50%;
+  font-size: 12px;
+  color: #7ff5ff;
+  box-shadow: 0 0 8px rgba(80, 230, 255, .25) inset;
+  flex-shrink: 0;
+}
+html[data-theme="holo"] .nav:hover,
+html[data-theme="holo"] .sidebar-nav-item:hover {
+  background: rgba(40, 190, 230, .12);
+  color: #dffaff;
+}
+html[data-theme="holo"] .nav.on,
+html[data-theme="holo"] .sidebar-nav-item.active {
+  background: linear-gradient(90deg, rgba(40, 200, 240, .35), rgba(40, 200, 240, .05));
+  color: #fff;
+  border-left: none;
+  border: 1px solid rgba(110, 240, 255, .6);
+  text-shadow: 0 0 8px #3fe0ff;
+}
+html[data-theme="holo"] .nav.on .ic,
+html[data-theme="holo"] .sidebar-nav-item.active .nav-icon {
+  background: rgba(80, 230, 255, .25);
+  box-shadow: 0 0 12px #3fe0ff;
+  border-color: #6ff3ff;
+}
+
+/* panneaux holographiques à coins biseautés */
+html[data-theme="holo"] .card,
+html[data-theme="holo"] .vo-card {
+  position: relative;
+  border: none;
+  border-radius: 0;
+  background: linear-gradient(160deg, rgba(30, 140, 180, .20), rgba(6, 40, 60, .28) 40%, rgba(3, 18, 28, .45));
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  box-shadow: inset 0 0 0 1px rgba(100, 235, 255, .38), inset 0 0 30px rgba(60, 210, 255, .08);
+}
+html[data-theme="holo"] .card::before,
+html[data-theme="holo"] .vo-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  width: 70px;
+  height: 2px;
+  background: #6ff3ff;
+  box-shadow: 0 0 10px #3fe0ff;
+}
+html[data-theme="holo"] .card::after,
+html[data-theme="holo"] .vo-card::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 16px;
+  width: 2px;
+  height: 40px;
+  background: rgba(110, 240, 255, .7);
+}
+html[data-theme="holo"] .card .card,
+html[data-theme="holo"] .vo-card .vo-card {
+  background: rgba(20, 110, 150, .15);
+  clip-path: none;
+  border: 1px solid rgba(100, 235, 255, .25);
+}
+html[data-theme="holo"] .card .card::before,
+html[data-theme="holo"] .card .card::after,
+html[data-theme="holo"] .vo-card .vo-card::before,
+html[data-theme="holo"] .vo-card .vo-card::after {
+  display: none;
+}
+html[data-theme="holo"] .card h3,
+html[data-theme="holo"] .vo-card-title {
+  color: #7ff5ff;
+  letter-spacing: 2.5px;
+  text-shadow: 0 0 8px rgba(80, 230, 255, .5);
+}
+html[data-theme="holo"] .card h3::before,
+html[data-theme="holo"] .vo-card-title::before {
+  content: "▸ ";
+  color: #3fe0ff;
+}
+html[data-theme="holo"] .big,
+html[data-theme="holo"] .kpi-main-val {
+  color: #effeff;
+  text-shadow: 0 0 14px rgba(80, 230, 255, .5);
+}
+
+/* tableaux */
+html[data-theme="holo"] th,
+html[data-theme="holo"] .vo-table th {
+  color: #4fb4cc;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(90, 230, 255, .35);
+}
+html[data-theme="holo"] td,
+html[data-theme="holo"] .vo-table td {
+  border-bottom: 1px solid rgba(90, 230, 255, .10);
+}
+html[data-theme="holo"] tbody tr.row:hover,
+html[data-theme="holo"] table tr:hover td,
+html[data-theme="holo"] .vo-table tr:hover td {
+  background: rgba(60, 210, 255, .07);
+}
+html[data-theme="holo"] tbody tr.sel,
+html[data-theme="holo"] .vo-table tbody tr.trade-route-row.sel,
+html[data-theme="holo"] .vo-table tbody tr.trade-route-row.sel td {
+  background: rgba(60, 210, 255, .18) !important;
+  box-shadow: inset 3px 0 0 #6ff3ff;
+}
+
+html[data-theme="holo"] .capital-warning-box {
+  background: rgba(255, 195, 90, 0.12) !important;
+  border: 1px solid rgba(255, 195, 90, 0.45) !important;
+  color: #ffc35a !important;
+  border-radius: 0 !important;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  box-shadow: inset 0 0 10px rgba(255, 195, 90, 0.1);
+}
+
+html[data-theme="holo"] .capital-warning-box.success {
+  background: rgba(93, 255, 176, 0.12) !important;
+  border-color: rgba(93, 255, 176, 0.45) !important;
+  color: #5dffb0 !important;
+  box-shadow: inset 0 0 10px rgba(93, 255, 176, 0.1);
+}
+
+html[data-theme="holo"] .trade-fleet-sync-bar {
+  background: linear-gradient(160deg, rgba(30, 140, 180, .15), rgba(6, 40, 60, .30) 40%, rgba(3, 18, 28, .5)) !important;
+  border: 1px solid rgba(100, 235, 255, .35) !important;
+  box-shadow: inset 0 0 20px rgba(60, 210, 255, .08);
+  border-radius: 0 !important;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+html[data-theme="holo"] .uex-sync-badge {
+  border-radius: 0 !important;
+  font-family: 'Electrolize', monospace !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+html[data-theme="holo"] .uex-refresh-btn {
+  border-radius: 0 !important;
+  font-family: 'Electrolize', monospace !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+html[data-theme="holo"] .slide-over-inspector.wide .slide-over-panel {
+  width: 820px !important;
+  max-width: 95vw !important;
+}
+
+
+
+/* boutons */
+html[data-theme="holo"] .btn,
+html[data-theme="holo"] .vo-btn {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 12px;
+  font-family: inherit;
+  background: linear-gradient(180deg, rgba(70, 220, 255, .55), rgba(20, 140, 190, .55));
+  color: #effeff;
+  box-shadow: inset 0 0 0 1px #7ff5ff, 0 0 14px rgba(60, 220, 255, .25);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  border: none;
+}
+html[data-theme="holo"] .btn.ghost,
+html[data-theme="holo"] .vo-btn.outline,
+html[data-theme="holo"] .vo-btn.secondary {
+  background: rgba(20, 110, 150, .15);
+  color: #8eeeff;
+  border: none;
+  box-shadow: inset 0 0 0 1px rgba(100, 235, 255, .45);
+}
+html[data-theme="holo"] .btn:hover,
+html[data-theme="holo"] .vo-btn:hover {
+  filter: brightness(1.3);
+}
+html[data-theme="holo"] select.btn option,
+html[data-theme="holo"] select option {
+  background: #03141d;
+  color: #bfefff;
+}
+
+/* champs */
+html[data-theme="holo"] .search,
+html[data-theme="holo"] .vo-search-input,
+html[data-theme="holo"] .vo-select,
+html[data-theme="holo"] input[type="number"],
+html[data-theme="holo"] input[type="text"] {
+  border-radius: 0;
+  border: 1px solid rgba(100, 235, 255, .45);
+  background: rgba(10, 60, 85, .25);
+  color: #e9fdff;
+}
+html[data-theme="holo"] .search::placeholder {
+  color: #4f97aa;
+}
+
+/* étiquettes */
+html[data-theme="holo"] .tag,
+html[data-theme="holo"] .vo-badge {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 10px;
+  background: transparent !important;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+html[data-theme="holo"] .t-b { color: #6ff3ff; }
+html[data-theme="holo"] .t-g { color: #5dffb0; }
+html[data-theme="holo"] .t-a { color: #ffc35a; }
+html[data-theme="holo"] .t-r { color: #ff6b7a; }
+html[data-theme="holo"] .blue,
+html[data-theme="holo"] .vo-badge.cyan,
+html[data-theme="holo"] .vo-badge.blue { color: #6ff3ff; }
+html[data-theme="holo"] .green,
+html[data-theme="holo"] .vo-badge.green { color: #5dffb0; }
+html[data-theme="holo"] .amber,
+html[data-theme="holo"] .vo-badge.amber { color: #ffc35a; }
+html[data-theme="holo"] .red,
+html[data-theme="holo"] .vo-badge.red { color: #ff6b7a; }
+html[data-theme="holo"] .vo-badge.purple { color: #c084fc; }
+
+/* barres de progression */
+html[data-theme="holo"] .bar,
+html[data-theme="holo"] .vo-progress-track {
+  border-radius: 0;
+  background: rgba(60, 210, 255, .12);
+  box-shadow: inset 0 0 0 1px rgba(100, 235, 255, .3);
+}
+html[data-theme="holo"] .bar > i,
+html[data-theme="holo"] .vo-progress-bar,
+html[data-theme="holo"] .fracture-gauge-fill {
+  background: repeating-linear-gradient(90deg, #6ff3ff 0 6px, transparent 6px 8px) !important;
+  box-shadow: 0 0 8px #3fe0ff;
+}
+
+html[data-theme="holo"] #toast {
+  border-radius: 0;
+  background: rgba(6, 40, 56, .9);
+  border: 1px solid #6ff3ff;
+  box-shadow: 0 0 20px rgba(60, 220, 255, .4);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-size: 12px;
+}
+html[data-theme="holo"] .watermark {
+  color: #2d6a7c;
+  z-index: 51;
+}
+
+/* apparition des panneaux */
+@keyframes holoIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+html[data-theme="holo"] main .card,
+html[data-theme="holo"] .screen-view.active .vo-card {
+  animation: holoIn .35s ease both;
+}
+html[data-theme="holo"] main .grid > .card:nth-child(2),
+html[data-theme="holo"] .screen-view.active .vo-grid-4 > .vo-card:nth-child(2),
+html[data-theme="holo"] .screen-view.active .vo-grid-3 > .vo-card:nth-child(2) {
+  animation-delay: .05s;
+}
+html[data-theme="holo"] main .grid > .card:nth-child(3),
+html[data-theme="holo"] .screen-view.active .vo-grid-4 > .vo-card:nth-child(3),
+html[data-theme="holo"] .screen-view.active .vo-grid-3 > .vo-card:nth-child(3) {
+  animation-delay: .1s;
+}
+html[data-theme="holo"] main .grid > .card:nth-child(4),
+html[data-theme="holo"] .screen-view.active .vo-grid-4 > .vo-card:nth-child(4) {
+  animation-delay: .15s;
+}
+
+.theme-toggle {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+.theme-toggle:hover {
+  opacity: 0.85;
+}
+
+html[data-theme="holo"] input,
+html[data-theme="holo"] select,
+html[data-theme="holo"] button {
+  font-family: inherit;
+}
+

@@ -1,11891 +1,6733 @@
-import { MINING_DATA } from './mining-data.js';
-import { I18N } from './i18n.js';
-import { AaronFleetNet } from './fleet-net.js';
-
-let fleetNet = null;
-
-// ==========================================
-// STATE MANAGEMENT
-// ==========================================
-const state = {
-  currentLang: localStorage.getItem('aaron_mfd_lang') || 'fr',
-  currentTheme: localStorage.getItem('aaron_mfd_theme') || 'mobiglas',
-  layoutMode: localStorage.getItem('aaron_mfd_layout_mode') || 'mobiglas',
-  callsign: localStorage.getItem('aaron_mfd_callsign') || 'CITIZEN-1',
-  activeProfileId: localStorage.getItem('aaron_mfd_active_profile') || 'custom',
-  mobileView: 'scanner',
-  wakeLock: null,
-
-  selectedShip: MINING_DATA.ships[0], // MISC Prospector
-  selectedLaser: MINING_DATA.lasers[0], // Arbor MH1
-  selectedModules: ['none', 'none', 'none'], // dynamic slots for single laser
-  get selectedModule1() {
-    return MINING_DATA.modules.find(m => m.id === this.selectedModules[0]) || MINING_DATA.modules[0];
-  },
-  set selectedModule1(m) {
-    this.selectedModules[0] = typeof m === 'string' ? m : (m?.id || 'none');
-  },
-  get selectedModule2() {
-    return MINING_DATA.modules.find(m => m.id === this.selectedModules[1]) || MINING_DATA.modules[0];
-  },
-  set selectedModule2(m) {
-    this.selectedModules[1] = typeof m === 'string' ? m : (m?.id || 'none');
-  },
-  selectedGadget: MINING_DATA.gadgets[0],
-  selectedMineral: MINING_DATA.minerals[0], // Quantainium
-  selectedRefinery: MINING_DATA.refiningMethods[0], // Dinyx
-
-  // Current rock parameters
-  rockMass: 5200,
-  orePercentage: 32.0,
-  resistance: 40,
-  instability: 50,
-
-  // Session cargo hold
-  holdSCU: 0.0,
-  sessionLog: [],
-
-  // Crew split & Squad fleet settings
-  crewMembers: 1,
-  crewReservePct: 10,
-  squadMembers: [],
-
-  // Crafting 4.0 Workshop (Jalon 2)
-  customLasers: [],
-  customGadgets: [],
-
-  // Jalon 3: Shared Scan & OCR
-  autoBroadcastScan: false,
-  autoSyncScan: true,
-  lastIncomingRockScan: null,
-  ocrCameraStream: null,
-  ocrCameraFacingMode: 'environment',
-
-  // Jalon 4: Coordination Tactique, Solveur Optimal & Escorte
-  redAlertActive: false,
-  escortCutPct: parseFloat(localStorage.getItem('aaron_mfd_escort_cut') || '15'),
-  optimalLoadoutTab: 'solo', // 'solo' | 'wing'
-  lastOptimalRecommendation: null,
-  jointFireState: 'standby', // 'standby' | 'charging' | 'green' | 'overheat'
-  wingFireStates: {},
-
-  // Jalon 5: Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)
-  activeHaulerId: localStorage.getItem('aaron_mfd_active_hauler') || 'taurus',
-  haulerHoldBags: JSON.parse(localStorage.getItem('aaron_mfd_hauler_hold') || '[]'),
-  pendingCargoPickups: [],
-  haulerCutPct: parseFloat(localStorage.getItem('aaron_mfd_hauler_cut') || '15'),
-
-  // Jalon 6: Bourse Commerciale, Arbitrage & UEX Corp
-  activeMktTab: 'arbitrage', // 'arbitrage' | 'terminals' | 'scout'
-  mktSystemFilter: 'all', // 'all' | 'stanton' | 'pyro' | 'nyx'
-  uexMarketStatus: 'cached', // 'live' | 'cached' | 'corpo'
-  uexLastSyncTimestamp: Date.now(),
-  customTerminalPrices: JSON.parse(localStorage.getItem('aaron_mfd_corpo_prices') || '{}'),
-  recentScoutReports: [],
-  currentSalesTour: null,
-
-  // Jalon 7: Stockpile de Guilde, Statuts Raffinage & Grand Livre des Dépenses
-  activeStockpileTab: 'overview', // 'overview' | 'refining' | 'expenses'
-  guildStockpile: [],
-  guildExpenses: [],
-  stockpileFilterStation: 'all',
-  stockpileFilterMineral: 'all',
-  stockpileFilterStatus: 'all',
-  pushNotificationEnabled: false,
-
-  // Jalon 7: Guild Treasury, mo.Trader Split & Crafting 4.0
-  guildTreasuryBalance: parseInt(localStorage.getItem('aaron_mfd_guild_treasury') || '250000', 10),
-  guildCorpoTaxPct: parseInt(localStorage.getItem('aaron_mfd_guild_tax_pct') || '10', 10),
-  guildPayoutStatuses: JSON.parse(localStorage.getItem('aaron_mfd_guild_payout_statuses') || '{}'),
-  guildCraftingGoals: JSON.parse(localStorage.getItem('aaron_mfd_guild_crafting_goals') || 'null') || [
-    {
-      id: 'goal-lancet',
-      itemId: 'lancet_mk2',
-      name: 'Lancet MH2 Custom (Tête S2)',
-      targetCount: 2,
-      requiredMinerals: [
-        { mineralId: 'quantainium', neededScu: 32 },
-        { mineralId: 'bexalite', neededScu: 16 },
-        { mineralId: 'taranite', neededScu: 8 }
-      ]
-    },
-    {
-      id: 'goal-sabir',
-      itemId: 'sabir_mod',
-      name: 'Module Actif Sabir 21 (x8)',
-      targetCount: 8,
-      requiredMinerals: [
-        { mineralId: 'borase', neededScu: 24 },
-        { mineralId: 'laranite', neededScu: 12 }
-      ]
-    }
-  ],
-
-  // Jalon 7: Commodity Trading & Cargo Routes
-  selectedTradeRouteId: 'route_med_hurston',
-  activeCargoCommodityId: 'medical_supplies',
-  customTradeRuns: JSON.parse(localStorage.getItem('aaron_mfd_custom_trade_runs') || '[]'),
-
-  // Argo MOLE & Multi-turrets settings (all ships with 1, 2, or 3 turrets)
-  moleActiveTurrets: 2, // 1 (solo), 2 (duo), 3 (trio)
-  turretsByShip: {
-    prospector: [
-      { laserId: 'arbor_mh1', moduleIds: ['none', 'none'] }
-    ],
-    mole: [
-      { laserId: 'lancet_s2', moduleIds: ['none', 'none', 'none'] },
-      { laserId: 'helix_s2', moduleIds: ['none', 'none', 'none'] },
-      { laserId: 'helix_s2', moduleIds: ['none', 'none', 'none'] }
-    ],
-    arrastra: [
-      { laserId: 'lancet_s3', moduleIds: ['none', 'none', 'none'] },
-      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] },
-      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] }
-    ],
-    orion: [
-      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] },
-      { laserId: 'helix_s3', moduleIds: ['none', 'none', 'none'] }
-    ],
-    roc: [
-      { laserId: 'mining_arm', moduleIds: [] }
-    ],
-    roc_ds: [
-      { laserId: 'mining_arm', moduleIds: [] }
-    ]
-  },
-  // Backward compatibility getter for moleTurrets
-  get moleTurrets() {
-    const list = this.turretsByShip.mole;
-    return {
-      turret1: list[0],
-      turret2: list[1],
-      turret3: list[2]
-    };
-  },
-
-  // Quantainium timer
-  qtTimeRemaining: 900, // 15 min
-  qtTimerActive: false,
-  qtIntervalId: null,
-
-  // Audio settings
-  audioEnabled: true,
-
-  // PWA install prompt
-  deferredPrompt: null,
-
-  // Sub-chunks simulator state
-  subchunks: [],
-  breakTreeExtractedSCU: 0.0,
-
-  // Refinery orders tracker state
-  refineryJobs: [],
-  refineryIntervalId: null,
-
-  // Flight ledger & stats
-  ledgerHistory: [],
-  sessionStartTime: Date.now(),
-
-  // Tactical advisor recommendation
-  recommendedGadgetId: null,
-  recommendedModuleId: null,
-
-  // ROC cluster mode
-  rocNodes: 6,
-  rocGemsPerNode: 135,
-
-  // Aaron Halo Rangefinder
-  haloSelectedRouteId: 'arccorp_hurl3',
-  haloCurrentDist: 15.0,
-
-  // Mineral system filter (all, stanton, pyro, nyx)
-  mineralSystemFilter: 'all',
-
-  // Rock Archetype (4.10)
-  selectedArchetype: (MINING_DATA.rockArchetypes && MINING_DATA.rockArchetypes[0]) || null,
-
-  // Multi-Ore Composition (4.10)
-  secondaryMineral: null,
-  secondaryPercentage: 15.0,
-
-  // Physicalized Saddlebags
-  detachedSaddlebags: [],
-
-  // Cockpit Voice Assistant (TTS)
-  voiceTTSEnabled: localStorage.getItem('aaron_mfd_voice_tts') !== 'false'
-};
-
-// ==========================================
-// CHANGELOG DATA (BILINGUAL)
-// ==========================================
-const CHANGELOG_DATA = [
-  {
-    version: 'v2.2.0',
-    isCurrent: true,
-    title_fr: 'Jalon 7 : Ordres de Raffinage & Inventaire Partagé de Guilde',
-    title_en: 'Milestone 7: Refining Orders & Guild Shared Stockpile',
-    date_fr: 'Version Actuelle (Alpha 4.10)',
-    date_en: 'Current Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Inventaire Collaboratif & Stockpile de Guilde (Fleet-Net)</strong> : Mutualisation en temps réel des stocks de minerais bruts, en cours de raffinage et raffinés prêts à l\'enlèvement à travers toutes les stations de Stanton et Pyro. Synchronisation instantanée WebRTC via le paquet <code>CORPO_STOCK_SYNC</code>.',
-        text_en: '<strong>Guild Shared Stockpile & Fleet Logistics (Fleet-Net)</strong>: Real-time pooling and visibility of raw, refining and ready-to-haul refined mineral batches across Stanton & Pyro stations. Instant sub-150ms WebRTC sync via <code>CORPO_STOCK_SYNC</code> packets.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Calculateur de Valeur Nette de Guilde (Guild Net Worth)</strong> : Évaluation financière en direct du patrimoine minier de la corporation en aUEC basée sur les cours de marché UEX Corp, déduite des dépenses engagées.',
-        text_en: '<strong>Live Guild Net Worth Calculator</strong>: Real-time valuation of total corporation mineral assets in aUEC dynamically tracked against UEX Corp live market prices minus incurred fleet expenses.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Grand Livre des Dépenses Partagées (Corpo Expense Ledger)</strong> : Enregistrement centralisé et collaboratif des frais engagés (frais de raffinage, carburant Quantum, réparations, primes d\'escorte) pour un calcul transparent du bénéfice net réel de l\'opération et export 1-clic Discord.',
-        text_en: '<strong>Shared Corpo Expense Ledger</strong>: Centralized tracking of fleet operating expenses (refinery fees, quantum fuel, ship repairs, escort pay) automatically deducted from gross revenue for transparent crew splits with 1-click Discord export.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Statuts Logistiques Allégés & Notifications Web Push Déportées</strong> : Évite tout doublon avec les kiosques de jeu en proposant un statut logistique clair ("En raffinage" / "Prêt au transport") couplé à des notifications Push système sur PC et mobile dès qu\'un lot est prêt à être chargé dans un transporteur C2/Caterpillar.',
-        text_en: '<strong>Streamlined Refining Status & Desktop/Mobile Push Notifications</strong>: Avoids redundant in-game clutter by providing a clear logistics status ("In Refinery" / "Ready to Haul") paired with native Web Push notifications alerting pilots on PC & smartphone when batches are ready for C2/Caterpillar hauling.'
-      }
-    ]
-  },
-  {
-    version: 'v2.1.0',
-    isCurrent: false,
-    title_fr: 'Jalon 6 : Bourse Commerciale, API UEX Corp & Intelligence de Guilde',
-    title_en: 'Milestone 6: Commodity Exchange, UEX Corp API & Guild Scouts',
-    date_fr: 'Version Précédente',
-    date_en: 'Previous Version',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Intégration API Live UEX Corp & Cache Hors-Ligne</strong> : Connexion transparente à l\'API publique UEX Corp (<code>uexcorp.space</code>) pour récupérer les cours réels d\'achat et vente des minerais dans les terminaux TDD et stations de Stanton, Pyro et Nyx. Cache local persistant permettant un fonctionnement 100% hors-ligne avec badge d\'état dynamique (UEX LIVE / UEX CACHE / UEX GUILDE).',
-        text_en: '<strong>Live UEX Corp API & Offline Cache</strong>: Seamless integration with UEX Corp public API (<code>uexcorp.space</code>) fetching spot commodity prices across TDD terminals in Stanton, Pyro and Nyx. Persistent local cache for 100% offline operations with dynamic status badge (UEX LIVE / UEX CACHE / UEX GUILDE).'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Moteur d\'Arbitrage Économique (Brut vs Raffiné)</strong> : Comparateur en temps réel entre la vente brute immédiate et l\'ensemble des procédés de raffinage (Dinyx, Ferris Carbide, Cormack, Pyro-Burst) avec déduction des frais, calcul du rendement bonus de station, gain net en aUEC et ROI (+%).',
-        text_en: '<strong>Economic Arbitrage Engine (Raw vs Refined)</strong>: Real-time visual comparison between immediate raw sale and all refining methods (Dinyx, Ferris, Cormack, Pyro-Burst) accounting for refinery fees, station bonuses, net payout, and ROI percentage.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Calculateur de Tournée Commerciale Optimale</strong> : Analyse globale de la cargaison du mineur ou du transporteur et génération automatique d\'une tournée de vente multi-arrêts classée par profit maximum avec bouton 1-clic <code>📋 Copier la tournée</code> pour le chat ou Discord.',
-        text_en: '<strong>Optimal Trade Tour Route Calculator</strong>: Whole-hold cargo analysis and automatic multi-stop sales route planning maximizing total revenue with 1-click <code>📋 Copy Tour Route</code> for game chat or Discord.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Éclaireurs de Guilde & Crowdsourcing P2P (Fleet-Net)</strong> : Mise à jour collaborative des cours en 1 tap lors de la visite d\'un terminal TDD. Diffusion instantanée du paquet <code>CORPO_PRICE_UPDATE</code> à toute la flotte via WebRTC (< 150 ms) avec badge d\'éclaireur vérifié.',
-        text_en: '<strong>Corpo Price Scouts & P2P Crowdsourcing (Fleet-Net)</strong>: 1-tap collaborative spot price verification at TDD terminals. Instant sub-150ms broadcast of <code>CORPO_PRICE_UPDATE</code> packets across WebRTC to all wingmen with verified scout badges.'
-      }
-    ]
-  },
-  {
-    version: 'v2.0.0',
-    isCurrent: false,
-    title_fr: 'Jalon 5 : Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)',
-    title_en: 'Milestone 5: Specialized Haulers & Freight Logistics (Cargo Refactor 4.0)',
-    date_fr: 'Version Précédente',
-    date_en: 'Previous Version',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Flotte de Transporteurs 4.0 Authentique</strong> : Intégration de 10 transporteurs de fret (Constellation Taurus 174 SCU, RAFT 192 SCU, Caterpillar 576 SCU, C2 Hercules 696 SCU, Freelancer MAX 120 SCU, Hull A 64 SCU, Zeus Mk II CL 128 SCU, Cutlass Black 46 SCU, Hull C 4 608 SCU) avec rayons tracteurs dédiés S1/S2/S3 (6 000 à 45 000 N), topologies de grille (interne, externe, modulaire, spindle) et calcul des limites de sacoches Prospector & MOLE.',
-        text_en: '<strong>Authentic 4.0 Cargo Hauler Fleet</strong>: Comprehensive support for 10 freight haulers (Taurus 174 SCU, RAFT 192 SCU, Caterpillar 576 SCU, C2 696 SCU, Freelancer MAX 120 SCU, Hull A 64 SCU, Zeus CL 128 SCU, Cutlass Black 46 SCU, Hull C 4,608 SCU) with dedicated S1/S2/S3 tractor beams (6,000 to 45,000 N), physicalized grid topologies, and max saddlebag capacities.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Arrimage Ship-to-Ship en Plein Espace (Fleet-Net)</strong> : Bouton mineur <code>📡 APPELER TRANSPORT DE FRET</code> pour diffuser une demande d\'arrimage. Récupération instantanée par les transporteurs au rayon tracteur (<code>🧲 ARRIMAGE</code>), libérant automatiquement la soute et les sacoches du mineur sans retour en station.',
-        text_en: '<strong>In-Space Ship-to-Ship Cargo Transfer (Fleet-Net)</strong>: Miner 1-click action <code>📡 REQUEST CARGO PICKUP</code> to broadcast floating saddlebags. Instant recovery by wing haulers via tractor beam (<code>🧲 DOCK</code>), liberating miner hold capacity on the fly.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Gestionnaire de Grille de Fret Physicalisée (Cargo Grid Master)</strong> : Visualisation temps réel des conteneurs et sacoches arrimés sur la grille, indicateur d\'instabilité critique pour le Quantainium, estimation financière brute/raffinée et déchargement station 1-clic.',
-        text_en: '<strong>Physicalized Cargo Grid Master</strong>: Real-time visual display of physicalized cargo boxes & saddlebags, Quantainium instability alert badge, live raw/refined valuation, and station terminal cargo dump.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Commission Transporteur Dédiée</strong> : Curseur de répartition des gains (0 à 35%) pour rémunérer équitablement les pilotes de transport lourd au sein de l\'escadre.',
-        text_en: '<strong>Dedicated Hauler Commission Cut</strong>: Squad profit split slider (0-35%) to fairly compensate heavy cargo transport pilots.'
-      }
-    ]
-  },
-  {
-    version: 'v1.9.0',
-    isCurrent: false,
-    title_fr: 'Jalon 4 : Coordination Tactique, Solveur Optimal 4.0 & Escorte de Combat',
-    title_en: 'Milestone 4: Tactical Coordination, Optimal Loadout Solver 4.0 & Combat Escort',
-    date_fr: 'Version Actuelle (Alpha 4.10)',
-    date_en: 'Current Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Solveur de Loadout Optimal 4.0</strong> : Calcul prédictif automatique du meilleur loadout (tête laser, sous-modules, gadgets de surface) selon la masse et la résistance de la roche. Recommandation Solo et Escadre avec bouton 1-clic <code>⚡ ÉQUIPER CE LOADOUT</code> synchronisé avec la flotte.',
-        text_en: '<strong>Optimal Loadout Solver 4.0</strong>: Automated predictive calculation of optimal mining head, sub-modules, and surface gadget based on rock mass & resistance. Solo & Wing recommendations with 1-click <code>⚡ EQUIP THIS LOADOUT</code> synced with the fleet.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Conseiller de Tir Conjoint & Séquençage</strong> : Protocole en 3 phases tactiques (Affaiblissement Lancet < 20%, Saturation Helix, Régulation zone verte 45-50%). Jauge de risque de surchauffe collective en temps réel et boutons de signalement radio (VEILLE, CHARGE, ZONE VERTE, SURCHAUFFE).',
-        text_en: '<strong>Joint Fire Coordinator & Stepped Sequencing</strong>: 3-phase tactical protocol (Lancet softening < 20%, Helix saturation, Green zone regulation 45-50%). Real-time cumulative overcharge risk gauge and live radio state sync buttons (STANDBY, CHARGING, GREEN ZONE, OVERHEAT).'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Module Sentinelle & Escorte (RED ALERT)</strong> : Déclenchement d\'alerte pirate en 1 tap avec sirène sonore d\'urgence, annonce vocale (TTS), calcul automatique du vecteur de repli Quantum (OM ou station la plus proche) et curseur de prime d\'escorte de combat (0-35%).',
-        text_en: '<strong>Sentinel & Escort Module (RED ALERT)</strong>: 1-tap pirate red alert trigger with emergency audio siren, cockpit voice callout (TTS), automatic quantum jump vector escape calculation (closest OM / station), and escort risk cut slider (0-35%).'
-      }
-    ]
-  },
-  {
-    version: 'v1.8.0',
-    isCurrent: false,
-    title_fr: 'Jalons 1, 2 & 3 : Réseau Fleet-Net P2P, Crafting 4.0 & Scanner OCR Instantané',
-    title_en: 'Milestones 1, 2 & 3: Fleet-Net P2P Network, Crafting 4.0 & Instant OCR Scanner',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Jalon 1 — Réseau Tactique P2P FLEET-NET</strong> : Interconnexion décentralisée WebRTC chiffrée & BroadcastChannel local (< 150ms). Indicateur de ping RTT en direct, statut de comms chiffrées et salon d\'escadre par code court (ex: <code>WING-4982</code>).',
-        text_en: '<strong>Milestone 1 — Decentralized Tactical FLEET-NET</strong>: End-to-end encrypted WebRTC DataChannels & local BroadcastChannel (< 150ms). Real-time RTT ping indicator, encrypted comms badge, and short room codes (e.g. <code>WING-4982</code>).'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Jalon 2 — Sync Flotte & Atelier Crafting 4.0</strong> : Synchronisation automatique des loadouts, lasers et tourelles. Atelier de confection de têtes artisanales (Watts, résistance, instabilité, slots) et gadgets sur-mesure diffusés à l\'escadre.',
-        text_en: '<strong>Milestone 2 — Ship Sync & Crafting Workshop 4.0</strong>: Instant loadout, laser, and turret sync. Workshop for crafting custom mining heads (Watts, resistance, instability, slots) and custom gadgets shared with the wing.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Jalon 3 — Télémétrie de Scan & Scanner OCR Instantané</strong> : Diffusion instantanée du scan rocheux (<code>ROCK_BROADCAST</code>), bandeau d\'alerte tactique, auto-sync silencieux, voix cockpit (TTS) et scanner OCR 100% local (F12, glisser-déposer, caméra smartphone en direct avec réticule et 3 échantillons de test).',
-        text_en: '<strong>Milestone 3 — Shared Scan Telemetry & Instant OCR Scanner</strong>: Instant rock scan broadcast (<code>ROCK_BROADCAST</code>), incoming alert banner, silent auto-sync, cockpit voice (TTS), and 100% local OCR scanner (F12, drag & drop, live smartphone camera with reticle, and 3 test samples).'
-      }
-    ]
-  },
-  {
-    version: 'v1.6.4',
-    isCurrent: false,
-    title_fr: 'Correctif Critique Calcul Réactif & Synthèse Vocale',
-    title_en: 'Critical Fix: Reactive Calculation & Voice Synthesis',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'fixed',
-        text_fr: '<strong>Mise à Jour Instantanée des Minerais</strong> : Correction d\'une méthode manquante dans le module vocal (speakTarget/stop) qui interrompait le script lors de la sélection d\'un minerai. Le calcul dynamique de résistance, instabilité et puissance s\'applique désormais instantanément.',
-        text_en: '<strong>Instant Calculation on Mineral Selection</strong>: Fixed a missing method in voice synthesis module (speakTarget/stop) that threw an exception upon mineral selection. Dynamic rock properties and laser calculations now immediately apply.'
-      }
-    ]
-  },
-  {
-    version: 'v1.6.3',
-    isCurrent: false,
-    title_fr: 'Refonte du Manuel & Guide Prise en Main (4.10)',
-    title_en: 'Operating Manual & Walkthrough Guide Overhaul (4.10)',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'improved',
-        text_fr: '<strong>Manuel Interactif Complètement Actualisé</strong> : Intégration des nouveaux vaisseaux (Arrastra, Orion, ROC-DS), des archétypes géologiques réactifs, du décodeur Radar RS 2.0, de la coordination d\'escouade et du mode mobiGlas 4.0.',
-        text_en: '<strong>Operating Manual Fully Updated</strong>: Detailed walkthroughs for new mining ships (Arrastra, Orion, ROC-DS), reactive archetypes, Radar RS 2.0 decoder, wing multiplayer coordination, and holographic mobiGlas 4.0.'
-      }
-    ]
-  },
-  {
-    version: 'v1.6.2',
-    isCurrent: false,
-    title_fr: 'Recalcul Réactif Automatique Géologie & Minerais',
-    title_en: 'Automatic Reactive Recalculation for Geology & Minerals',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'improved',
-        text_fr: '<strong>Calcul Immédiat sans Validation Manuelle</strong> : La sélection d\'un archétype rocheux, d\'un minerai primaire ou secondaire recalcule immédiatement la résistance, l\'instabilité et la fracturation sans avoir à cliquer sur « Auto-calculer ».',
-        text_en: '<strong>Instant Calculation on Selection</strong>: Selecting a rock archetype, primary ore, or secondary mineral now immediately computes dynamic resistance, instability, and laser fracture without requiring a click on "Auto-Calculate".'
-      }
-    ]
-  },
-  {
-    version: 'v1.6.1',
-    isCurrent: false,
-    title_fr: 'Épuration du Volet Données du Scan',
-    title_en: 'Rock Scan Data Clean-up',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'improved',
-        text_fr: '<strong>Nettoyage du Volet Données du Scan</strong> : Retrait du sélecteur rapide de tête laser redondant dans le panneau de roche, l\'équipement complet étant centralisé dans la modale Loadout et le gestionnaire de profils.',
-        text_en: '<strong>Rock Scan Panel Clean-up</strong>: Removed redundant mining head selector from rock scan data panel, keeping equipment management centralized in Loadout modal and profiles manager.'
-      }
-    ]
-  },
-  {
-    version: 'v1.6.0',
-    isCurrent: false,
-    title_fr: 'Gestionnaire de Profils & Sauvegardes d\'Équipement Personnalisées',
-    title_en: 'Loadout Profiles Manager & Custom Saved Configurations',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Gestionnaire Multi-Profils Nommés</strong> : Enregistrez, nommez, chargez, mettez à jour et supprimez vos configurations d\'équipement personnalisées avec persistance locale.',
-        text_en: '<strong>Multi-Profile Loadout Manager</strong>: Save, name, load, update, and delete custom named loadouts with offline persistence.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>5 Préréglages Recommandés (Défaut)</strong> : Préréglages d\'usine prêts à l\'emploi pour Prospector (Équilibré & Puissance), MOLE (Trio), Arrastra (Lourd S3) et ROC.',
-        text_en: '<strong>5 Recommended Factory Presets</strong>: Ready-to-use factory setups for Prospector (Balanced & Heavy), MOLE (Trio), Arrastra (Heavy S3), and ROC.'
-      }
-    ]
-  },
-  {
-    version: 'v1.5.1',
-    isCurrent: false,
-    title_fr: 'Personnalisation Indicatif Pilote & Épuration Radar RS',
-    title_en: 'Pilot Callsign Customization & RS Radar Clean-up',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Personnalisation de l\'Indicatif (Callsign)</strong> : Modifiez et persistez votre indicatif de pilote depuis le bandeau supérieur mobiGlas ou depuis la carte Chef d\'escadre avec sauvegarde automatique locale.',
-        text_en: '<strong>Pilot Callsign Customization</strong>: Edit and persist your operational radio callsign from the top mobiGlas status bar or the Fleet squad leader card with offline storage.'
-      },
-      {
-        tag: 'improved',
-        text_fr: '<strong>Épuration Radar RS</strong> : Retrait des préréglages rapides superflus pour optimiser la saisie directe de la signature scannée sur le HUD.',
-        text_en: '<strong>RS Radar Clean-up</strong>: Removed cluttered signature presets in favor of direct input and HUD scan matching.'
-      }
-    ]
-  },
-  {
-    version: 'v1.5.0',
-    isCurrent: false,
-    title_fr: 'Refonte mobiGlas 4.0, Coordination de Flotte & Tourelles Unifiées',
-    title_en: 'mobiGlas 4.0 Layout, Fleet Coordination & Unified Turrets',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Coordination d\'Escouade & Flotte Multi-Vaisseaux</strong> : Gérez une escadre complète (Prospector, MOLE, ROC, C2 Hercules, etc.) avec cumul automatique des tirs laser, réduction conjointe de la résistance et répartition équitable des profits.',
-        text_en: '<strong>Multiplayer Fleet & Squad Mining</strong>: Coordinate a full wing (Prospector, MOLE, ROC, C2 Hercules, etc.) with joint laser beam power stacking, shared rock resistance reduction, and net profit split per player.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Intégration RSI Arrastra & RSI Orion</strong> : Support des 3 tourelles Size 3 de l\'Arrastra (576 SCU) et des 2 tourelles lourdes de l\'Orion (2 880 SCU) avec 6 têtes laser Size 3 authentiques.',
-        text_en: '<strong>RSI Arrastra & RSI Orion Integration</strong>: Full support for Arrastra 3x Size 3 remote turrets (576 SCU) and Orion 2x heavy turrets (2,880 SCU) with 6 authentic Size 3 laser heads.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Présentation Holographique mobiGlas 4.0 & Dock</strong> : Interface holographique inspirée du mobiGlas Star Citizen et dock d\'applications rapide avec accès instantané aux 9 outils.',
-        text_en: '<strong>mobiGlas 4.0 Holographic Layout & Dock</strong>: Complete visual redesign inspired by authentic Star Citizen mobiGlas holography and 9-app quick launcher dock.'
-      },
-      {
-        tag: 'improved',
-        text_fr: '<strong>Architecture Unifiée des Tourelles</strong> : Élimination du doublon de la première tourelle et bloc de configuration pliable unifié (1 à 3 tourelles) avec slots de modules dynamiques pour tous les vaisseaux.',
-        text_en: '<strong>Unified Dynamic Turrets Architecture</strong>: Removed Turret 1 duplicate and established unified collapsible turret card blocks (1 to 3 turrets) with dynamic module slots for all ships.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Bouton Soutenir Dédié</strong> : Remplacement des boutons de bascule en faveur du bouton « Soutenir » dans le bandeau supérieur, le dock et le pied de page.',
-        text_en: '<strong>Dedicated Support Buttons</strong>: Replaced legacy layout switches with direct Community Support triggers in top header, dock, and footer.'
-      }
-    ]
-  },
-  {
-    version: 'v1.4',
-    isCurrent: false,
-    title_fr: 'Star Citizen Alpha 4.10 Mining Overhaul (Archétypes, Multi-Minerais, Sacoches & Radar 2.0)',
-    title_en: 'Star Citizen Alpha 4.10 Mining Overhaul (Archetypes, Multi-Ore, Saddlebags & Radar 2.0)',
-    date_fr: 'Version précédente (Alpha 4.10)',
-    date_en: 'Previous Version (Alpha 4.10)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Archétypes Géologiques (9 Familles)</strong> : Intégration des roches officielles (Basalte, Granite, Obsidienne, Magmatique, Felsique, Gneiss, Quartzite, Schiste, Atacamite) avec résistance et densité de base.',
-        text_en: '<strong>Geological Archetypes (9 Families)</strong>: Integration of official rock archetypes (Basalt, Granite, Obsidian, Igneous, Felsic, Gneiss, Quartzite, Shale, Atacamite) with baseline resistance and density.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Scan Multi-Minerais & Gravier Inerte</strong> : Saisie simultanée de 2 minerais avec calcul automatique du pourcentage de matériaux inertes stériles.',
-        text_en: '<strong>Multi-Ore Scan & Inert Waste Gauge</strong>: Simultaneous primary and secondary ore inputs with automatic inert waste calculation.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Décodeur Radar Ping RS 2.0</strong> : Identificateur longue portée pour scanner les astéroïdes (TAB) avant même de s\'approcher à 500 mètres.',
-        text_en: '<strong>Radar Ping RS 2.0 Decoder</strong>: Long-range ping signature identifier to detect distant asteroid content without flying close.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Sacoches Amovibles (Saddlebags 4.10)</strong> : Suivi des sacs détachés au rayon tracteur pour Prospector (4x 8 SCU) et MOLE (8x 12 SCU) pour les transporteurs alliés.',
-        text_en: '<strong>Detachable Saddlebags (4.10)</strong>: Track tractor-beamed pods for Prospector (4x 8 SCU) and MOLE (8x 12 SCU) to coordinate with allied cargo ships.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Voix Cockpit Synthétisée (TTS)</strong> : Annonces vocales immersives (alertes laser, Quantainium chargé, fin de raffinage) 100% hors-ligne.',
-        text_en: '<strong>Cockpit Voice Assistant (TTS)</strong>: Immersive offline cockpit audio announcements (laser alerts, Quantainium countdown, refinery completions).'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Greycat ROC-DS</strong> : Support du véhicule minier biplace avec soute augmentée de 1.2 SCU (1 200 gemmes).',
-        text_en: '<strong>Greycat ROC-DS</strong>: Support for the dual-seat ground vehicle with expanded 1.2 SCU (1,200 gems) hopper.'
-      },
-      {
-        tag: 'improved',
-        text_fr: '<strong>Calcul Dynamique Résistance / Instabilité</strong> : Les propriétés physiques de la roche sont déduites automatiquement de la composition minérale et de l\'archétype.',
-        text_en: '<strong>Dynamic Resistance & Instability Engine</strong>: Physical rock properties scale dynamically from the ore composition and geological archetype.'
-      }
-    ]
-  },
-  {
-    version: 'v1.3',
-    isCurrent: false,
-    title_fr: 'Expansion Multi-Systèmes (Pyro 4.0, Nyx & Stanton) & 6 Nouveaux Minerais',
-    title_en: 'Multi-System Expansion (Pyro 4.0, Nyx & Stanton) & 6 New Ores',
-    date_fr: 'Dernière version (14 Oct 2026)',
-    date_en: 'Latest Version (Oct 14, 2026)',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Système Pyro (Alpha 4.0)</strong> : Prise en charge intégrale du secteur hors-la-loi Pyro avec 4 ponts de raffinage intégrés (Checkmate, Ruin Station Terminus, Orbituary, Gateway) et 4 hotspots géologiques.',
-        text_en: '<strong>Pyro System (Alpha 4.0)</strong>: Full integration of the lawless Pyro frontier with 4 integrated refinery decks (Checkmate, Ruin Station Terminus, Orbituary, Gateway) and 4 geological hotspots.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>6 Nouveaux Minerais 4.0</strong> : Stileron (blindage militaire, RS 3185), Riccite (alliage élastique, RS 3385), Lindinium (RS 3400), Sadaryx (cristal de Nyx, RS 3320), Savrilium (RS 3200) et Carinite (RS 3450).',
-        text_en: '<strong>6 New 4.0 Minerals</strong>: Stileron (heavy military armor, RS 3185), Riccite (elastic alloy, RS 3385), Lindinium (RS 3400), Sadaryx (Nyx crystal, RS 3320), Savrilium (RS 3200), and Carinite (RS 3450).'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Signatures Radar RS (Radar Cross-Section)</strong> : Signatures officielles 1x intégrées sur chaque fiche minerai pour identifier le contenu des roches dès le ping radar sans s\'approcher.',
-        text_en: '<strong>Radar Scan Signatures (RS)</strong>: Official 1x base signatures embedded into each ore card to determine rock compositions directly from ping scans.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Filtres par Système</strong> : Barre de filtrage instantané sur la grille des minerais [TOUS], [STANTON], [PYRO (4.0)], [NYX].',
-        text_en: '<strong>System Filters</strong>: Instant filtering pills on the ore grid [ALL], [STANTON], [PYRO (4.0)], [NYX].'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Atlas Minier à 3 Systèmes</strong> : Navigation par onglets entre Stanton & Aaron Halo, Système Pyro (haut risque), et Système Nyx (Delamar & Levski).',
-        text_en: '<strong>3-System Mining Atlas</strong>: Tabbed navigation between Stanton & Aaron Halo, Pyro System (high risk), and Nyx System (Delamar & Levski).'
-      },
-      {
-        tag: 'improved',
-        text_fr: '<strong>Cache PWA v9 & Network-First</strong> : Stratégie de cache réseau prioritaire garantissant que vous recevez immédiatement les nouvelles versions sans rester bloqué sur un cache obsolète.',
-        text_en: '<strong>PWA Cache v9 & Network-First</strong>: Network-first cache strategy guaranteeing you receive updates immediately without getting trapped on stale cache.'
-      }
-    ]
-  },
-  {
-    version: 'v1.2',
-    isCurrent: false,
-    title_fr: 'Tactical Overhaul & 6 Nouveaux Outils Miniers',
-    title_en: 'Tactical Overhaul & 6 Mining Tools',
-    date_fr: 'Mise à jour v1.2',
-    date_en: 'v1.2 Update',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Simulateur de Sous-Roches (Break Tree)</strong> : Modélisation physique des 3 sous-blocs avec codes couleurs Star Citizen (Violet aspirable, Orange à re-fracturer, Gris inerte) et extraction 1-clic.',
-        text_en: '<strong>Sub-Chunk Fracture Simulator (Break Tree)</strong>: Physical modeling of 3 sub-chunks with official Star Citizen color codes (Purple extractable, Orange to re-fracture, Gray inert) and 1-click hold extraction.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Gestionnaire de Raffinage en direct</strong> : Suivi des commandes en cours avec décompte temps réel hh:mm:ss, calcul de rentabilité selon les 4 procédés industriels et alertes de ramassage.',
-        text_en: '<strong>Live Refinery Job Tracker</strong>: Multi-station queue with real-time hh:mm:ss countdowns, process duration calculations across 4 industrial methods, and ready-to-collect notifications.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Assistant Tactique de Gadgets & Modules</strong> : Recommandation dynamique de Sabir 21, BoreMax, Stalwart ou Surge selon le déficit laser, avec bouton 1-clic pour appliquer.',
-        text_en: '<strong>Tactical Gadget & Module Advisor</strong>: Dynamic recommendations for Sabir 21, BoreMax, Stalwart, or Surge based on laser deficit, with a 1-click apply button.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Mode Cluster ROC Terrestre</strong> : Calculateur dédié aux filons de gemmes de surface (Hadanite, Dolivine, Aphorite) avec contrôleur de cailloux et jauge de remplissage 0.8 SCU.',
-        text_en: '<strong>ROC Gem Cluster Mode</strong>: Specialized calculator for surface gem clusters (Hadanite, Dolivine, Aphorite) with node count selector and 0.8 SCU capacity meter.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Journal de Vol & Statistiques</strong> : Suivi des gains totaux, rentabilité horaire (aUEC/h), volume extrait et exports complets en formats <strong>JSON</strong> et <strong>CSV (Excel)</strong>.',
-        text_en: '<strong>Flight Ledger & Statistics</strong>: Track total cumulative earnings, hourly profitability (aUEC/h), extracted volume, and 1-click exports to <strong>JSON</strong> and <strong>CSV (Excel)</strong>.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Télémètre Aaron Halo</strong> : Calculateur interactif de distance de coupe Quantum vers les Bandes 4, 5 et 6 avec jauge de proximité et alerte sonore d\'arrêt immédiat.',
-        text_en: '<strong>Aaron Halo QT Rangefinder</strong>: Interactive calculator for Quantum Drive drop distance to Bands 4, 5, and 6 with proximity gauge and emergency cut alert.'
-      },
-      {
-        tag: 'improved',
-        text_fr: '<strong>Support Bilingue Intégral</strong> : Bascule instantanée Français 🇫🇷 / Anglais 🇬🇧 sur 100% des textes, boutons, badges, notes de version et infobulles.',
-        text_en: '<strong>Full Bilingual Support</strong>: Instant French 🇫🇷 / English 🇬🇧 toggle across 100% of UI text, buttons, badges, changelog, and tooltips.'
-      },
-      {
-        tag: 'fix',
-        text_fr: '<strong>Optimisation Offline & Cache PWA</strong> : Persistance locale via localStorage et mise en cache Service Worker v5 pour un fonctionnement 100% autonome sans connexion.',
-        text_en: '<strong>Offline Optimization & PWA Cache</strong>: Client-side persistence via localStorage and Service Worker v5 cache update for 100% offline, serverless operation.'
-      }
-    ]
-  },
-  {
-    version: 'v1.1',
-    isCurrent: false,
-    title_fr: 'Argo MOLE Multi-Crew & Thèmes de Cockpit',
-    title_en: 'Argo MOLE Multi-Crew & Cockpit Themes',
-    date_fr: 'Mise à jour majeure',
-    date_en: 'Major Update',
-    items: [
-      {
-        tag: 'new',
-        text_fr: '<strong>Gestion des 3 tourelles du MOLE</strong> : Sélecteur Solo (1 tourelle), Duo (2 tourelles) ou Trio (3 tourelles actives) avec calcul de puissance combinée et configuration laser par tourelle.',
-        text_en: '<strong>Argo MOLE 3-Turret Management</strong>: Solo (1 turret), Duo (2 turrets), and Trio (3 active turrets) mode with combined laser power calculation and individual turret loadout.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Partage d\'équipage Multi-crew</strong> : Calculateur de répartition des gains avec déduction configurable de la réserve de bord (carburant, réparations).',
-        text_en: '<strong>Multi-Crew Profit Splitter</strong>: Fair earnings distribution per crew member with configurable ship operational reserve (fuel, maintenance, consumables).'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>4 Thèmes Cockpit</strong> : MISC Cyan, Drake Ambre, Aegis Émeraude et RSI Glace avec adaptation chromatique complète du HUD.',
-        text_en: '<strong>4 Cockpit HUD Themes</strong>: MISC Cyan, Drake Amber, Aegis Emerald, and RSI Arctic Ice with complete color palette adaptation.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Garde d\'écran active (Wake Lock)</strong> : Empêche la mise en veille automatique de la tablette ou smartphone en vol.',
-        text_en: '<strong>Screen Wake Lock</strong>: Keeps phone/tablet display awake during long mining runs and quantum travel.'
-      },
-      {
-        tag: 'new',
-        text_fr: '<strong>Export Rapport Discord</strong> : Synthèse visuelle formatée prête à coller dans les salons Discord de corporation.',
-        text_en: '<strong>Discord Mining Report</strong>: Pre-formatted operational summary ready to paste into organization Discord channels.'
-      },
-      {
-        tag: 'improved',
-        text_fr: '<strong>Refonte ergonomique tactile</strong> : Cibles tactiles minimales 44px, retour haptique vibrant sur appareils mobiles.',
-        text_en: '<strong>Tactile & Mobile Ergonomics</strong>: 44px minimum touch targets and vibration haptic feedback on compatible devices.'
-      }
-    ]
-  },
-  {
-    version: 'v1.0',
-    isCurrent: false,
-    title_fr: 'Lancement Initial',
-    title_en: 'Initial Launch',
-    date_fr: 'Fondation AARON MFD',
-    date_en: 'AARON MFD Foundation',
-    items: [
-      {
-        tag: 'new',
-        text_fr: 'Calculateur immédiat de faisabilité laser et rentabilité brute/raffinée.',
-        text_en: 'Instant laser fracture feasibility evaluation and raw vs. refined profit calculation.'
-      },
-      {
-        tag: 'new',
-        text_fr: 'Minuteur d\'instabilité Quantainium de 15 minutes avec alertes critiques.',
-        text_en: '15-minute Quantainium volatility countdown timer with critical audio/visual alerts.'
-      },
-      {
-        tag: 'new',
-        text_fr: 'Base de données des minerais de Stanton (Quantainium, Bexalite, Taranite, Hadanite, etc.).',
-        text_en: 'Stanton mineral database (Quantainium, Bexalite, Taranite, Hadanite, etc.) with up-to-date market values.'
-      },
-      {
-        tag: 'new',
-        text_fr: 'Guide des bonus des stations de raffinage et coordonnées de l\'Aaron Halo.',
-        text_en: 'Refinery station bonus reference guide and Aaron Halo Quantum drop coordinates.'
-      },
-      {
-        tag: 'new',
-        text_fr: 'PWA installable hors-ligne avec synthèse audio Web Audio API.',
-        text_en: 'Installable offline PWA with synthesized audio feedback via Web Audio API.'
-      }
-    ]
-  }
-];
-
-// Localized string helper for MINING_DATA objects
-function getLocalized(obj, key) {
-  if (!obj) return '';
-  const langKey = `${key}_${state.currentLang}`;
-  if (obj[langKey]) return obj[langKey];
-  if (obj[`${key}_fr`]) return obj[`${key}_fr`];
-  if (obj[key]) return obj[key];
-  return '';
-}
-
-function getLocale() {
-  return state.currentLang === 'en' ? 'en-US' : 'fr-FR';
-}
-
-// ==========================================
-// AUDIO SYNTHESIZER (Web Audio API)
-// ==========================================
-class SoundFX {
-  constructor() {
-    this.ctx = null;
-  }
-
-  init() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) this.ctx = new AudioCtx();
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-  }
-
-  // Tactical tone synthesizer reserved for security alerts and alarms
-  playTone(freq = 600, type = 'sine', duration = 0.05, volume = 0.08) {
-    if (!state.audioEnabled) return;
-    try {
-      this.init();
-      if (!this.ctx) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(volume, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + duration);
-    } catch (e) {
-      console.warn('Audio error:', e);
-    }
-  }
-
-  // Click sounds removed per user request: 100% silent clicks
-  playBeep(freq = 600, type = 'sine', duration = 0.05) {
-    // Intentionally silent on user interactions
-    return;
-  }
-
-  // UI confirmation chime silenced per user request
-  playSuccess() {
-    // Intentionally silent on user interactions
-    return;
-  }
-
-  playWarning() {
-    if (!state.audioEnabled) return;
-    this.playTone(320, 'sawtooth', 0.15, 0.10);
-    setTimeout(() => this.playTone(320, 'sawtooth', 0.15, 0.10), 180);
-  }
-
-  playCritical() {
-    if (!state.audioEnabled) return;
-    this.playTone(880, 'square', 0.12, 0.12);
-    setTimeout(() => this.playTone(440, 'square', 0.16, 0.12), 140);
-  }
-
-  playAlarm() {
-    if (!state.audioEnabled) return;
-    this.playTone(920, 'sawtooth', 0.14, 0.15);
-    setTimeout(() => this.playTone(680, 'sawtooth', 0.14, 0.15), 150);
-    setTimeout(() => this.playTone(920, 'sawtooth', 0.14, 0.15), 300);
-    setTimeout(() => this.playTone(680, 'sawtooth', 0.14, 0.15), 450);
-  }
-}
-
-const sfx = new SoundFX();
-
-// ==========================================
-// COCKPIT VOICE ASSISTANT (TTS 4.10)
-// ==========================================
-class CockpitVoice {
-  constructor() {
-    this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
-    this.lastSpokenText = '';
-    this.lastSpokenTime = 0;
-  }
-
-  speak(textFr, textEn) {
-    if (!state.voiceTTSEnabled || !this.synth) return;
-    const now = Date.now();
-    const text = state.currentLang === 'en' ? textEn : textFr;
-    if (!text) return;
-    if (this.lastSpokenText === text && now - this.lastSpokenTime < 7000) return;
-    this.lastSpokenText = text;
-    this.lastSpokenTime = now;
-
-    try {
-      this.synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = state.currentLang === 'en' ? 'en-US' : 'fr-FR';
-      utterance.rate = 1.05;
-      utterance.pitch = 0.95;
-      this.synth.speak(utterance);
-    } catch (e) {
-      console.warn('TTS error:', e);
-    }
-  }
-
-  speakTarget(minName, orePct, scuEst) {
-    const textFr = `Cible ${minName}, pureté ${Math.round(orePct)} pour cent, estimation ${scuEst} SCU.`;
-    const textEn = `Target ${minName}, purity ${Math.round(orePct)} percent, estimated ${scuEst} SCU.`;
-    this.speak(textFr, textEn);
-  }
-
-  stop() {
-    if (this.synth) {
-      try {
-        this.synth.cancel();
-      } catch (e) {
-        console.warn('TTS stop error:', e);
-      }
-    }
-  }
-}
-
-const cockpitVoice = new CockpitVoice();
-
-// ==========================================
-// DOM ELEMENTS
-// ==========================================
-const DOM = {
-  shipSelect: document.getElementById('shipSelect'),
-  mgShipSelect: document.getElementById('mgShipSelect'),
-  loadoutShipSelect: document.getElementById('loadoutShipSelect'),
-  mgShipBadge: document.getElementById('mgShipBadge'),
-  laserSectionLabel: document.getElementById('laserSectionLabel'),
-  btnOpenLoadout: document.getElementById('btnOpenLoadout'),
-  loadoutSummary: document.getElementById('loadoutSummary'),
-  qtTimerPill: document.getElementById('qtTimerPill'),
-  qtCountdownText: document.getElementById('qtCountdownText'),
-  btnDismissQtTimer: document.getElementById('btnDismissQtTimer'),
-  btnVoiceCommand: document.getElementById('btnVoiceCommand'),
-  btnAudioToggle: document.getElementById('btnAudioToggle'),
-  btnOpenDonate: document.getElementById('btnOpenDonate'),
-  btnMgDonate: document.getElementById('btnMgDonate'),
-  btnOpenDonateFooter: document.getElementById('btnOpenDonateFooter'),
-
-  // mobiGlas 4.0 Layout & System Header
-  mobiglasSystemHeader: document.getElementById('mobiglasSystemHeader'),
-  mgLoreClock: document.getElementById('mgLoreClock'),
-  btnEditMgCallsign: document.getElementById('btnEditMgCallsign'),
-  mgCallsignVal: document.getElementById('mgCallsignVal'),
-  mgMoleTurretBar: document.getElementById('mgMoleTurretBar'),
-  mgBalanceVal: document.getElementById('mgBalanceVal'),
-  btnLayoutToggle: document.getElementById('btnLayoutToggle'),
-  btnClassicLayoutToggle: document.getElementById('btnClassicLayoutToggle'),
-  mgLayoutToggleLabel: document.getElementById('mgLayoutToggleLabel'),
-  btnMgLang: document.getElementById('btnMgLang'),
-  btnMgAudio: document.getElementById('btnMgAudio'),
-  btnMgVoiceTTS: document.getElementById('btnMgVoiceTTS'),
-
-  // mobiGlas Curved Arc Fracture Gauge
-  arcFractureGaugeWrapper: document.getElementById('arcFractureGaugeWrapper'),
-  arcSafeZone: document.getElementById('arcSafeZone'),
-  arcDangerZone: document.getElementById('arcDangerZone'),
-  arcPowerFill: document.getElementById('arcPowerFill'),
-  arcPowerPct: document.getElementById('arcPowerPct'),
-  arcPowerSub: document.getElementById('arcPowerSub'),
-  arcLaserName: document.getElementById('arcLaserName'),
-
-  // mobiGlas Bottom App Launcher Dock
-  mobiglasDock: document.getElementById('mobiglasDock'),
-  dockBtnScanner: document.getElementById('dockBtnScanner'),
-  dockBtnAnalysis: document.getElementById('dockBtnAnalysis'),
-  dockVerdictBadge: document.getElementById('dockVerdictBadge'),
-  dockBtnLoadout: document.getElementById('dockBtnLoadout'),
-  dockBtnRefinery: document.getElementById('dockBtnRefinery'),
-  dockRefineryBadge: document.getElementById('dockRefineryBadge'),
-  dockBtnStarmap: document.getElementById('dockBtnStarmap'),
-  dockBtnRadar: document.getElementById('dockBtnRadar'),
-  dockBtnLedger: document.getElementById('dockBtnLedger'),
-  dockBtnCrew: document.getElementById('dockBtnCrew'),
-  dockBtnGuide: document.getElementById('dockBtnGuide'),
-  dockBtnDonate: document.getElementById('dockBtnDonate'),
-  dockBtnLayout: document.getElementById('dockBtnLayout'),
-
-  // Mobile / Tablet Tabbed Navigation & Live Mini-HUD
-  mobileViewTabs: document.getElementById('mobileViewTabs'),
-  tabBtnScanner: document.getElementById('tabBtnScanner'),
-  tabBtnAnalysis: document.getElementById('tabBtnAnalysis'),
-  tabBtnMarket: document.getElementById('tabBtnMarket'),
-  mobileTabVerdictBadge: document.getElementById('mobileTabVerdictBadge'),
-  mobileTabMarketBadge: document.getElementById('mobileTabMarketBadge'),
-  mobileLiveSummaryBar: document.getElementById('mobileLiveSummaryBar'),
-  mlSummaryBadge: document.getElementById('mlSummaryBadge'),
-  mlSummaryPrice: document.getElementById('mlSummaryPrice'),
-  mlSummaryLaser: document.getElementById('mlSummaryLaser'),
-  mainGrid: document.getElementById('mainGrid'),
-  panelScanData: document.getElementById('panelScanData'),
-  panelTacticalAnalysis: document.getElementById('panelTacticalAnalysis'),
-  panelMarketHold: document.getElementById('panelMarketHold'),
-
-  // Scan Panel Internal Sub-tabs (Ergonomic Compact Navigation)
-  scanSubtabsBar: document.getElementById('scanSubtabsBar'),
-  btnScanSubtabQuick: document.getElementById('btnScanSubtabQuick'),
-  btnScanSubtabAdvanced: document.getElementById('btnScanSubtabAdvanced'),
-  btnScanSubtabHotspots: document.getElementById('btnScanSubtabHotspots'),
-  scanSubtabPaneQuick: document.getElementById('scanSubtabPaneQuick'),
-  scanSubtabPaneAdvanced: document.getElementById('scanSubtabPaneAdvanced'),
-  scanSubtabPaneHotspots: document.getElementById('scanSubtabPaneHotspots'),
-  subtabArchBadge: document.getElementById('subtabArchBadge'),
-  subtabOreBadge: document.getElementById('subtabOreBadge'),
-
-  // Cockpit MFD Telemetry Extensions (Where to mine, Active laser, Loadout solver, Station prices)
-  whereToMineCard: document.getElementById('whereToMineCard'),
-  wtmMineralBadge: document.getElementById('wtmMineralBadge'),
-  wtmSpotsList: document.getElementById('wtmSpotsList'),
-  optimalLoadoutCard: document.getElementById('optimalLoadoutCard'),
-  olcFeasibilityTag: document.getElementById('olcFeasibilityTag'),
-  olcBody: document.getElementById('olcBody'),
-  stationPriceComparatorCard: document.getElementById('stationPriceComparatorCard'),
-  spcOreTag: document.getElementById('spcOreTag'),
-  spcTableContainer: document.getElementById('spcTableContainer'),
-  uexSyncBadge: document.getElementById('uexSyncBadge'),
-  uexSyncText: document.getElementById('uexSyncText'),
-  btnRefreshUex: document.getElementById('btnRefreshUex'),
-  btnMktTabArbitrage: document.getElementById('btnMktTabArbitrage'),
-  btnMktTabTerminals: document.getElementById('btnMktTabTerminals'),
-  btnMktTabScout: document.getElementById('btnMktTabScout'),
-  mktPaneArbitrage: document.getElementById('mktPaneArbitrage'),
-  mktPaneTerminals: document.getElementById('mktPaneTerminals'),
-  mktPaneScout: document.getElementById('mktPaneScout'),
-  mktArbitrageBanner: document.getElementById('mktArbitrageBanner'),
-  mktArbitrageAdviceText: document.getElementById('mktArbitrageAdviceText'),
-  mktArbitrageRoiBadge: document.getElementById('mktArbitrageRoiBadge'),
-  mktMethodsGrid: document.getElementById('mktMethodsGrid'),
-  mktTerminalsTable: document.getElementById('mktTerminalsTable'),
-  mktTourStopsContainer: document.getElementById('mktTourStopsContainer'),
-  mktTourTotalPayout: document.getElementById('mktTourTotalPayout'),
-  btnCopySalesTour: document.getElementById('btnCopySalesTour'),
-  selectScoutTerminal: document.getElementById('selectScoutTerminal'),
-  selectScoutMineral: document.getElementById('selectScoutMineral'),
-  inputScoutPrice: document.getElementById('inputScoutPrice'),
-  selectScoutDemand: document.getElementById('selectScoutDemand'),
-  btnBroadcastScoutPrice: document.getElementById('btnBroadcastScoutPrice'),
-  mktScoutFeed: document.getElementById('mktScoutFeed'),
-
-  // Cockpit Voice (TTS) & Radar Decoder Triggers
-  btnVoiceTTS: document.getElementById('btnVoiceTTS'),
-  voiceTTSLabel: document.getElementById('voiceTTSLabel'),
-  btnOpenRadarDecoder: document.getElementById('btnOpenRadarDecoder'),
-  radarDecoderModal: document.getElementById('radarDecoderModal'),
-  btnCloseRadarDecoder: document.getElementById('btnCloseRadarDecoder'),
-  radarRsInput: document.getElementById('radarRsInput'),
-  btnExecRadarDecode: document.getElementById('btnExecRadarDecode'),
-  radarMatchesContainer: document.getElementById('radarMatchesContainer'),
-
-  // Mass & Numpad & Steppers
-  massLabel: document.getElementById('massLabel'),
-  massDigitalDisplay: document.getElementById('massDigitalDisplay'),
-  btnMassMinus: document.getElementById('btnMassMinus'),
-  btnMassPlus: document.getElementById('btnMassPlus'),
-  btnToggleNumpad: document.getElementById('btnToggleNumpad'),
-  numpadContainer: document.getElementById('numpadContainer'),
-
-  // Rock Archetype (4.10)
-  selectedArchetypeLabel: document.getElementById('selectedArchetypeLabel'),
-  archetypeSelect: document.getElementById('archetypeSelect'),
-  archetypeScroller: document.getElementById('archetypeScroller'),
-  archetypeDescText: document.getElementById('archetypeDescText'),
-  archetypeStatsText: document.getElementById('archetypeStatsText'),
-  // Minerals & Percentage
-  selectedMineralLabel: document.getElementById('selectedMineralLabel'),
-  oreGrid: document.getElementById('oreGrid'),
-  pctLabel: document.getElementById('pctLabel'),
-  pctSlider: document.getElementById('pctSlider'),
-  pctDisplay: document.getElementById('pctDisplay'),
-
-  // Secondary Ore & Inerts (4.10)
-  selectedSecondaryLabel: document.getElementById('selectedSecondaryLabel'),
-  secondaryOreSelect: document.getElementById('secondaryOreSelect'),
-  btnClearSecondaryOre: document.getElementById('btnClearSecondaryOre'),
-  secondaryOreControls: document.getElementById('secondaryOreControls'),
-  secondaryPctLabel: document.getElementById('secondaryPctLabel'),
-  secondaryPctSlider: document.getElementById('secondaryPctSlider'),
-  secondaryPctDisplay: document.getElementById('secondaryPctDisplay'),
-  inertPctLabel: document.getElementById('inertPctLabel'),
-  compBarPrimary: document.getElementById('compBarPrimary'),
-  compBarSecondary: document.getElementById('compBarSecondary'),
-  compBarInert: document.getElementById('compBarInert'),
-  compLegendPrimary: document.getElementById('compLegendPrimary'),
-  compLegendSecondary: document.getElementById('compLegendSecondary'),
-  compLegendInert: document.getElementById('compLegendInert'),
-
-  // Saddlebags (Physicalized Cargo)
-  saddlebagsControlBox: document.getElementById('saddlebagsControlBox'),
-  saddlebagsCountBadge: document.getElementById('saddlebagsCountBadge'),
-  saddlebagsSlotsVisual: document.getElementById('saddlebagsSlotsVisual'),
-  btnDetachOneBag: document.getElementById('btnDetachOneBag'),
-  btnDropAllBags: document.getElementById('btnDropAllBags'),
-  detachedBagsNotice: document.getElementById('detachedBagsNotice'),
-  detachedBagsText: document.getElementById('detachedBagsText'),
-
-  // Resistance & Instability
-  resistanceLabel: document.getElementById('resistanceLabel'),
-  resistanceSlider: document.getElementById('resistanceSlider'),
-  instabilityLabel: document.getElementById('instabilityLabel'),
-  instabilitySlider: document.getElementById('instabilitySlider'),
-
-  // Verdict & Metrics
-  verdictBox: document.getElementById('verdictBox'),
-  verdictIconBadge: document.getElementById('verdictIconBadge'),
-  verdictStatus: document.getElementById('verdictStatus'),
-  verdictDesc: document.getElementById('verdictDesc'),
-  fractureBadge: document.getElementById('fractureBadge'),
-  powerBarFill: document.getElementById('powerBarFill'),
-  fractureAdvice: document.getElementById('fractureAdvice'),
-  metricSCU: document.getElementById('metricSCU'),
-  metricCargoPct: document.getElementById('metricCargoPct'),
-  metricRawPrice: document.getElementById('metricRawPrice'),
-  refinerySelect: document.getElementById('refinerySelect'),
-  metricRefinedPrice: document.getElementById('metricRefinedPrice'),
-  refinerySummaryNote: document.getElementById('refinerySummaryNote'),
-  stationRecBox: document.getElementById('stationRecBox'),
-  stationRecName: document.getElementById('stationRecName'),
-  stationRecBonus: document.getElementById('stationRecBonus'),
-
-  // Cargo hold & Session
-  btnAddToCargo: document.getElementById('btnAddToCargo'),
-  holdProgressLabel: document.getElementById('holdProgressLabel'),
-  cargoBarFill: document.getElementById('cargoBarFill'),
-  sessionLogList: document.getElementById('sessionLogList'),
-  btnClearHold: document.getElementById('btnClearHold'),
-
-  // Header Extra Triggers
-  btnOpenCrew: document.getElementById('btnOpenCrew'),
-  btnOpenHalo: document.getElementById('btnOpenHalo'),
-  btnOpenRefinery: document.getElementById('btnOpenRefinery'),
-  refineryBadge: document.getElementById('refineryBadge'),
-  btnOpenLedger: document.getElementById('btnOpenLedger'),
-  btnSendToRefinery: document.getElementById('btnSendToRefinery'),
-
-  // Smart Gadget & Module Tactical Advisor
-  gadgetAdviceCard: document.getElementById('gadgetAdviceCard'),
-  gadgetAdviceText: document.getElementById('gadgetAdviceText'),
-  btnApplyAdvice: document.getElementById('btnApplyAdvice'),
-  btnOpenBreakTree: document.getElementById('btnOpenBreakTree'),
-
-  // Break Tree Modal
-  breakTreeModal: document.getElementById('breakTreeModal'),
-  btnCloseBreakTree: document.getElementById('btnCloseBreakTree'),
-  breakTreeDescText: document.getElementById('breakTreeDescText'),
-  breakTreeParentInfo: document.getElementById('breakTreeParentInfo'),
-  btnRegenerateChunks: document.getElementById('btnRegenerateChunks'),
-  subchunksContainer: document.getElementById('subchunksContainer'),
-  breakTreeExtractedTotal: document.getElementById('breakTreeExtractedTotal'),
-  btnFinishBreakTree: document.getElementById('btnFinishBreakTree'),
-
-  // Refinery & Guild Stockpile Modal (Jalon 7)
-  refineryModal: document.getElementById('refineryModal'),
-  btnCloseRefinery: document.getElementById('btnCloseRefinery'),
-  refineryActiveCount: document.getElementById('refineryActiveCount'),
-  refineryTotalValueDisplay: document.getElementById('refineryTotalValueDisplay'),
-  refineryOrderStationSelect: document.getElementById('refineryOrderStationSelect'),
-  refineryOrderMethodSelect: document.getElementById('refineryOrderMethodSelect'),
-  btnConfirmRefineryJob: document.getElementById('btnConfirmRefineryJob'),
-  refineryJobsList: document.getElementById('refineryJobsList'),
-
-  // Jalon 7: Guild Stockpile & Shared Expense Ledger
-  stockpileSubtabsBar: document.getElementById('stockpileSubtabsBar'),
-  btnStockpileTabOverview: document.getElementById('btnStockpileTabOverview'),
-  btnStockpileTabRefining: document.getElementById('btnStockpileTabRefining'),
-  btnStockpileTabExpenses: document.getElementById('btnStockpileTabExpenses'),
-  paneStockpileOverview: document.getElementById('paneStockpileOverview'),
-  paneStockpileRefining: document.getElementById('paneStockpileRefining'),
-  paneStockpileExpenses: document.getElementById('paneStockpileExpenses'),
-  guildNetWorthDisplay: document.getElementById('guildNetWorthDisplay'),
-  guildTotalScuDisplay: document.getElementById('guildTotalScuDisplay'),
-  guildReadyLotsDisplay: document.getElementById('guildReadyLotsDisplay'),
-  guildExpenseTotalDisplay: document.getElementById('guildExpenseTotalDisplay'),
-  stockpileStationFilter: document.getElementById('stockpileStationFilter'),
-  stockpileMineralFilter: document.getElementById('stockpileMineralFilter'),
-  btnQuickDepositHold: document.getElementById('btnQuickDepositHold'),
-  btnToggleManualLotForm: document.getElementById('btnToggleManualLotForm'),
-  btnSyncStockpileFleet: document.getElementById('btnSyncStockpileFleet'),
-  manualLotCard: document.getElementById('manualLotCard'),
-  manualLotStationSelect: document.getElementById('manualLotStationSelect'),
-  manualLotMineralSelect: document.getElementById('manualLotMineralSelect'),
-  manualLotScuInput: document.getElementById('manualLotScuInput'),
-  manualLotStatusSelect: document.getElementById('manualLotStatusSelect'),
-  btnSubmitManualStockLot: document.getElementById('btnSubmitManualStockLot'),
-  guildStockpileList: document.getElementById('guildStockpileList'),
-  pushStatusBadge: document.getElementById('pushStatusBadge'),
-  btnRequestPushPerm: document.getElementById('btnRequestPushPerm'),
-  btnTestPushAlert: document.getElementById('btnTestPushAlert'),
-  expenseLedgerNetVal: document.getElementById('expenseLedgerNetVal'),
-  expenseLedgerTotalVal: document.getElementById('expenseLedgerTotalVal'),
-  expenseLedgerGrossVal: document.getElementById('expenseLedgerGrossVal'),
-  expenseCategorySelect: document.getElementById('expenseCategorySelect'),
-  expenseAmountInput: document.getElementById('expenseAmountInput'),
-  expenseAuthorInput: document.getElementById('expenseAuthorInput'),
-  expenseLocationInput: document.getElementById('expenseLocationInput'),
-  expenseNoteInput: document.getElementById('expenseNoteInput'),
-  btnAddExpenseSubmit: document.getElementById('btnAddExpenseSubmit'),
-  guildExpensesList: document.getElementById('guildExpensesList'),
-  btnCopyExpensesDiscord: document.getElementById('btnCopyExpensesDiscord'),
-  btnSyncExpensesFleet: document.getElementById('btnSyncExpensesFleet'),
-  btnClearExpensesAll: document.getElementById('btnClearExpensesAll'),
-
-  // Jalon 7: Guild Treasury, mo.Trader Split & Crafting 4.0
-  btnStockpileTabTreasury: document.getElementById('btnStockpileTabTreasury'),
-  paneStockpileTreasury: document.getElementById('paneStockpileTreasury'),
-  treasuryBalanceVal: document.getElementById('treasuryBalanceVal'),
-  treasuryTaxSelect: document.getElementById('treasuryTaxSelect'),
-  btnDepositTreasury: document.getElementById('btnDepositTreasury'),
-  btnWithdrawTreasury: document.getElementById('btnWithdrawTreasury'),
-  btnCopyMoTrader: document.getElementById('btnCopyMoTrader'),
-  moTraderTableBody: document.getElementById('moTraderTableBody'),
-  btnToggleAddGoalForm: document.getElementById('btnToggleAddGoalForm'),
-  addCraftingGoalForm: document.getElementById('addCraftingGoalForm'),
-  craftingGoalItemSelect: document.getElementById('craftingGoalItemSelect'),
-  craftingGoalCountInput: document.getElementById('craftingGoalCountInput'),
-  btnSubmitCraftingGoal: document.getElementById('btnSubmitCraftingGoal'),
-  craftingGoalsList: document.getElementById('craftingGoalsList'),
-  btnSyncTreasuryFleet: document.getElementById('btnSyncTreasuryFleet'),
-
-  // Jalon 7: Commodity Trading & Cargo Routes
-  btnStockpileTabTrading: document.getElementById('btnStockpileTabTrading'),
-  paneStockpileTrading: document.getElementById('paneStockpileTrading'),
-  tradePresetRouteSelect: document.getElementById('tradePresetRouteSelect'),
-  tradeCommoditySelect: document.getElementById('tradeCommoditySelect'),
-  tradeCargoScuInput: document.getElementById('tradeCargoScuInput'),
-  tradeOriginInput: document.getElementById('tradeOriginInput'),
-  tradeDestinationInput: document.getElementById('tradeDestinationInput'),
-  tradeBuyPriceInput: document.getElementById('tradeBuyPriceInput'),
-  tradeSellPriceInput: document.getElementById('tradeSellPriceInput'),
-  tradeRiskBadge: document.getElementById('tradeRiskBadge'),
-  tradeCapitalRequiredVal: document.getElementById('tradeCapitalRequiredVal'),
-  tradeGrossReturnVal: document.getElementById('tradeGrossReturnVal'),
-  tradeNetProfitVal: document.getElementById('tradeNetProfitVal'),
-  tradeMarginPerScuVal: document.getElementById('tradeMarginPerScuVal'),
-  tradeRoiPercentVal: document.getElementById('tradeRoiPercentVal'),
-  btnFinanceTradeTreasury: document.getElementById('btnFinanceTradeTreasury'),
-  btnAddTradeToStockpile: document.getElementById('btnAddTradeToStockpile'),
-  btnSyncTradeFleet: document.getElementById('btnSyncTradeFleet'),
-  popularTradeRoutesGrid: document.getElementById('popularTradeRoutesGrid'),
-  manualLotCategorySelect: document.getElementById('manualLotCategorySelect'),
-  manualLotBuyCostInput: document.getElementById('manualLotBuyCostInput'),
-
-  // Flight Ledger Modal
-  ledgerModal: document.getElementById('ledgerModal'),
-  btnCloseLedger: document.getElementById('btnCloseLedger'),
-  statTotalEarnedDisplay: document.getElementById('statTotalEarnedDisplay'),
-  statTodayEarnedDisplay: document.getElementById('statTodayEarnedDisplay'),
-  statTotalSCUDisplay: document.getElementById('statTotalSCUDisplay'),
-  statRunsCountDisplay: document.getElementById('statRunsCountDisplay'),
-  statHourlyRateDisplay: document.getElementById('statHourlyRateDisplay'),
-  btnExportJson: document.getElementById('btnExportJson'),
-  btnExportCsv: document.getElementById('btnExportCsv'),
-  btnClearLedger: document.getElementById('btnClearLedger'),
-  ledgerRunsList: document.getElementById('ledgerRunsList'),
-
-  // ROC Cluster Box
-  rocClusterBox: document.getElementById('rocClusterBox'),
-  rocNodesDisplay: document.getElementById('rocNodesDisplay'),
-  rocGemsSlider: document.getElementById('rocGemsSlider'),
-  rocGemsPerNodeDisplay: document.getElementById('rocGemsPerNodeDisplay'),
-  rocTotalGemsDisplay: document.getElementById('rocTotalGemsDisplay'),
-  rocHoldStatusNote: document.getElementById('rocHoldStatusNote'),
-  btnAddClusterToROC: document.getElementById('btnAddClusterToROC'),
-
-  // Aaron Halo Rangefinder
-  haloRouteSelect: document.getElementById('haloRouteSelect'),
-  haloCurrentDist: document.getElementById('haloCurrentDist'),
-  rangefinderDiffDisplay: document.getElementById('rangefinderDiffDisplay'),
-  rangefinderProgressFill: document.getElementById('rangefinderProgressFill'),
-  rangefinderAlertText: document.getElementById('rangefinderAlertText'),
-
-  // Multi-turrets Active Firing Controls & Unified Loadout Section
-  moleTurretBar: document.getElementById('moleTurretBar'),
-  mgMoleTurretBar: document.getElementById('mgMoleTurretBar'),
-  shipTurretsSection: document.getElementById('shipTurretsSection'),
-  turretsSectionTitle: document.getElementById('turretsSectionTitle'),
-  btnToggleAllTurrets: document.getElementById('btnToggleAllTurrets'),
-  turretCardsContainer: document.getElementById('turretCardsContainer'),
-
-  // Saved Loadout Profiles Manager
-  savedLoadoutsSelect: document.getElementById('savedLoadoutsSelect'),
-  activeProfileTag: document.getElementById('activeProfileTag'),
-  btnOpenSaveProfileModal: document.getElementById('btnOpenSaveProfileModal'),
-  btnUpdateCurrentProfile: document.getElementById('btnUpdateCurrentProfile'),
-  btnDeleteSelectedProfile: document.getElementById('btnDeleteSelectedProfile'),
-  saveLoadoutNameModal: document.getElementById('saveLoadoutNameModal'),
-  saveLoadoutNameInput: document.getElementById('saveLoadoutNameInput'),
-  btnConfirmSaveLoadoutName: document.getElementById('btnConfirmSaveLoadoutName'),
-  btnCancelSaveLoadoutName: document.getElementById('btnCancelSaveLoadoutName'),
-  btnCloseSaveLoadoutName: document.getElementById('btnCloseSaveLoadoutName'),
-
-  // Modals
-  loadoutModal: document.getElementById('loadoutModal'),
-  btnCloseLoadout: document.getElementById('btnCloseLoadout'),
-  laserSelect: document.getElementById('laserSelect'),
-  laserDescText: document.getElementById('laserDescText'),
-  gadgetSelect: document.getElementById('gadgetSelect'),
-  btnSaveLoadout: document.getElementById('btnSaveLoadout'),
-
-  crewModal: document.getElementById('crewModal'),
-  btnCloseCrew: document.getElementById('btnCloseCrew'),
-  crewCountDisplay: document.getElementById('crewCountDisplay'),
-  crewReserveDisplay: document.getElementById('crewReserveDisplay'),
-  crewReserveSlider: document.getElementById('crewReserveSlider'),
-  crewTotalHoldValue: document.getElementById('crewTotalHoldValue'),
-  crewSharePerMember: document.getElementById('crewSharePerMember'),
-  crewReserveDeducted: document.getElementById('crewReserveDeducted'),
-
-  // Squad & Fleet elements
-  btnMgSquadModal: document.getElementById('btnMgSquadModal'),
-  mgSquadCountBadge: document.getElementById('mgSquadCountBadge'),
-  squadCountBadge: document.getElementById('squadCountBadge'),
-  btnQuickOpenSquad: document.getElementById('btnQuickOpenSquad'),
-  squadActiveHudBanner: document.getElementById('squadActiveHudBanner'),
-  squadActiveHudText: document.getElementById('squadActiveHudText'),
-  squadProfitSplitCard: document.getElementById('squadProfitSplitCard'),
-  squadSplitCountLabel: document.getElementById('squadSplitCountLabel'),
-  squadRefinedShareVal: document.getElementById('squadRefinedShareVal'),
-  squadRawShareVal: document.getElementById('squadRawShareVal'),
-  fleetStatShips: document.getElementById('fleetStatShips'),
-  fleetStatPower: document.getElementById('fleetStatPower'),
-  fleetStatResReduction: document.getElementById('fleetStatResReduction'),
-  fleetStatCargo: document.getElementById('fleetStatCargo'),
-  fleetStatShare: document.getElementById('fleetStatShare'),
-  squadLeaderName: document.getElementById('squadLeaderName'),
-  squadLeaderNameInput: document.getElementById('squadLeaderNameInput'),
-  squadLeaderShipDesc: document.getElementById('squadLeaderShipDesc'),
-  squadLeaderLaserDesc: document.getElementById('squadLeaderLaserDesc'),
-  btnSquadEditLoadout: document.getElementById('btnSquadEditLoadout'),
-  squadWingmenContainer: document.getElementById('squadWingmenContainer'),
-  btnAddSquadMember: document.getElementById('btnAddSquadMember'),
-
-  // Aaron Fleet-Net P2P elements (Jalon 1)
-  btnMgFleetNetComms: document.getElementById('btnMgFleetNetComms'),
-  mgCommsLedText: document.getElementById('mgCommsLedText'),
-  fleetNetCard: document.getElementById('fleetNetCard'),
-  fleetNetLed: document.getElementById('fleetNetLed'),
-  fleetNetStatusBadge: document.getElementById('fleetNetStatusBadge'),
-  fleetNetDisconnectedBox: document.getElementById('fleetNetDisconnectedBox'),
-  fleetNetConnectedBox: document.getElementById('fleetNetConnectedBox'),
-  btnFleetCreateWing: document.getElementById('btnFleetCreateWing'),
-  inputFleetRoomCode: document.getElementById('inputFleetRoomCode'),
-  btnFleetJoinWing: document.getElementById('btnFleetJoinWing'),
-  fleetNetRoomCodeDisplay: document.getElementById('fleetNetRoomCodeDisplay'),
-  fleetNetRoleBadge: document.getElementById('fleetNetRoleBadge'),
-  fleetNetPingDisplay: document.getElementById('fleetNetPingDisplay'),
-  fleetNetPeersCountDisplay: document.getElementById('fleetNetPeersCountDisplay'),
-  btnFleetCopyInvite: document.getElementById('btnFleetCopyInvite'),
-  btnFleetLeaveWing: document.getElementById('btnFleetLeaveWing'),
-
-  // Crafting 4.0 Workshop (Jalon 2)
-  btnOpenCraftingFromLoadout: document.getElementById('btnOpenCraftingFromLoadout'),
-  btnOpenCraftingFromCrew: document.getElementById('btnOpenCraftingFromCrew'),
-  craftingModal: document.getElementById('craftingModal'),
-  btnCloseCrafting: document.getElementById('btnCloseCrafting'),
-  tabCraftLasers: document.getElementById('tabCraftLasers'),
-  tabCraftGadgets: document.getElementById('tabCraftGadgets'),
-  craftPaneLasers: document.getElementById('craftPaneLasers'),
-  craftPaneGadgets: document.getElementById('craftPaneGadgets'),
-  craftLaserTemplateSelect: document.getElementById('craftLaserTemplateSelect'),
-  craftLaserNameInput: document.getElementById('craftLaserNameInput'),
-  craftLaserSizeSelect: document.getElementById('craftLaserSizeSelect'),
-  craftLaserPowerSlider: document.getElementById('craftLaserPowerSlider'),
-  craftLaserPowerVal: document.getElementById('craftLaserPowerVal'),
-  craftLaserResSlider: document.getElementById('craftLaserResSlider'),
-  craftLaserResVal: document.getElementById('craftLaserResVal'),
-  craftLaserInstSlider: document.getElementById('craftLaserInstSlider'),
-  craftLaserInstVal: document.getElementById('craftLaserInstVal'),
-  craftLaserWindowSlider: document.getElementById('craftLaserWindowSlider'),
-  craftLaserWindowVal: document.getElementById('craftLaserWindowVal'),
-  btnResetCraftLaserForm: document.getElementById('btnResetCraftLaserForm'),
-  btnSaveCraftLaser: document.getElementById('btnSaveCraftLaser'),
-  customLasersListContainer: document.getElementById('customLasersListContainer'),
-  craftGadgetNameInput: document.getElementById('craftGadgetNameInput'),
-  craftGadgetResSlider: document.getElementById('craftGadgetResSlider'),
-  craftGadgetResVal: document.getElementById('craftGadgetResVal'),
-  craftGadgetInstSlider: document.getElementById('craftGadgetInstSlider'),
-  craftGadgetInstVal: document.getElementById('craftGadgetInstVal'),
-  craftGadgetWindowSlider: document.getElementById('craftGadgetWindowSlider'),
-  craftGadgetWindowVal: document.getElementById('craftGadgetWindowVal'),
-  btnResetCraftGadgetForm: document.getElementById('btnResetCraftGadgetForm'),
-  btnSaveCraftGadget: document.getElementById('btnSaveCraftGadget'),
-  customGadgetsListContainer: document.getElementById('customGadgetsListContainer'),
-
-  // Jalon 3: Instant OCR Scanner & Shared Scan Telemetry
-  btnOpenOcrModal: document.getElementById('btnOpenOcrModal'),
-  btnQuickOpenOcr: document.getElementById('btnQuickOpenOcr'),
-  btnBroadcastCurrentRock: document.getElementById('btnBroadcastCurrentRock'),
-  chkAutoBroadcastScan: document.getElementById('chkAutoBroadcastScan'),
-  chkAutoSyncScan: document.getElementById('chkAutoSyncScan'),
-  rockBroadcastReceivedBanner: document.getElementById('rockBroadcastReceivedBanner'),
-  rockBroadcastTitle: document.getElementById('rockBroadcastTitle'),
-  rockBroadcastDetails: document.getElementById('rockBroadcastDetails'),
-  btnApplyIncomingRockScan: document.getElementById('btnApplyIncomingRockScan'),
-  btnDismissIncomingRockScan: document.getElementById('btnDismissIncomingRockScan'),
-  ocrModal: document.getElementById('ocrModal'),
-  btnCloseOcr: document.getElementById('btnCloseOcr'),
-  tabOcrClipboard: document.getElementById('tabOcrClipboard'),
-  tabOcrCamera: document.getElementById('tabOcrCamera'),
-  tabOcrSamples: document.getElementById('tabOcrSamples'),
-  ocrPaneClipboard: document.getElementById('ocrPaneClipboard'),
-  ocrPaneCamera: document.getElementById('ocrPaneCamera'),
-  ocrPaneSamples: document.getElementById('ocrPaneSamples'),
-  ocrDropzone: document.getElementById('ocrDropzone'),
-  ocrFileInput: document.getElementById('ocrFileInput'),
-  btnBrowseOcrFile: document.getElementById('btnBrowseOcrFile'),
-  btnPasteOcrClipboard: document.getElementById('btnPasteOcrClipboard'),
-  ocrRawTextInput: document.getElementById('ocrRawTextInput'),
-  btnParseRawScanText: document.getElementById('btnParseRawScanText'),
-  ocrCameraVideo: document.getElementById('ocrCameraVideo'),
-  btnCaptureCameraFrame: document.getElementById('btnCaptureCameraFrame'),
-  btnSwitchCamera: document.getElementById('btnSwitchCamera'),
-  ocrPreviewContainer: document.getElementById('ocrPreviewContainer'),
-  ocrCanvas: document.getElementById('ocrCanvas'),
-  ocrScanLaserLine: document.getElementById('ocrScanLaserLine'),
-  ocrStatusBadge: document.getElementById('ocrStatusBadge'),
-  ocrTimingDisplay: document.getElementById('ocrTimingDisplay'),
-  ocrResMass: document.getElementById('ocrResMass'),
-  ocrResMineral1: document.getElementById('ocrResMineral1'),
-  ocrResPct1: document.getElementById('ocrResPct1'),
-  ocrResMineral2: document.getElementById('ocrResMineral2'),
-  ocrResPct2: document.getElementById('ocrResPct2'),
-  ocrResResistance: document.getElementById('ocrResResistance'),
-  ocrResInstability: document.getElementById('ocrResInstability'),
-  ocrResArchetype: document.getElementById('ocrResArchetype'),
-  ocrChkBroadcastOnApply: document.getElementById('ocrChkBroadcastOnApply'),
-  btnCancelOcr: document.getElementById('btnCancelOcr'),
-  btnApplyOcrData: document.getElementById('btnApplyOcrData'),
-
-  // Jalon 4: Coordination Tactique, Solveur Optimal & Escorte
-  btnMgRedAlert: document.getElementById('btnMgRedAlert'),
-  btnRedAlertTrigger: document.getElementById('btnRedAlertTrigger'),
-  redAlertBanner: document.getElementById('redAlertBanner'),
-  redAlertTitle: document.getElementById('redAlertTitle'),
-  redAlertDesc: document.getElementById('redAlertDesc'),
-  redAlertEscapeVector: document.getElementById('redAlertEscapeVector'),
-  btnDeployEscortCombat: document.getElementById('btnDeployEscortCombat'),
-  btnDismissRedAlert: document.getElementById('btnDismissRedAlert'),
-
-  // Solveur Optimal 4.0
-  tabOlcSolo: document.getElementById('tabOlcSolo'),
-  tabOlcWing: document.getElementById('tabOlcWing'),
-  btnApplyOptimalLoadout: document.getElementById('btnApplyOptimalLoadout'),
-  olcFreqSummary: document.getElementById('olcFreqSummary'),
-
-  // Conseiller de Tir Conjoint
-  jointFireCard: document.getElementById('jointFireCard'),
-  jointFirePhaseTag: document.getElementById('jointFirePhaseTag'),
-  fireStep1: document.getElementById('fireStep1'),
-  fireStep1Desc: document.getElementById('fireStep1Desc'),
-  fireStep2: document.getElementById('fireStep2'),
-  fireStep2Desc: document.getElementById('fireStep2Desc'),
-  fireStep3: document.getElementById('fireStep3'),
-  fireStep3Desc: document.getElementById('fireStep3Desc'),
-  overchargeRiskVal: document.getElementById('overchargeRiskVal'),
-  overchargeRiskFill: document.getElementById('overchargeRiskFill'),
-  btnFireStateStandby: document.getElementById('btnFireStateStandby'),
-  btnFireStateCharging: document.getElementById('btnFireStateCharging'),
-  btnFireStateGreen: document.getElementById('btnFireStateGreen'),
-  btnFireStateOverheat: document.getElementById('btnFireStateOverheat'),
-
-  // Prime d'Escorte Combat
-  escortCutSlider: document.getElementById('escortCutSlider'),
-  escortCutDisplay: document.getElementById('escortCutDisplay'),
-  escortCutDeducted: document.getElementById('escortCutDeducted'),
-
-  // Jalon 5: Transport Spécialisé & Logistique de Fret (Cargo Refactor 4.0)
-  btnBroadcastPickupRequest: document.getElementById('btnBroadcastPickupRequest'),
-  cargoGridMasterCard: document.getElementById('cargoGridMasterCard'),
-  selectActiveHauler: document.getElementById('selectActiveHauler'),
-  haulerTractorSpecBadge: document.getElementById('haulerTractorSpecBadge'),
-  haulerCapacityDisplay: document.getElementById('haulerCapacityDisplay'),
-  haulerGridTypeDisplay: document.getElementById('haulerGridTypeDisplay'),
-  haulerMaxBagsDisplay: document.getElementById('haulerMaxBagsDisplay'),
-  haulerHoldProgressLabel: document.getElementById('haulerHoldProgressLabel'),
-  haulerBarFill: document.getElementById('haulerBarFill'),
-  haulerQuantainiumAlert: document.getElementById('haulerQuantainiumAlert'),
-  haulerCargoVisualGrid: document.getElementById('haulerCargoVisualGrid'),
-  haulerRawValDisplay: document.getElementById('haulerRawValDisplay'),
-  haulerRefinedValDisplay: document.getElementById('haulerRefinedValDisplay'),
-  btnClearHaulerHold: document.getElementById('btnClearHaulerHold'),
-  btnAddOneHaulerBag: document.getElementById('btnAddOneHaulerBag'),
-  btnAddBox32: document.getElementById('btnAddBox32'),
-  btnTransferHoldToHauler: document.getElementById('btnTransferHoldToHauler'),
-  pendingPickupsCount: document.getElementById('pendingPickupsCount'),
-  pendingPickupsList: document.getElementById('pendingPickupsList'),
-  haulerCutSlider: document.getElementById('haulerCutSlider'),
-  haulerCutDisplay: document.getElementById('haulerCutDisplay'),
-  haulerCutDeducted: document.getElementById('haulerCutDeducted'),
-
-  // Callsign Modal
-  callsignModal: document.getElementById('callsignModal'),
-  callsignModalInput: document.getElementById('callsignModalInput'),
-  btnSaveCallsignModal: document.getElementById('btnSaveCallsignModal'),
-  btnCancelCallsignModal: document.getElementById('btnCancelCallsignModal'),
-  btnCloseCallsignModal: document.getElementById('btnCloseCallsignModal'),
-
-  haloModal: document.getElementById('haloModal'),
-  btnCloseHalo: document.getElementById('btnCloseHalo'),
-  systemFilterBar: document.getElementById('systemFilterBar'),
-  tabAtlasStanton: document.getElementById('tabAtlasStanton'),
-  tabAtlasPyro: document.getElementById('tabAtlasPyro'),
-  tabAtlasNyx: document.getElementById('tabAtlasNyx'),
-  atlasPanelStanton: document.getElementById('atlasPanelStanton'),
-  atlasPanelPyro: document.getElementById('atlasPanelPyro'),
-  atlasPanelNyx: document.getElementById('atlasPanelNyx'),
-  haloRoutesContainer: document.getElementById('haloRoutesContainer'),
-  stationsContainer: document.getElementById('stationsContainer'),
-  hotspotsStantonContainer: document.getElementById('hotspotsStantonContainer'),
-  stationsPyroContainer: document.getElementById('stationsPyroContainer'),
-  hotspotsPyroContainer: document.getElementById('hotspotsPyroContainer'),
-  stationsNyxContainer: document.getElementById('stationsNyxContainer'),
-  hotspotsNyxContainer: document.getElementById('hotspotsNyxContainer'),
-
-  donateModal: document.getElementById('donateModal'),
-  btnCloseDonate: document.getElementById('btnCloseDonate'),
-
-  voiceModal: document.getElementById('voiceModal'),
-  btnCloseVoice: document.getElementById('btnCloseVoice'),
-  voiceTranscript: document.getElementById('voiceTranscript'),
-
-  // Guide / Welcome Modal
-  btnOpenGuide: document.getElementById('btnOpenGuide'),
-  btnOpenGuideFooter: document.getElementById('btnOpenGuideFooter'),
-  guideModal: document.getElementById('guideModal'),
-  btnCloseGuide: document.getElementById('btnCloseGuide'),
-  btnLaunchFromGuide: document.getElementById('btnLaunchFromGuide'),
-  chkGuideDismiss: document.getElementById('chkGuideDismiss'),
-  btnGuideLangFr: document.getElementById('btnGuideLangFr'),
-  btnGuideLangEn: document.getElementById('btnGuideLangEn'),
-
-  // Changelog Modal
-  btnVersionBadge: document.getElementById('btnVersionBadge'),
-  btnOpenChangelog: document.getElementById('btnOpenChangelog'),
-  changelogModal: document.getElementById('changelogModal'),
-  btnCloseChangelog: document.getElementById('btnCloseChangelog'),
-  changelogScroller: document.getElementById('changelogScroller'),
-
-  // Roadmap Modal
-  btnOpenRoadmapFooter: document.getElementById('btnOpenRoadmapFooter'),
-  btnOpenRoadmapFromChangelog: document.getElementById('btnOpenRoadmapFromChangelog'),
-  btnOpenRoadmapFromCrew: document.getElementById('btnOpenRoadmapFromCrew'),
-  roadmapModal: document.getElementById('roadmapModal'),
-  btnCloseRoadmap: document.getElementById('btnCloseRoadmap'),
-  roadmapScroller: document.getElementById('roadmapScroller'),
-
-  btnInstallPWA: document.getElementById('btnInstallPWA'),
-  btnResetSession: document.getElementById('btnResetSession'),
-  btnForceRefresh: document.getElementById('btnForceRefresh'),
-
-  // UX Controls
-  themeSelect: document.getElementById('themeSelect'),
-  btnLangToggle: document.getElementById('btnLangToggle'),
-  langFlag: document.getElementById('langFlag'),
-  langLabel: document.getElementById('langLabel'),
-  btnWakeLock: document.getElementById('btnWakeLock'),
-  wakeLockLabel: document.getElementById('wakeLockLabel'),
-  btnFullscreen: document.getElementById('btnFullscreen'),
-  btnExportDiscord: document.getElementById('btnExportDiscord'),
-  toastNotice: document.getElementById('toastNotice'),
-  footerDisclaimerText: document.getElementById('footerDisclaimerText')
-};
-
-// ==========================================
-// INITIALIZATION & UI POPULATION
-// ==========================================
-function init() {
-  setTheme(state.currentTheme);
-  setLayoutMode(state.layoutMode, false);
-  setMobileView(state.mobileView || 'scanner');
-  setCallsign(state.callsign, false);
-  updateLoreClock();
-  setInterval(updateLoreClock, 1000);
-  bindEventListeners();
-  loadCustomCraftGear();
-  initCraftingWorkshop();
-  initFleetNet();
-  initOcrScanner();
-  initTacticalCoordinator();
-  initCargoGridMaster();
-  initMarketAndArbitrage();
-  initGuildStockpileAndExpenses();
-  loadSavedSession();
-  loadSavedLoadout();
-  loadRefineryJobs();
-  loadLedger();
-  startRefineryTimerLoop();
-  setLanguage(state.currentLang);
-  registerServiceWorker();
-
-  // Auto-display guide on first visit
-  if (!localStorage.getItem('aaron_mfd_guide_dismissed')) {
-    setTimeout(() => {
-      openModal(DOM.guideModal);
-    }, 400);
-  }
-}
-
-// Populate Ore Grid buttons with system filter and RS signatures
-function populateOreGrid() {
-  DOM.oreGrid.innerHTML = '';
-  const locale = getLocale();
-  const filter = state.mineralSystemFilter || 'all';
-
-  const filteredMinerals = MINING_DATA.minerals.filter(min => {
-    if (filter === 'all') return true;
-    return min.systems && min.systems.includes(filter);
-  });
-
-  filteredMinerals.forEach(min => {
-    const minName = getLocalized(min, 'name');
-    const card = document.createElement('div');
-    card.className = `ore-card ${min.id === state.selectedMineral.id ? 'selected' : ''}`;
-    card.style.setProperty('--ore-color', min.color);
-    card.dataset.id = min.id;
-
-    const rsText = min.rsBase ? `<div style="font-size:0.65rem; color:var(--accent-cyan); font-family:var(--font-mono); margin-top:2px;">RS: ${min.rsBase.toLocaleString(locale)}</div>` : '';
-
-    card.innerHTML = `
-      <div class="ore-symbol">${min.symbol}</div>
-      <div class="ore-name">${minName}</div>
-      <div class="ore-price-tag">~${(min.refinedPrice * 100).toLocaleString(locale)} aUEC</div>
-      ${rsText}
-    `;
-
-    card.addEventListener('click', () => {
-      sfx.playBeep(700, 'sine', 0.04);
-      triggerHaptic(12);
-      selectMineral(min);
-    });
-
-    DOM.oreGrid.appendChild(card);
-  });
-}
-
-function selectMineral(min) {
-  state.selectedMineral = min;
-  const locale = getLocale();
-  const rsText = min.rsBase ? ` (RS: ${min.rsBase.toLocaleString(locale)})` : '';
-  DOM.selectedMineralLabel.textContent = `${getLocalized(min, 'name')}${rsText}`;
-  DOM.selectedMineralLabel.style.color = min.color;
-
-  // Prevent primary mineral from conflicting with secondary mineral
-  if (state.secondaryMineral && state.secondaryMineral.id === min.id) {
-    state.secondaryMineral = null;
-    if (DOM.secondaryOreSelect) DOM.secondaryOreSelect.value = 'none';
-    updateSecondaryOreUI();
-  }
-
-  document.querySelectorAll('.ore-card').forEach(c => {
-    c.classList.toggle('selected', c.dataset.id === min.id);
-  });
-
-  if (state.voiceTTSEnabled && typeof cockpitVoice !== 'undefined' && cockpitVoice.speakTarget) {
-    try {
-      const minName = getLocalized(min, 'name');
-      cockpitVoice.speakTarget(minName, state.orePercentage, Math.max(0.1, Math.round(state.rockMass * (state.orePercentage / 100) / ((min.density || 15) * 85) * 10) / 10));
-    } catch (e) {
-      console.warn('Voice target speech error:', e);
-    }
-  }
-
-  // Auto-calculer dès la sélection du minerai
-  applyDynamicRockProperties();
-  calculateAll();
-}
-
-// ==========================================
-// FEATURE: ROCK ARCHETYPES (4.10)
-// ==========================================
-function populateArchetypes() {
-  if (!MINING_DATA.rockArchetypes) return;
-
-  // 1. Populate Dropdown Select
-  if (DOM.archetypeSelect) {
-    const prevVal = state.selectedArchetype ? state.selectedArchetype.id : MINING_DATA.rockArchetypes[0].id;
-    DOM.archetypeSelect.innerHTML = '';
-    MINING_DATA.rockArchetypes.forEach(arch => {
-      const opt = document.createElement('option');
-      opt.value = arch.id;
-      opt.textContent = `${getLocalized(arch, 'name')} • R:${arch.baseResistance}% • I:${arch.baseInstability}% (Densité: ${arch.density})`;
-      DOM.archetypeSelect.appendChild(opt);
-    });
-    DOM.archetypeSelect.value = prevVal;
-  }
-
-  // 2. Populate Ergonomic 3x3 Grid
-  if (DOM.archetypeScroller) {
-    DOM.archetypeScroller.innerHTML = '';
-    MINING_DATA.rockArchetypes.forEach(arch => {
-      const btn = document.createElement('button');
-      const isActive = state.selectedArchetype && state.selectedArchetype.id === arch.id;
-      btn.className = `archetype-chip ${isActive ? 'active' : ''}`;
-      btn.dataset.id = arch.id;
-      btn.setAttribute('type', 'button');
-      btn.innerHTML = `
-        <div class="archetype-chip-top">
-          <span style="color:${arch.color};">●</span>
-          <span>${getLocalized(arch, 'name')}</span>
-        </div>
-        <div class="archetype-chip-sub">R: ${arch.baseResistance}% • I: ${arch.baseInstability}%</div>
-      `;
-
-      btn.addEventListener('click', () => {
-        sfx.playBeep(650, 'sine', 0.04);
-        triggerHaptic(10);
-        selectArchetype(arch);
-      });
-
-      DOM.archetypeScroller.appendChild(btn);
-    });
-  }
-
-  updateArchetypeDisplay();
-  applyDynamicRockProperties();
-}
-
-function selectArchetype(arch) {
-  state.selectedArchetype = arch;
-  if (DOM.archetypeSelect) {
-    DOM.archetypeSelect.value = arch.id;
-  }
-  document.querySelectorAll('.archetype-chip').forEach(b => {
-    b.classList.toggle('active', b.dataset.id === arch.id);
-  });
-  updateArchetypeDisplay();
-  // Auto-calculer dès la sélection d'un archétype
-  applyDynamicRockProperties();
-}
-
-function updateArchetypeDisplay() {
-  const arch = state.selectedArchetype;
-  if (!arch) return;
-  if (DOM.selectedArchetypeLabel) {
-    DOM.selectedArchetypeLabel.textContent = getLocalized(arch, 'name');
-    DOM.selectedArchetypeLabel.style.color = arch.color || 'var(--accent-cyan)';
-  }
-  if (DOM.archetypeDescText) {
-    DOM.archetypeDescText.textContent = getLocalized(arch, 'desc');
-  }
-  if (DOM.archetypeStatsText) {
-    const locale = getLocale();
-    DOM.archetypeStatsText.textContent = `Densité: ${arch.density} • Résistance: ${arch.baseResistance}% • Instabilité: ${arch.baseInstability}% • RS: ${arch.rsBase.toLocaleString(locale)}`;
-  }
-}
-
-// Dynamically compute resistance & instability from archetype + minerals
-function applyDynamicRockProperties() {
-  const arch = state.selectedArchetype || (MINING_DATA.rockArchetypes && MINING_DATA.rockArchetypes[0]);
-  if (!arch) return;
-
-  let baseRes = arch.baseResistance;
-  let baseInst = arch.baseInstability;
-
-  // Primary mineral modifier
-  const pMin = state.selectedMineral;
-  const pPct = state.orePercentage;
-  let instDelta = 0;
-  let resDelta = 0;
-
-  if (pMin) {
-    if (pMin.id === 'quantainium') {
-      instDelta += (pPct / 100) * 60;
-      resDelta += (pPct / 100) * 15;
-    } else if (pMin.id === 'stileron') {
-      instDelta += (pPct / 100) * 45;
-      resDelta += (pPct / 100) * 35;
-    } else if (pMin.id === 'riccite') {
-      instDelta += (pPct / 100) * 25;
-      resDelta += (pPct / 100) * 30;
-    } else if (pMin.id === 'bexalite') {
-      instDelta += (pPct / 100) * 25;
-      resDelta += (pPct / 100) * 20;
-    } else if (pMin.id === 'taranite') {
-      instDelta += (pPct / 100) * 15;
-      resDelta += (pPct / 100) * 15;
-    } else if (pMin.id === 'borase') {
-      instDelta += (pPct / 100) * 10;
-      resDelta += (pPct / 100) * 10;
-    } else if (pMin.id === 'laranite') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 10;
-    } else if (pMin.id === 'hephaestanite') {
-      instDelta += (pPct / 100) * 10;
-      resDelta += (pPct / 100) * 10;
-    } else if (pMin.id === 'gold') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 10;
-    } else if (pMin.id === 'agricium') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 5;
-    } else if (pMin.id === 'hadanite') {
-      instDelta += (pPct / 100) * 35;
-      resDelta += (pPct / 100) * 10;
-    } else if (pMin.id === 'dolivine') {
-      instDelta += (pPct / 100) * 20;
-      resDelta += (pPct / 100) * 5;
-    } else if (pMin.id === 'aphorite') {
-      instDelta += (pPct / 100) * 15;
-      resDelta += (pPct / 100) * 5;
-    } else if (pMin.id === 'diamond') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 15;
-    } else if (pMin.id === 'beryl') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 5;
-    } else if (pMin.id === 'tungsten') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 20;
-    } else if (pMin.id === 'titanium') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 15;
-    } else if (pMin.id === 'copper') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 10;
-    } else if (pMin.id === 'iron') {
-      instDelta += (pPct / 100) * 5;
-      resDelta += (pPct / 100) * 10;
-    }
-  }
-
-  // Secondary mineral modifier
-  const sMin = state.secondaryMineral;
-  const sPct = sMin ? state.secondaryPercentage : 0;
-  if (sMin) {
-    if (sMin.id === 'quantainium') {
-      instDelta += (sPct / 100) * 60;
-      resDelta += (sPct / 100) * 15;
-    } else if (sMin.id === 'stileron') {
-      instDelta += (sPct / 100) * 45;
-      resDelta += (sPct / 100) * 35;
-    } else if (sMin.id === 'riccite') {
-      instDelta += (sPct / 100) * 25;
-      resDelta += (sPct / 100) * 30;
-    } else if (sMin.id === 'bexalite') {
-      instDelta += (sPct / 100) * 25;
-      resDelta += (sPct / 100) * 20;
-    } else if (sMin.id === 'taranite') {
-      instDelta += (sPct / 100) * 15;
-      resDelta += (sPct / 100) * 15;
-    } else if (sMin.id === 'borase') {
-      instDelta += (sPct / 100) * 10;
-      resDelta += (sPct / 100) * 10;
-    } else if (sMin.id === 'laranite') {
-      instDelta += (sPct / 100) * 5;
-      resDelta += (sPct / 100) * 10;
-    }
-  }
-
-  const finalRes = Math.min(95, Math.max(5, Math.round(baseRes + resDelta)));
-  const finalInst = Math.min(100, Math.max(0, Math.round(baseInst + instDelta)));
-
-  setResistance(finalRes);
-  setInstability(finalInst);
-}
-
-// ==========================================
-// FEATURE: SECONDARY ORE & COMPOSITION (4.10)
-// ==========================================
-function populateSecondaryOreSelect() {
-  if (!DOM.secondaryOreSelect) return;
-  const currentVal = state.secondaryMineral ? state.secondaryMineral.id : 'none';
-  DOM.secondaryOreSelect.innerHTML = '';
-
-  const noneOpt = document.createElement('option');
-  noneOpt.value = 'none';
-  const t = I18N[state.currentLang] || I18N.fr;
-  noneOpt.textContent = t.noSecondaryMineral || 'Aucun minerai secondaire';
-  DOM.secondaryOreSelect.appendChild(noneOpt);
-
-  MINING_DATA.minerals.forEach(min => {
-    if (state.selectedShip.laserSize > 0 && (min.id === 'hadanite' || min.id === 'dolivine' || min.id === 'aphorite')) return;
-    const opt = document.createElement('option');
-    opt.value = min.id;
-    opt.textContent = `${min.symbol} • ${getLocalized(min, 'name')}`;
-    DOM.secondaryOreSelect.appendChild(opt);
-  });
-
-  DOM.secondaryOreSelect.value = currentVal;
-  updateSecondaryOreUI();
-}
-
-function updateSecondaryOreUI() {
-  const isSelected = !!state.secondaryMineral;
-  if (DOM.secondaryOreControls) {
-    DOM.secondaryOreControls.style.display = isSelected ? 'block' : 'none';
-  }
-  if (DOM.selectedSecondaryLabel) {
-    if (isSelected) {
-      DOM.selectedSecondaryLabel.textContent = `${getLocalized(state.secondaryMineral, 'name')} (${state.secondaryPercentage.toFixed(1)}%)`;
-      DOM.selectedSecondaryLabel.style.color = state.secondaryMineral.color;
-    } else {
-      const t = I18N[state.currentLang] || I18N.fr;
-      DOM.selectedSecondaryLabel.textContent = t.noSecondaryMineral || 'Aucun';
-      DOM.selectedSecondaryLabel.style.color = 'var(--text-muted)';
-    }
-  }
-}
-
-// ==========================================
-// FEATURE: SADDLEBAGS PHYSICALIZED (4.10)
-// ==========================================
-function updateSaddlebagsUI() {
-  const ship = state.selectedShip;
-  if (!DOM.saddlebagsControlBox) return;
-
-  if (!ship.detachableBags) {
-    DOM.saddlebagsControlBox.style.display = 'none';
-    return;
-  }
-
-  DOM.saddlebagsControlBox.style.display = 'block';
-  const totalBags = ship.saddlebags;
-  const bagSCU = ship.saddlebagSCU;
-  const currentHoldSCU = state.holdSCU;
-  const fullBagsCount = Math.min(totalBags, Math.floor(currentHoldSCU / bagSCU));
-  
-  if (DOM.saddlebagsCountBadge) {
-    DOM.saddlebagsCountBadge.textContent = `${totalBags} / ${totalBags} Montées (${fullBagsCount} pleine(s))`;
-  }
-
-  if (DOM.saddlebagsSlotsVisual) {
-    DOM.saddlebagsSlotsVisual.innerHTML = '';
-    for (let i = 1; i <= totalBags; i++) {
-      const slot = document.createElement('span');
-      const isFilled = i <= fullBagsCount;
-      slot.className = `saddlebag-slot-pill ${isFilled ? 'detached' : 'mounted'}`;
-      slot.innerHTML = `Sac #${i}: ${isFilled ? `Plein (${bagSCU} SCU)` : 'Vide'}`;
-      DOM.saddlebagsSlotsVisual.appendChild(slot);
-    }
-  }
-
-  if (DOM.btnDetachOneBag) {
-    DOM.btnDetachOneBag.textContent = `📦 Détacher 1 sac plein (${bagSCU} SCU)`;
-    DOM.btnDetachOneBag.disabled = fullBagsCount === 0;
-    DOM.btnDetachOneBag.style.opacity = fullBagsCount > 0 ? '1' : '0.5';
-  }
-
-  if (DOM.detachedBagsText) {
-    const detachedCount = state.detachedSaddlebags.length;
-    const detachedTotalSCU = state.detachedSaddlebags.reduce((acc, b) => acc + b.scu, 0);
-    const t = I18N[state.currentLang] || I18N.fr;
-    if (detachedCount > 0) {
-      DOM.detachedBagsText.innerHTML = `<strong style="color:var(--accent-amber);">🚨 ${detachedCount} sac(s) largué(s) (${detachedTotalSCU.toFixed(1)} SCU)</strong> en flottaison. ${t.tractorRecommendation || 'Nécessite rayon tracteur & transporteur (C1, Taurus, Freelancer).'}`;
-    } else {
-      DOM.detachedBagsText.textContent = t.noDetachedBags || "Aucun sac largué dans l'espace.";
-    }
-  }
-}
-
-function detachSaddlebag() {
-  const ship = state.selectedShip;
-  if (!ship.detachableBags) return;
-  const bagSCU = ship.saddlebagSCU;
-  if (state.holdSCU < bagSCU) {
-    showToast(state.currentLang === 'en' ? 'Hold volume insufficient to fill 1 full bag!' : 'Volume en soute insuffisant pour remplir 1 sac complet !');
-    return;
-  }
-
-  state.holdSCU = Math.max(0, Math.round((state.holdSCU - bagSCU) * 10) / 10);
-  state.detachedSaddlebags.push({
-    id: Date.now(),
-    shipId: ship.id,
-    time: new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' }),
-    scu: bagSCU,
-    mineral: state.selectedMineral.id
-  });
-
-  sfx.playWarning();
-  triggerHaptic(40);
-  cockpitVoice.speak(
-    "Sacoche de minage détachée au rayon tracteur. En attente de transport.",
-    "Mining saddlebag detached. Floating in space awaiting cargo hauler."
-  );
-
-  updateHoldDisplay();
-  saveSession();
-  showToast(state.currentLang === 'en' ? `Saddlebag (${bagSCU} SCU) detached and floating in space!` : `Sacoche (${bagSCU} SCU) détachée en flottaison dans l'espace !`);
-}
-
-function dropAllSaddlebags() {
-  const ship = state.selectedShip;
-  if (!ship.detachableBags) return;
-  const bagSCU = ship.saddlebagSCU;
-  const fullBags = Math.floor(state.holdSCU / bagSCU);
-  if (fullBags === 0) {
-    showToast(state.currentLang === 'en' ? 'No full saddlebags to detach!' : 'Aucun sac plein à détacher !');
-    return;
-  }
-
-  for (let i = 0; i < fullBags; i++) {
-    state.detachedSaddlebags.push({
-      id: Date.now() + i,
-      shipId: ship.id,
-      time: new Date().toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' }),
-      scu: bagSCU,
-      mineral: state.selectedMineral.id
-    });
-  }
-
-  state.holdSCU = Math.max(0, Math.round((state.holdSCU - (fullBags * bagSCU)) * 10) / 10);
-  sfx.playCritical();
-  triggerHaptic(60);
-  cockpitVoice.speak(
-    "Tous les sacs de minage pleins ont été largués dans l'espace.",
-    "All full saddlebags jettisoned into space."
-  );
-
-  updateHoldDisplay();
-  saveSession();
-  showToast(state.currentLang === 'en' ? `${fullBags} saddlebag(s) jettisoned!` : `${fullBags} sac(s) largué(s) dans l'espace !`);
-}
-
-// ==========================================
-// FEATURE: RADAR PING RS 2.0 DECODER (4.10)
-// ==========================================
-function decodeRadarRS(targetRS) {
-  if (!targetRS || isNaN(targetRS) || targetRS <= 0) {
-    renderRadarDecoderResults([]);
-    return [];
-  }
-  const results = [];
-  const multipliers = [1, 2, 4, 8, 16];
-
-  MINING_DATA.minerals.forEach(min => {
-    if (!min.rsBase || min.rsBase <= 0) return;
-    multipliers.forEach(mult => {
-      const expectedRS = min.rsBase * mult;
-      const diff = Math.abs(targetRS - expectedRS);
-      const tolerance = Math.max(expectedRS * 0.08, 150);
-      if (diff <= tolerance) {
-        const accuracy = Math.max(60, Math.round(100 - (diff / expectedRS) * 100));
-        results.push({
-          type: 'mineral',
-          item: min,
-          multiplier: mult,
-          expectedRS: expectedRS,
-          accuracy: accuracy,
-          estimatedMass: mult === 1 ? '2 500 - 6 000' : mult === 2 ? '6 000 - 14 000' : mult === 4 ? '14 000 - 30 000' : '30 000+',
-          targetMass: mult === 1 ? 4800 : mult === 2 ? 9500 : mult === 4 ? 19500 : 32000,
-          archetypeGuess: getArchetypeForMineral(min)
-        });
-      }
-    });
-  });
-
-  if (MINING_DATA.rockArchetypes) {
-    MINING_DATA.rockArchetypes.forEach(arch => {
-      if (!arch.rsBase) return;
-      multipliers.forEach(mult => {
-        const expectedRS = arch.rsBase * mult;
-        const diff = Math.abs(targetRS - expectedRS);
-        const tolerance = Math.max(expectedRS * 0.08, 150);
-        if (diff <= tolerance) {
-          const accuracy = Math.max(60, Math.round(100 - (diff / expectedRS) * 100));
-          results.push({
-            type: 'archetype',
-            item: arch,
-            multiplier: mult,
-            expectedRS: expectedRS,
-            accuracy: accuracy,
-            estimatedMass: mult === 1 ? '2 500 - 6 000' : mult === 2 ? '6 000 - 14 000' : mult === 4 ? '14 000 - 30 000' : '30 000+',
-            targetMass: mult === 1 ? 4800 : mult === 2 ? 9500 : mult === 4 ? 19500 : 32000,
-            archetypeGuess: arch
-          });
-        }
-      });
-    });
-  }
-
-  results.sort((a, b) => b.accuracy - a.accuracy);
-  renderRadarDecoderResults(results);
-  return results;
-}
-
-function getArchetypeForMineral(min) {
-  if (!MINING_DATA.rockArchetypes) return null;
-  if (min.id === 'quantainium' || min.id === 'stileron') {
-    return MINING_DATA.rockArchetypes.find(a => a.id === 'obsidian') || MINING_DATA.rockArchetypes[0];
-  }
-  if (min.id === 'bexalite') {
-    return MINING_DATA.rockArchetypes.find(a => a.id === 'basalt') || MINING_DATA.rockArchetypes[0];
-  }
-  if (min.id === 'riccite') {
-    return MINING_DATA.rockArchetypes.find(a => a.id === 'atacamite') || MINING_DATA.rockArchetypes[0];
-  }
-  return MINING_DATA.rockArchetypes.find(a => a.id === 'granite') || MINING_DATA.rockArchetypes[0];
-}
-
-function renderRadarDecoderResults(results) {
-  if (!DOM.radarMatchesContainer) return;
-  DOM.radarMatchesContainer.innerHTML = '';
-  const locale = getLocale();
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (results.length === 0) {
-    DOM.radarMatchesContainer.innerHTML = `
-      <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.85rem;">
-        ${t.radarNoMatch || "Aucune signature correspondante trouvée. Essayez une valeur proche ou multiple de 1x/2x/4x."}
-      </div>
-    `;
-    return;
-  }
-
-  results.slice(0, 6).forEach((res, idx) => {
-    const card = document.createElement('div');
-    const isMineral = res.type === 'mineral';
-    const isHighPrio = isMineral && (res.item.id === 'quantainium' || res.item.id === 'stileron' || res.item.id === 'riccite' || res.item.id === 'bexalite');
-    card.className = `radar-match-card ${isHighPrio ? 'high-prio' : ''}`;
-
-    const titleName = getLocalized(res.item, 'name');
-    const symbol = res.item.symbol || 'RS';
-    const color = res.item.color || 'var(--accent-cyan)';
-    const archetypeName = res.archetypeGuess ? getLocalized(res.archetypeGuess, 'name') : '';
-
-    card.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div style="width:34px; height:34px; border-radius:6px; background:${color}22; border:1px solid ${color}; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; color:${color}; font-size:0.85rem;">
-          ${symbol}
-        </div>
-        <div>
-          <div style="font-family:var(--font-hud); font-size:0.9rem; color:#fff; display:flex; align-items:center; gap:6px;">
-            <strong>${titleName}</strong>
-            <span style="font-size:0.7rem; background:rgba(0,240,255,0.15); border:1px solid rgba(0,240,255,0.4); color:var(--accent-cyan); padding:1px 5px; border-radius:3px; font-family:var(--font-mono);">x${res.multiplier}</span>
-            <span style="font-size:0.7rem; color:var(--accent-emerald); font-weight:700;">${res.accuracy}% probabilité</span>
-          </div>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-            Masse estimée: ~${res.estimatedMass} kg • ${archetypeName ? `Archétype: ${archetypeName}` : ''}
-          </div>
-        </div>
-      </div>
-      <button class="chip-btn" data-load-radar="${idx}" style="border-color:${color}; color:${color}; font-size:0.75rem; padding:6px 12px; white-space:nowrap;">
-        ${t.radarLoadBtn || "CHARGER DANS LE SCANNER"}
-      </button>
-    `;
-
-    const btnLoad = card.querySelector(`[data-load-radar="${idx}"]`);
-    if (btnLoad) {
-      btnLoad.addEventListener('click', () => {
-        sfx.playSuccess();
-        triggerHaptic(20);
-        if (isMineral) {
-          selectMineral(res.item);
-          if (res.archetypeGuess) selectArchetype(res.archetypeGuess);
-        } else {
-          selectArchetype(res.item);
-        }
-        const targetMass = res.targetMass || (res.multiplier === 1 ? 4800 : res.multiplier === 2 ? 9500 : res.multiplier === 4 ? 19500 : 32000);
-        setMass(targetMass);
-
-        closeModal(DOM.radarDecoderModal);
-        showToast(state.currentLang === 'en' ? `Target ${titleName} (x${res.multiplier}) loaded into scanner!` : `Cible ${titleName} (x${res.multiplier}) chargée dans le scanner !`);
-      });
-    }
-
-    DOM.radarMatchesContainer.appendChild(card);
-  });
-}
-
-function updateVoiceTTSUI() {
-  if (!DOM.btnVoiceTTS || !DOM.voiceTTSLabel) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (state.voiceTTSEnabled) {
-    DOM.voiceTTSLabel.textContent = t.cockpitVoiceOn || 'Voix ON';
-    DOM.btnVoiceTTS.style.borderColor = 'var(--accent-cyan)';
-    DOM.btnVoiceTTS.style.color = 'var(--accent-cyan)';
-  } else {
-    DOM.voiceTTSLabel.textContent = t.cockpitVoiceOff || 'Voix OFF';
-    DOM.btnVoiceTTS.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-    DOM.btnVoiceTTS.style.color = 'var(--text-muted)';
-  }
-}
-
-// ==========================================
-// MOBIGLAS 4.0 TELEMETRY & INTERFACE ENGINE
-// ==========================================
-
-function setLayoutMode(mode, showNotice = false) {
-  state.layoutMode = mode;
-  localStorage.setItem('aaron_mfd_layout_mode', mode);
-  document.documentElement.setAttribute('data-layout', mode);
-  if (document.body) {
-    document.body.setAttribute('data-layout', mode);
-  }
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (DOM.mgLayoutToggleLabel) {
-    DOM.mgLayoutToggleLabel.textContent = mode === 'mobiglas' ? t.layoutToggleToClassic : t.layoutToggleToMobiglas;
-  }
-
-  if (DOM.dockBtnLayout) {
-    const label = DOM.dockBtnLayout.querySelector('.dock-label');
-    if (label) label.textContent = mode === 'mobiglas' ? t.dockLayout : 'MOBIGLAS';
-  }
-
-  if (showNotice) {
-    const msg = mode === 'mobiglas' ? t.toastLayoutSwitchedToMobiglas : t.toastLayoutSwitchedToClassic;
-    showToast(msg);
-    sfx.playBeep(750, 'sine', 0.05);
-    triggerHaptic(20);
-  }
-}
-
-function updateLoreClock() {
-  if (!DOM.mgLoreClock) return;
-  const now = new Date();
-  const year = 2954;
-  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(now.getUTCDate()).padStart(2, '0');
-  const hours = String(now.getUTCHours()).padStart(2, '0');
-  const minutes = String(now.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(now.getUTCSeconds()).padStart(2, '0');
-  DOM.mgLoreClock.textContent = `${year}.${month}.${day} ${hours}:${minutes}:${seconds}`;
-}
-
-function updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, laserDesc) {
-  if (!DOM.arcFractureGaugeWrapper || !DOM.arcPowerFill) return;
-
-  const TOTAL_ARC_LENGTH = 460.8;
-  const pct = Math.round(powerRatio * 100);
-
-  if (DOM.arcPowerPct) {
-    DOM.arcPowerPct.textContent = `${pct}%`;
-  }
-
-  if (DOM.arcPowerSub) {
-    if (powerRatio >= 1.15) {
-      DOM.arcPowerSub.textContent = state.currentLang === 'en' ? 'OPTIMAL SATURATION (SAFE)' : 'SATURATION OPTIMALE (ZONE VERTE)';
-      DOM.arcPowerSub.setAttribute('fill', 'var(--accent-emerald)');
-      if (DOM.arcPowerPct) DOM.arcPowerPct.setAttribute('fill', '#10b981');
-    } else if (powerRatio >= 0.88) {
-      DOM.arcPowerSub.textContent = state.currentLang === 'en' ? 'MARGINAL PENETRATION' : 'PÉNÉTRATION MARGINALE';
-      DOM.arcPowerSub.setAttribute('fill', 'var(--accent-amber)');
-      if (DOM.arcPowerPct) DOM.arcPowerPct.setAttribute('fill', '#f59e0b');
-    } else {
-      DOM.arcPowerSub.textContent = state.currentLang === 'en' ? 'INSUFFICIENT POWER' : 'DÉFICIT ÉNERGÉTIQUE CRITIQUE';
-      DOM.arcPowerSub.setAttribute('fill', 'var(--accent-rose)');
-      if (DOM.arcPowerPct) DOM.arcPowerPct.setAttribute('fill', '#f43f5e');
-    }
-  }
-
-  if (DOM.arcLaserName) {
-    const laserText = laserDesc || (state.selectedShip.id === 'mole' ? `MOLE (${state.moleActiveTurrets} TURRETS)` : state.selectedLaser.name);
-    DOM.arcLaserName.textContent = `${laserText.toUpperCase()} // ${Math.round(totalLaserPower).toLocaleString(getLocale())} W`;
-  }
-
-  // Dynamic arc stroke dashoffset
-  const normalizedRatio = Math.max(0, Math.min(1.5, powerRatio));
-  const offset = TOTAL_ARC_LENGTH * (1 - (normalizedRatio / 1.5));
-  DOM.arcPowerFill.style.strokeDashoffset = offset;
-
-  // Safe window arc positioning
-  if (DOM.arcSafeZone) {
-    const safeStartFraction = 0.88 / 1.5;
-    const safeEndFraction = 1.15 / 1.5;
-    const safeLength = TOTAL_ARC_LENGTH * (safeEndFraction - safeStartFraction);
-    const safeOffset = TOTAL_ARC_LENGTH * (1 - safeStartFraction);
-    DOM.arcSafeZone.setAttribute('stroke-dasharray', `${safeLength.toFixed(1)} ${TOTAL_ARC_LENGTH}`);
-    DOM.arcSafeZone.setAttribute('stroke-dashoffset', `-${(TOTAL_ARC_LENGTH - safeOffset).toFixed(1)}`);
-  }
-
-  // Overcharge danger zone
-  if (DOM.arcDangerZone) {
-    const dangerStartFraction = 1.0 / 1.5;
-    const dangerLength = TOTAL_ARC_LENGTH * (1 - dangerStartFraction);
-    DOM.arcDangerZone.setAttribute('stroke-dasharray', `${dangerLength.toFixed(1)} ${TOTAL_ARC_LENGTH}`);
-    DOM.arcDangerZone.setAttribute('stroke-dashoffset', `-${(TOTAL_ARC_LENGTH * dangerStartFraction).toFixed(1)}`);
-  }
-}
-
-function setShip(shipId) {
-  state.selectedShip = MINING_DATA.ships.find(s => s.id === shipId) || MINING_DATA.ships[0];
-  if (DOM.shipSelect && DOM.shipSelect.value !== state.selectedShip.id) {
-    DOM.shipSelect.value = state.selectedShip.id;
-  }
-  if (DOM.mgShipSelect && DOM.mgShipSelect.value !== state.selectedShip.id) {
-    DOM.mgShipSelect.value = state.selectedShip.id;
-  }
-  if (DOM.loadoutShipSelect && DOM.loadoutShipSelect.value !== state.selectedShip.id) {
-    DOM.loadoutShipSelect.value = state.selectedShip.id;
-  }
-
-  updateLaserOptions();
-  populateSecondaryOreSelect();
-  updateSaddlebagsUI();
-  updateHoldDisplay();
-  calculateAll();
-  broadcastLocalLoadout();
-}
-
-function updateMobiglasHeader(ship, pureSCU, refinedPrice) {
-  if (!DOM.mobiglasSystemHeader) return;
-  const locale = getLocale();
-  if (DOM.mgShipSelect && DOM.mgShipSelect.value !== ship.id) {
-    DOM.mgShipSelect.value = ship.id;
-  }
-  if (DOM.loadoutShipSelect && DOM.loadoutShipSelect.value !== ship.id) {
-    DOM.loadoutShipSelect.value = ship.id;
-  }
-  if (DOM.mgBalanceVal) {
-    let totalRefined = state.sessionLog.reduce((acc, x) => acc + x.refinedVal, 0);
-    if (totalRefined === 0 && refinedPrice) totalRefined = refinedPrice;
-    DOM.mgBalanceVal.textContent = `${totalRefined.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.btnMgLang) {
-    DOM.btnMgLang.textContent = state.currentLang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR';
-  }
-  if (DOM.btnMgAudio) {
-    DOM.btnMgAudio.textContent = state.audioEnabled ? '🔊' : '🔇';
-    DOM.btnMgAudio.style.opacity = state.audioEnabled ? '1' : '0.5';
-  }
-  if (DOM.btnMgVoiceTTS) {
-    DOM.btnMgVoiceTTS.textContent = state.voiceTTSEnabled ? '🎙️ ON' : '🎙️ OFF';
-    DOM.btnMgVoiceTTS.style.color = state.voiceTTSEnabled ? 'var(--accent-emerald)' : 'var(--text-muted)';
-  }
-  if (DOM.dockRefineryBadge) {
-    const count = state.refineryJobs.length;
-    DOM.dockRefineryBadge.style.display = count > 0 ? 'flex' : 'none';
-    DOM.dockRefineryBadge.textContent = count;
-  }
-}
-
-// ==========================================
-// MOBILE & TABLET DUAL-VIEW & LIVE MINI-HUD
-// ==========================================
-
-function setMobileView(view) {
-  state.mobileView = view;
-  if (DOM.mainGrid) {
-    DOM.mainGrid.setAttribute('data-mobile-view', view);
-  }
-  if (DOM.tabBtnScanner && DOM.tabBtnAnalysis) {
-    DOM.tabBtnScanner.classList.toggle('active', view === 'scanner');
-    DOM.tabBtnAnalysis.classList.toggle('active', view === 'analysis');
-    if (DOM.tabBtnMarket) {
-      DOM.tabBtnMarket.classList.toggle('active', view === 'market');
-    }
-  }
-  if (DOM.dockBtnScanner && DOM.dockBtnAnalysis) {
-    DOM.dockBtnScanner.classList.toggle('active', view === 'scanner');
-    DOM.dockBtnAnalysis.classList.toggle('active', view === 'analysis');
-  }
-  if (DOM.mobileLiveSummaryBar) {
-    DOM.mobileLiveSummaryBar.style.display = view === 'scanner' ? 'flex' : 'none';
-  }
-  sfx.playBeep(650, 'sine', 0.03);
-  triggerHaptic(12);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// ==========================================
-// SCAN PANEL INTERNAL SUB-TABS (Compact Ergonomics)
-// ==========================================
-
-function setScanSubtab(tab) {
-  state.activeScanSubtab = tab;
-
-  if (DOM.btnScanSubtabQuick) DOM.btnScanSubtabQuick.classList.toggle('active', tab === 'quick');
-  if (DOM.btnScanSubtabAdvanced) DOM.btnScanSubtabAdvanced.classList.toggle('active', tab === 'advanced');
-  if (DOM.btnScanSubtabHotspots) DOM.btnScanSubtabHotspots.classList.toggle('active', tab === 'hotspots');
-
-  if (DOM.scanSubtabPaneQuick) DOM.scanSubtabPaneQuick.style.display = tab === 'quick' ? 'block' : 'none';
-  if (DOM.scanSubtabPaneAdvanced) DOM.scanSubtabPaneAdvanced.style.display = tab === 'advanced' ? 'block' : 'none';
-  if (DOM.scanSubtabPaneHotspots) DOM.scanSubtabPaneHotspots.style.display = tab === 'hotspots' ? 'block' : 'none';
-
-  sfx.playBeep(680, 'sine', 0.025);
-  triggerHaptic(10);
-}
-
-function updateScanSubtabBadges(arch, mineral) {
-  if (DOM.subtabArchBadge && arch) {
-    DOM.subtabArchBadge.textContent = (arch.name_fr || arch.name || 'GÉO').split(' ')[0].toUpperCase();
-  }
-  if (DOM.subtabOreBadge && mineral) {
-    DOM.subtabOreBadge.textContent = mineral.symbol || 'ORE';
-    DOM.subtabOreBadge.style.color = mineral.color || '#00f0ff';
-    DOM.subtabOreBadge.style.borderColor = mineral.color || 'rgba(0,240,255,0.4)';
-  }
-}
-
-function updateMobileLiveSummary(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
-  const locale = getLocale();
-  const kPrice = refinedPrice >= 1000 ? `${Math.round(refinedPrice / 1000)}k` : `${refinedPrice}`;
-
-  // Determine badge icon & color
-  let icon = '💎';
-  let badgeText = 'EXCELLENT';
-  if (mineral.id === 'quantainium') {
-    if (orePct >= 20 && powerRatio >= 0.88) { icon = '💎'; badgeText = 'QUANT PEAK'; }
-    else if (orePct >= 10) { icon = '💎'; badgeText = 'QUANT BON'; }
-    else { icon = '⚠️'; badgeText = 'QUANT FAIBLE'; }
-  } else if (mineral.id === 'bexalite' || mineral.id === 'taranite') {
-    icon = '🔥';
-    badgeText = orePct >= 15 ? 'HAUT RENDEMENT' : 'MOYEN';
-  } else if (mineral.id === 'hadanite' || mineral.id === 'dolivine' || mineral.id === 'aphorite') {
-    icon = '🌸';
-    badgeText = 'GEMMES ROC';
-  } else {
-    icon = '⚡';
-    badgeText = orePct >= 25 ? 'RENTABLE' : 'FAIBLE';
-  }
-
-  // 1. Mobile tab badge
-  if (DOM.mobileTabVerdictBadge) {
-    DOM.mobileTabVerdictBadge.textContent = `${icon} ~${kPrice}`;
-  }
-
-  // 2. Dock verdict badge
-  if (DOM.dockVerdictBadge) {
-    DOM.dockVerdictBadge.style.display = 'flex';
-    DOM.dockVerdictBadge.textContent = icon;
-  }
-
-  // 3. Mobile Live Summary Bar
-  if (DOM.mlSummaryBadge) {
-    DOM.mlSummaryBadge.textContent = `${icon} ${badgeText}`;
-  }
-  if (DOM.mlSummaryPrice) {
-    DOM.mlSummaryPrice.textContent = `~${refinedPrice.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.mlSummaryLaser) {
-    const pct = Math.round(powerRatio * 100);
-    const laserTag = powerRatio >= 1.15 ? 'OPT' : (powerRatio >= 0.88 ? 'OK' : 'DUR');
-    DOM.mlSummaryLaser.textContent = `⚡ ${pct}% ${laserTag}`;
-    DOM.mlSummaryLaser.style.color = powerRatio >= 1.15 ? 'var(--accent-emerald)' : (powerRatio >= 0.88 ? 'var(--accent-amber)' : 'var(--accent-rose)');
-    DOM.mlSummaryLaser.style.borderColor = powerRatio >= 1.15 ? 'rgba(16, 185, 129, 0.4)' : (powerRatio >= 0.88 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(244, 63, 94, 0.4)');
-  }
-}
-
-// Populate Refinery dropdown
-function populateRefinerySelect() {
-  const currentVal = DOM.refinerySelect.value || state.selectedRefinery.id;
-  DOM.refinerySelect.innerHTML = '';
-  MINING_DATA.refiningMethods.forEach(method => {
-    const opt = document.createElement('option');
-    opt.value = method.id;
-    opt.textContent = `${method.name} (${Math.round(method.yieldRate * 100)}%)`;
-    DOM.refinerySelect.appendChild(opt);
-  });
-  DOM.refinerySelect.value = currentVal;
-
-  DOM.refinerySelect.onchange = (e) => {
-    sfx.playBeep(500, 'sine', 0.04);
-    state.selectedRefinery = MINING_DATA.refiningMethods.find(m => m.id === e.target.value) || state.selectedRefinery;
-    calculateAll();
+// ============================================================================
+// 🛸 AARON MFD — APPLICATION CONTROLLER OFFICIEL
+// Strictement aligné sur les maquettes visuelles AARON MFD & Star Citizen 4.x
+// ============================================================================
+
+import {
+  fleetService,
+  ALL_SHIPS,
+  getShip,
+  totalScu,
+  hardpointsOf,
+  moduleSlotsFor,
+  configState,
+  getLaser,
+  getModule,
+  inventoryService,
+  miningCalc,
+  craftingService,
+  tradeService,
+  uexService,
+  coopService,
+  guildService,
+  authService,
+  salvageService,
+  starmapService,
+  CITIZEN_SPECIALTIES,
+  store,
+  eventBus,
+  EVENTS
+} from './modules/index.js';
+
+import { StarmapCanvasRenderer } from './modules/starmap/starmap-canvas.js';
+import { MINERALS } from './data/game/minerals.js';
+
+// Exposer pour inspection et tests
+if (typeof window !== 'undefined') {
+  window.AaronMFD = window.VerseOps = {
+    fleetService,
+    inventoryService,
+    miningCalc,
+    craftingService,
+    tradeService,
+    uexService,
+    coopService,
+    guildService,
+    authService,
+    store,
+    eventBus
   };
 }
 
-// Helper: Format badge for module type
-function getModuleTypeBadgeInfo(modType, lang) {
-  const t = I18N[lang] || I18N.fr;
-  if (modType === 'active') {
-    return {
-      text: t.moduleTypeActive || (lang === 'fr' ? 'ACTIF' : 'ACTIVE'),
-      style: 'background:rgba(0, 240, 255, 0.18); color:var(--accent-cyan); border:1px solid rgba(0, 240, 255, 0.4);'
-    };
-  }
-  if (modType === 'passive') {
-    return {
-      text: t.moduleTypePassive || (lang === 'fr' ? 'PASSIF' : 'PASSIVE'),
-      style: 'background:rgba(16, 185, 129, 0.18); color:var(--accent-emerald); border:1px solid rgba(16, 185, 129, 0.4);'
-    };
-  }
-  return {
-    text: t.moduleTypeEmpty || (lang === 'fr' ? 'VIDE' : 'EMPTY'),
-    style: 'background:rgba(255, 255, 255, 0.06); color:var(--text-muted); border:1px solid rgba(255, 255, 255, 0.12);'
-  };
-}
-
-// Helper: Render high-tech spec pill strip for mining laser
-function renderLaserStatsStrip(container, laser) {
-  if (!container || !laser) return;
-  container.innerHTML = '';
-  const locale = getLocale();
-
-  // 1. Power
-  const pwrPill = document.createElement('span');
-  pwrPill.className = 'laser-spec-pill spec-power';
-  pwrPill.innerHTML = `⚡ ${laser.power.toLocaleString(locale)} W`;
-  container.appendChild(pwrPill);
-
-  // 2. Slots
-  const slotCount = laser.slots ?? 0;
-  const slotsPill = document.createElement('span');
-  slotsPill.className = 'laser-spec-pill spec-slots';
-  slotsPill.innerHTML = `◈ ${slotCount} ${slotCount > 1 ? 'slots' : 'slot'}`;
-  container.appendChild(slotsPill);
-
-  // 3. Resistance Mod
-  if (laser.resistanceMod !== 0) {
-    const resPill = document.createElement('span');
-    resPill.className = 'laser-spec-pill spec-res';
-    const sign = laser.resistanceMod > 0 ? '+' : '';
-    resPill.innerHTML = `🛡 ${sign}${Math.round(laser.resistanceMod * 100)}% Res`;
-    container.appendChild(resPill);
-  }
-
-  // 4. Instability Mod
-  if (laser.instabilityMod !== 0) {
-    const instPill = document.createElement('span');
-    instPill.className = 'laser-spec-pill spec-inst';
-    const sign = laser.instabilityMod > 0 ? '+' : '';
-    instPill.innerHTML = `🎯 ${sign}${Math.round(laser.instabilityMod * 100)}% Inst`;
-    container.appendChild(instPill);
-  }
-
-  // 5. Optimal Window
-  if (laser.optimalWindowMod && laser.optimalWindowMod !== 0) {
-    const winPill = document.createElement('span');
-    winPill.className = 'laser-spec-pill spec-win';
-    const sign = laser.optimalWindowMod > 0 ? '+' : '';
-    winPill.innerHTML = `◧ ${sign}${Math.round(laser.optimalWindowMod * 100)}% Zone`;
-    container.appendChild(winPill);
+// ============================================================================
+// 1. RETOUR HAPTIQUE TACTILE (AUDIO TOTALEMENT DÉSACTIVÉ / SUPPRIMÉ)
+// ============================================================================
+function triggerHaptic(ms = 10) {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function' && navigator.userActivation?.hasBeenActive) {
+    try { navigator.vibrate(ms); } catch {}
   }
 }
 
-// Helper: Dynamically render module slots according to laser slot capacity
-function renderLaserModuleSlots(container, slotCount, selectedModuleIds, prefix = 'slot') {
+// ============================================================================
+// 2. TOAST NOTIFICATIONS
+// ============================================================================
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
   if (!container) return;
-  container.innerHTML = '';
-  const t = I18N[state.currentLang] || I18N.fr;
 
-  // Ensure selectedModuleIds array has at least slotCount elements
-  while (selectedModuleIds.length < slotCount) {
-    selectedModuleIds.push('none');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(20px)';
+    toast.style.transition = 'all 0.25s ease';
+    setTimeout(() => toast.remove(), 250);
+  }, 3200);
+}
+
+// ============================================================================
+// 3. TIROIR D'INSPECTION (SLIDE-OVER)
+// ============================================================================
+function openInspector(options = {}) {
+  const inspector = document.getElementById('slideOverInspector');
+  if (!inspector) return;
+
+  const titleEl = document.getElementById('inspectorTitle');
+  const subtitleEl = document.getElementById('inspectorSubtitle');
+  const bodyEl = document.getElementById('inspectorBody');
+  const footerEl = document.getElementById('inspectorFooter');
+
+  if (titleEl) titleEl.textContent = options.title || 'Détails';
+  if (subtitleEl) subtitleEl.textContent = options.subtitle || 'VERSE OPS';
+
+  if (bodyEl) {
+    if (typeof options.body === 'string') {
+      bodyEl.innerHTML = options.body;
+    } else if (options.body instanceof HTMLElement) {
+      bodyEl.innerHTML = '';
+      bodyEl.appendChild(options.body);
+    }
   }
 
-  if (slotCount === 0) {
-    const emptyNotice = document.createElement('div');
-    emptyNotice.style.cssText = 'font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:10px 8px; background:rgba(255, 255, 255, 0.02); border-radius:6px; border:1px dashed rgba(255, 255, 255, 0.12); text-align:center;';
-    emptyNotice.textContent = t.noModuleSlotsAvailable || "Aucun emplacement d'accessoire (0 slot) disponible pour cette tête.";
-    container.appendChild(emptyNotice);
+  if (footerEl) {
+    footerEl.innerHTML = options.footer || '';
+  }
+
+  if (options.wide) {
+    inspector.classList.add('wide');
+  } else {
+    inspector.classList.remove('wide');
+  }
+
+  inspector.classList.add('open');
+  inspector.setAttribute('aria-hidden', 'false');
+  triggerHaptic(12);
+}
+
+function closeInspector() {
+  const inspector = document.getElementById('slideOverInspector');
+  if (!inspector) return;
+  inspector.classList.remove('open');
+  inspector.classList.remove('wide');
+  inspector.setAttribute('aria-hidden', 'true');
+}
+
+// ============================================================================
+// 4. ROUTEUR DES 8 ÉCRANS
+// ============================================================================
+let currentActiveApp = 'dashboard';
+
+const APP_MAPPING = {
+  dashboard: 'viewDashboard',
+  fleet: 'viewFleet',
+  inventory: 'viewInventory',
+  mining: 'viewMining',
+  salvage: 'viewSalvage',
+  crafting: 'viewCrafting',
+  trade: 'viewTrade',
+  starmap: 'viewStarmap',
+  fleets: 'viewFleets',
+  guild: 'viewGuild',
+  profile: 'viewProfile'
+};
+
+function setActiveApp(appId) {
+  if (!APP_MAPPING[appId]) return;
+  currentActiveApp = appId;
+
+  // 1. Masquer les vues
+  document.querySelectorAll('.screen-view').forEach(view => {
+    view.classList.remove('active');
+  });
+
+  // 2. Afficher la vue demandée
+  const targetView = document.getElementById(APP_MAPPING[appId]);
+  if (targetView) targetView.classList.add('active');
+
+  // 3. Mettre à jour la sidebar
+  document.querySelectorAll('.sidebar-nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-app') === appId);
+  });
+
+  triggerHaptic(10);
+
+  // 4. Déclencher le rendu de l'écran
+  switch (appId) {
+    case 'fleet':
+      renderFleetHangar();
+      break;
+    case 'inventory':
+      renderInventoryTable();
+      break;
+    case 'mining':
+      renderMiningScreen();
+      break;
+    case 'salvage':
+      renderSalvageScreen();
+      break;
+    case 'crafting':
+      renderCraftingCatalog();
+      break;
+    case 'trade':
+      renderTradeCards();
+      break;
+    case 'starmap':
+      renderStarmapScreen();
+      break;
+    case 'fleets':
+      renderFleetsScreen();
+      break;
+    case 'guild':
+      renderGuildContent();
+      break;
+    case 'profile':
+      renderProfileScreen();
+      break;
+  }
+
+  const workspace = document.getElementById('verseopsWorkspace');
+  if (workspace) workspace.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================================
+// 5. RENDU : FLOTTE & LOADOUTS (COMPOSITION, ÉTAT & CONFIGURATION)
+// Strictement aligné sur FleetScreen.js & ShipConfigScreen.js (AARON MFD)
+// ============================================================================
+let fleetFilters = {
+  search: '',
+  role: 'all' // 'all', 'mining', 'support', 'combat'
+};
+
+let catalogFilters = {
+  search: '',
+  role: 'tous', // 'tous', 'mining', 'cargo'
+  isOpen: false
+};
+
+let editingShipUid = null;
+let activeTurretTab = 0;
+let shipConfigDraft = null;
+
+const ROLE_LABELS = {
+  mining: ['Minage', 'amber', 'gold'],
+  cargo: ['Support', 'green', 'green'],
+  escort: ['Combat', 'red', 'red'],
+  combat: ['Combat', 'red', 'red'],
+  salvage: ['Salvage', 'purple', 'purple'],
+  exploration: ['Exploration', 'blue', 'blue']
+};
+
+/**
+ * Normalisation des accents et de la casse
+ */
+function stripAccents(str) {
+  return (str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * Recherche intelligente de vaisseau par mot ou préfixe de mot.
+ * Évite les faux positifs (ex: "argo" ne doit pas matcher "cargo" dans type_fr).
+ */
+function matchShipSearch(query, ship, nickname = '') {
+  if (!query) return true;
+  const cleanQ = stripAccents(query).trim();
+  const qTokens = cleanQ.split(/\s+/).filter(Boolean);
+  if (qTokens.length === 0) return true;
+
+  const rawText = `${ship.name || ''} ${ship.manufacturer || ''} ${ship.type_fr || ''} ${ship.id || ''} ${nickname || ''} ${ship.role || ''}`;
+  const cleanText = stripAccents(rawText);
+  const allWords = cleanText.split(/[^a-z0-9]+/i).filter(Boolean);
+
+  return qTokens.every(token => {
+    return allWords.some(w => w.startsWith(token));
+  });
+}
+
+/**
+ * Rendu de la grille des vaisseaux possédés dans le hangar
+ */
+function renderFleetHangar() {
+  const grid = document.getElementById('fleetCardsGrid');
+  if (!grid) return;
+
+  const fleet = fleetService.getShips();
+  const totals = fleetService.getFleetTotals();
+
+  // Mettre à jour les totaux en haut de page
+  const headerSubtitle = document.getElementById('fleetHeaderSubtitle');
+  if (headerSubtitle) {
+    headerSubtitle.textContent = `${totals.totalShips} vaisseaux · ${totals.totalCargo.toLocaleString('fr-FR')} SCU au total · ${totals.turrets} têtes/tourelles de minage · ${totals.crewNeeded} postes à pourvoir`;
+  }
+
+  // Mettre à jour les compteurs des filtres
+  const countAll = fleet.length;
+  const countMining = fleet.filter(e => getShip(e.shipId)?.role === 'mining').length;
+  const countSupport = fleet.filter(e => getShip(e.shipId)?.role === 'cargo').length;
+  const countCombat = fleet.filter(e => getShip(e.shipId)?.role === 'escort').length;
+  const countSalvage = fleet.filter(e => getShip(e.shipId)?.role === 'salvage').length;
+  const countExplo = fleet.filter(e => getShip(e.shipId)?.role === 'exploration').length;
+
+  const cAllEl = document.getElementById('countFleetAll');
+  const cMinEl = document.getElementById('countFleetMining');
+  const cSupEl = document.getElementById('countFleetSupport');
+  const cComEl = document.getElementById('countFleetCombat');
+  const cSalEl = document.getElementById('countFleetSalvage');
+  const cExpEl = document.getElementById('countFleetExplo');
+
+  if (cAllEl) cAllEl.textContent = countAll;
+  if (cMinEl) cMinEl.textContent = countMining;
+  if (cSupEl) cSupEl.textContent = countSupport;
+  if (cComEl) cComEl.textContent = countCombat;
+  if (cSalEl) cSalEl.textContent = countSalvage;
+  if (cExpEl) cExpEl.textContent = countExplo;
+
+  // Filtrage des vaisseaux du hangar
+  const filtered = fleet.filter(entry => {
+    const s = getShip(entry.shipId);
+    if (!s) return false;
+
+    // Filtre rôle
+    if (fleetFilters.role !== 'all') {
+      if (fleetFilters.role === 'mining' && s.role !== 'mining') return false;
+      if ((fleetFilters.role === 'support' || fleetFilters.role === 'cargo') && s.role !== 'cargo') return false;
+      if ((fleetFilters.role === 'combat' || fleetFilters.role === 'escort') && s.role !== 'escort') return false;
+      if (fleetFilters.role === 'salvage' && s.role !== 'salvage') return false;
+      if ((fleetFilters.role === 'exploration' || fleetFilters.role === 'explo') && s.role !== 'exploration') return false;
+    }
+
+    // Filtre texte intelligent (par mot / préfixe pour éviter que 'argo' matche 'cargo')
+    if (fleetFilters.search) {
+      if (!matchShipSearch(fleetFilters.search, s, entry.nickname)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-dim); background: var(--bg-card); border-radius: var(--card-radius); border: 1px dashed var(--border-medium);">
+        <p style="font-size: 1.1rem; color: #fff; margin-bottom: 8px;">Aucun vaisseau ne correspond à vos filtres.</p>
+        <p style="font-size: 0.85rem;">Utilisez « + Composer ma flotte » pour enrichir votre hangar depuis le catalogue.</p>
+      </div>
+    `;
     return;
   }
 
-  const titleRow = document.createElement('div');
-  titleRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-top:4px; margin-bottom:6px; font-size:0.75rem; color:var(--accent-cyan); font-family:var(--font-hud);';
-  titleRow.innerHTML = `<span>${(t.laserModuleSlotsSummary || 'Emplacements d\'accessoires ({count}) :').replace('{count}', slotCount)}</span>`;
-  container.appendChild(titleRow);
-
-  for (let i = 0; i < slotCount; i++) {
-    const currentModId = selectedModuleIds[i] || 'none';
-    const currentMod = MINING_DATA.modules.find(m => m.id === currentModId) || MINING_DATA.modules[0];
-
-    const card = document.createElement('div');
-    card.className = `module-slot-card type-${currentMod.type || 'none'}`;
-
-    const header = document.createElement('div');
-    header.className = 'module-slot-header';
-
-    const label = document.createElement('span');
-    label.textContent = (t.moduleSlotLabel || 'ACCESSOIRE #{slot} :').replace('{slot}', i + 1);
-
-    const badgeInfo = getModuleTypeBadgeInfo(currentMod.type, state.currentLang);
-
-    const typeBadge = document.createElement('span');
-    typeBadge.className = 'slot-type-badge';
-    typeBadge.textContent = badgeInfo.text;
-    typeBadge.style.cssText = badgeInfo.style;
-
-    header.appendChild(label);
-    header.appendChild(typeBadge);
-
-    const select = document.createElement('select');
-    select.className = 'hud-select-full';
-    select.dataset.slotIndex = i;
-    select.dataset.slotPrefix = prefix;
-
-    MINING_DATA.modules.forEach(mod => {
-      const opt = document.createElement('option');
-      opt.value = mod.id;
-      const modName = getLocalized(mod, 'name');
-      const modDesc = getLocalized(mod, 'desc');
-      opt.textContent = `${modName} ${modDesc ? '• ' + modDesc : ''}`;
-      select.appendChild(opt);
-    });
-
-    select.value = currentModId;
-
-    const effectDesc = document.createElement('div');
-    effectDesc.className = `module-effect-desc ${currentMod.type === 'active' ? 'active-effect' : (currentMod.type === 'passive' ? 'passive-effect' : '')}`;
-    const descText = getLocalized(currentMod, 'desc');
-    const icon = currentMod.type === 'active' ? '⚡' : (currentMod.type === 'passive' ? '🛡' : '○');
-    effectDesc.innerHTML = `<span>${icon}</span> <span>${descText || (state.currentLang === 'fr' ? 'Emplacement vide' : 'Empty slot')}</span>`;
-
-    select.onchange = (e) => {
-      sfx.playBeep(650, 'sine', 0.03);
-      selectedModuleIds[i] = e.target.value;
-      const selected = MINING_DATA.modules.find(m => m.id === e.target.value) || MINING_DATA.modules[0];
-      const newBadge = getModuleTypeBadgeInfo(selected.type, state.currentLang);
-      typeBadge.textContent = newBadge.text;
-      typeBadge.style.cssText = newBadge.style;
-
-      card.className = `module-slot-card type-${selected.type || 'none'}`;
-      const newDesc = getLocalized(selected, 'desc');
-      const newIcon = selected.type === 'active' ? '⚡' : (selected.type === 'passive' ? '🛡' : '○');
-      effectDesc.className = `module-effect-desc ${selected.type === 'active' ? 'active-effect' : (selected.type === 'passive' ? 'passive-effect' : '')}`;
-      effectDesc.innerHTML = `<span>${newIcon}</span> <span>${newDesc || (state.currentLang === 'fr' ? 'Emplacement vide' : 'Empty slot')}</span>`;
-
-      if (prefix.startsWith('turret_')) {
-        const tIdx = parseInt(prefix.slice(7), 10);
-        updateTurretHeaderSummary(tIdx);
-      } else if (prefix.startsWith('mole_t')) {
-        const tNum = parseInt(prefix.slice(6), 10);
-        if (tNum) updateTurretHeaderSummary(tNum - 1);
-      }
-
-      updateLoadoutButtonSummary();
-      calculateAll();
-      saveLoadout();
-    };
-
-    card.appendChild(header);
-    card.appendChild(select);
-    card.appendChild(effectDesc);
-    container.appendChild(card);
-  }
-}
-
-// Helper: Get or initialize turret configurations for a ship
-function getShipTurretConfigs(shipId) {
-  const ship = MINING_DATA.ships.find(s => s.id === shipId) || MINING_DATA.ships[0];
-  const count = ship.laserSlots || 1;
-  if (!state.turretsByShip[shipId]) {
-    state.turretsByShip[shipId] = [];
-  }
-  const compatible = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
-  const defaultLaserId = compatible[0]?.id || 'arbor_mh1';
-
-  while (state.turretsByShip[shipId].length < count) {
-    state.turretsByShip[shipId].push({
-      laserId: defaultLaserId,
-      moduleIds: ['none', 'none', 'none']
-    });
-  }
-  return state.turretsByShip[shipId].slice(0, count);
-}
-
-// Helper: Metadata (badge, titles, color accents) for turret cards
-function getTurretMetadata(shipId, turretIdx) {
-  const isEn = state.currentLang === 'en';
-  if (shipId === 'prospector') {
-    return {
-      badge: 'T1',
-      badgeClass: 't1-badge',
-      cardClass: 'turret-1-card',
-      title: isEn ? 'PRIMARY MINING HEAD (SIZE 1)' : 'TÊTE DE MINAGE PRINCIPALE (SIZE 1)',
-      subtitle: isEn ? 'Front Gimbal Arm' : 'Bras articulé frontal'
-    };
-  }
-  if (shipId === 'mole') {
-    const metaList = isEn ? [
-      { badge: '◄ T1 ►', title: 'CENTER TURRET 1 (SIZE 2)', sub: 'Primary Center Cockpit' },
-      { badge: '◄ T2', title: 'PORT TURRET 2 / LEFT (SIZE 2)', sub: 'Left Mining Cabin' },
-      { badge: 'T3 ►', title: 'STARBOARD TURRET 3 / RIGHT (SIZE 2)', sub: 'Right Mining Cabin' }
-    ] : [
-      { badge: '◄ T1 ►', title: 'TOURELLE CENTRALE 1 (SIZE 2)', sub: 'Poste opérateur central' },
-      { badge: '◄ T2', title: 'TOURELLE BÂBORD 2 / GAUCHE (SIZE 2)', sub: 'Poste opérateur gauche' },
-      { badge: 'T3 ►', title: 'TOURELLE TRIBORD 3 / DROITE (SIZE 2)', sub: 'Poste opérateur droite' }
-    ];
-    const m = metaList[turretIdx] || metaList[0];
-    const badgeClasses = ['t1-badge', 't2-badge', 't3-badge'];
-    const cardClasses = ['turret-1-card', 'turret-2-card', 'turret-3-card'];
-    return {
-      badge: m.badge,
-      badgeClass: badgeClasses[turretIdx] || 't1-badge',
-      cardClass: cardClasses[turretIdx] || 'turret-1-card',
-      title: m.title,
-      subtitle: m.sub
-    };
-  }
-  if (shipId === 'arrastra') {
-    const metaList = isEn ? [
-      { badge: '◄ T1 ►', title: 'BOW REMOTE TURRET 1 (SIZE 3)', sub: 'Forward Heavy Arm' },
-      { badge: '◄ T2', title: 'PORT REMOTE TURRET 2 (SIZE 3)', sub: 'Port Side Remote Rig' },
-      { badge: 'T3 ►', title: 'STARBOARD REMOTE TURRET 3 (SIZE 3)', sub: 'Starboard Remote Rig' }
-    ] : [
-      { badge: '◄ T1 ►', title: 'TOURELLE PROUE 1 / AVANT (SIZE 3)', sub: 'Bras lourd frontal' },
-      { badge: '◄ T2', title: 'TOURELLE BÂBORD 2 (SIZE 3)', sub: 'Tourelle latérale gauche' },
-      { badge: 'T3 ►', title: 'TOURELLE TRIBORD 3 (SIZE 3)', sub: 'Tourelle latérale droite' }
-    ];
-    const m = metaList[turretIdx] || metaList[0];
-    const badgeClasses = ['t1-badge', 't2-badge', 't3-badge'];
-    const cardClasses = ['turret-1-card', 'turret-2-card', 'turret-3-card'];
-    return {
-      badge: m.badge,
-      badgeClass: badgeClasses[turretIdx] || 't1-badge',
-      cardClass: cardClasses[turretIdx] || 'turret-1-card',
-      title: m.title,
-      subtitle: m.sub
-    };
-  }
-  if (shipId === 'orion') {
-    const metaList = isEn ? [
-      { badge: '◄ T1', title: 'FORWARD HEAVY TURRET 1 (SIZE 3)', sub: 'Main Extraction Rig' },
-      { badge: 'T2 ►', title: 'DORSAL HEAVY TURRET 2 (SIZE 3)', sub: 'Upper Crushing Rig' }
-    ] : [
-      { badge: '◄ T1', title: 'TOURELLE AVANT PRINCIPALE 1 (SIZE 3)', sub: 'Gantry frontal lourd' },
-      { badge: 'T2 ►', title: 'TOURELLE DORSALE SUPÉRIEURE 2 (SIZE 3)', sub: 'Tourelle supérieure' }
-    ];
-    const m = metaList[turretIdx] || metaList[0];
-    const badgeClasses = ['t1-badge', 't2-badge'];
-    const cardClasses = ['turret-1-card', 'turret-2-card'];
-    return {
-      badge: m.badge,
-      badgeClass: badgeClasses[turretIdx] || 't1-badge',
-      cardClass: cardClasses[turretIdx] || 'turret-1-card',
-      title: m.title,
-      subtitle: m.sub
-    };
-  }
-  // ROC / ROC-DS
-  return {
-    badge: 'ARM',
-    badgeClass: 't1-badge',
-    cardClass: 'turret-1-card',
-    title: isEn ? 'EXTRACTION LASER ARM (SIZE 0)' : "BRAS LASER D'EXTRACTION (SIZE 0)",
-    subtitle: isEn ? 'Vehicle Mounted Arm' : 'Bras articulé de véhicule'
-  };
-}
-
-// Helper: Update summary text inside collapsible turret header
-function updateTurretHeaderSummary(turretIdx) {
-  const ship = state.selectedShip;
-  const configs = getShipTurretConfigs(ship.id);
-  const cfg = configs[turretIdx];
-  const summaryEl = document.getElementById(`turretSummary_${turretIdx}`);
-  if (!cfg || !summaryEl) return;
-
-  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
-  const laser = compatibleLasers.find(l => l.id === cfg.laserId) || compatibleLasers[0] || MINING_DATA.lasers[0];
-  const slotCount = laser.slots ?? 0;
-  const activeModsCount = (cfg.moduleIds || []).slice(0, slotCount).filter(m => m !== 'none').length;
-  summaryEl.textContent = `${laser.name} (${activeModsCount}/${slotCount} mods)`;
-}
-
-// Render dynamic turret cards for active ship
-function renderShipTurretsConfig() {
-  if (!DOM.turretCardsContainer) return;
-  DOM.turretCardsContainer.innerHTML = '';
-
-  const ship = state.selectedShip;
-  const configs = getShipTurretConfigs(ship.id);
-  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
-
-  configs.forEach((cfg, idx) => {
-    const meta = getTurretMetadata(ship.id, idx);
-    const currentLaser = compatibleLasers.find(l => l.id === cfg.laserId) || compatibleLasers[0] || MINING_DATA.lasers[0];
-    cfg.laserId = currentLaser.id;
-
-    // Turret card element
-    const card = document.createElement('div');
-    card.className = `turret-config-card ${meta.cardClass}`;
-    card.id = `turretCard_${idx}`;
-
-    // Header with badge, title and collapsible summary
-    const header = document.createElement('div');
-    header.className = 'turret-config-header';
-    header.dataset.turretIdx = idx;
-    header.title = state.currentLang === 'en' ? 'Click to collapse/expand turret' : 'Cliquer pour replier/déplier la tourelle';
-
-    header.innerHTML = `
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="turret-badge-tag ${meta.badgeClass}">${meta.badge}</span>
-        <div style="display:flex; flex-direction:column;">
-          <span style="font-family:var(--font-hud); font-size:0.85rem; font-weight:700; color:#fff;">${meta.title}</span>
-          <span style="font-size:0.68rem; color:var(--text-muted);">${meta.subtitle}</span>
-        </div>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="turret-header-summary" id="turretSummary_${idx}"></span>
-        <span class="turret-collapse-chevron">▼</span>
-      </div>
-    `;
-
-    // Body with laser dropdown, stats strip, and dynamic module slots
-    const body = document.createElement('div');
-    body.className = 'turret-config-body';
-    body.id = `turretBody_${idx}`;
-
-    const select = document.createElement('select');
-    select.className = 'hud-select-full turret-laser-select';
-    select.id = `turretLaser_${idx}`;
-    select.style.marginBottom = '6px';
-
-    compatibleLasers.forEach(l => {
-      const desc = getLocalized(l, 'desc') || '';
-      const slotText = l.slots !== undefined ? `${l.slots} slots` : '0 slots';
-      const craftPrefix = l.isCustomCraft ? '🛠️ [CRAFT] ' : '';
-      const opt = new Option(`${craftPrefix}${l.name} (S${l.size} • ${slotText} • ${l.power} W) - ${desc.slice(0, 30)}...`, l.id);
-      select.appendChild(opt);
-    });
-    select.value = cfg.laserId;
-
-    const statsStrip = document.createElement('div');
-    statsStrip.id = `turretStats_${idx}`;
-    statsStrip.className = 'laser-stats-strip';
-    statsStrip.style.cssText = 'display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;';
-
-    const slotsContainer = document.createElement('div');
-    slotsContainer.id = `turretSlots_${idx}`;
-    slotsContainer.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
-
-    body.appendChild(select);
-    body.appendChild(statsStrip);
-    body.appendChild(slotsContainer);
-
-    card.appendChild(header);
-    card.appendChild(body);
-    DOM.turretCardsContainer.appendChild(card);
-
-    // Initial render of stats and module slots
-    renderLaserStatsStrip(statsStrip, currentLaser);
-    renderLaserModuleSlots(slotsContainer, currentLaser.slots ?? 0, cfg.moduleIds, `turret_${idx}`);
-    updateTurretHeaderSummary(idx);
-
-    // Laser change listener on this turret
-    select.addEventListener('change', (e) => {
-      sfx.playBeep(600, 'sine', 0.04);
-      cfg.laserId = e.target.value;
-      const newL = compatibleLasers.find(l => l.id === e.target.value) || compatibleLasers[0];
-
-      if (idx === 0) {
-        state.selectedLaser = newL;
-      }
-
-      renderLaserStatsStrip(statsStrip, newL);
-      renderLaserModuleSlots(slotsContainer, newL.slots ?? 0, cfg.moduleIds, `turret_${idx}`);
-      updateTurretHeaderSummary(idx);
-      calculateAll();
-      saveLoadout();
-      updateLoadoutButtonSummary();
-    });
-
-    // Toggle collapse on card header click
-    header.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.03);
-      triggerHaptic(12);
-      card.classList.toggle('collapsed');
-      updateToggleAllButtonText();
-    });
-  });
-
-  updateToggleAllButtonText();
-}
-
-// Populate Loadout modal selects
-function populateLoadoutSelects() {
-  updateLaserOptions();
-  populateProfilesDropdown();
-
-  // Gadgets
-  const gadVal = DOM.gadgetSelect ? (DOM.gadgetSelect.value || state.selectedGadget.id) : state.selectedGadget.id;
-  if (DOM.gadgetSelect) {
-    DOM.gadgetSelect.innerHTML = '';
-    MINING_DATA.gadgets.forEach(gad => {
-      const gadName = getLocalized(gad, 'name');
-      const gadDesc = getLocalized(gad, 'desc');
-      const craftPrefix = gad.isCustomCraft ? '🛠️ [CRAFT] ' : '';
-      const opt = new Option(`${craftPrefix}${gadName} ${gadDesc ? '(' + gadDesc + ')' : ''}`, gad.id);
-      DOM.gadgetSelect.appendChild(opt);
-    });
-    DOM.gadgetSelect.value = gadVal;
-  }
-}
-
-function updateLaserOptions() {
-  const ship = state.selectedShip;
-  const isMultiTurret = ship.laserSlots && ship.laserSlots > 1;
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  // Toggle header active turrets bar for multi-turret ships (MOLE, Arrastra, Orion)
-  [DOM.moleTurretBar, DOM.mgMoleTurretBar].forEach(bar => {
-    if (!bar) return;
-    bar.style.display = isMultiTurret ? 'flex' : 'none';
-
-    // Show/hide trio button if ship only has 2 turrets (e.g. Orion)
-    const trioBtn = bar.querySelector('[data-mole-turret="3"]');
-    if (trioBtn) {
-      trioBtn.style.display = ship.laserSlots >= 3 ? 'inline-block' : 'none';
-    }
-  });
-
-  // Clamp active turrets to ship slots
-  if (isMultiTurret) {
-    if (state.moleActiveTurrets > ship.laserSlots) {
-      state.moleActiveTurrets = ship.laserSlots;
-    }
-    document.querySelectorAll('[data-mole-turret]').forEach(btn => {
-      const val = parseInt(btn.dataset.moleTurret, 10);
-      btn.classList.toggle('active', val === state.moleActiveTurrets);
-    });
-  }
-
-  // Update section title & toggle-all button
-  if (DOM.turretsSectionTitle) {
-    DOM.turretsSectionTitle.textContent = isMultiTurret
-      ? (state.currentLang === 'en' ? `${ship.laserSlots} TURRETS CONFIGURATION (${ship.name})` : `CONFIGURATION DES ${ship.laserSlots} TOURELLES (${ship.name})`)
-      : (state.currentLang === 'en' ? `MINING HEAD CONFIGURATION (${ship.name})` : `CONFIGURATION DE LA TÊTE DE MINAGE (${ship.name})`);
-  }
-  if (DOM.btnToggleAllTurrets) {
-    DOM.btnToggleAllTurrets.style.display = isMultiTurret ? 'inline-block' : 'none';
-  }
-
-  // Compatible lasers for active ship size
-  const compatibleLasers = MINING_DATA.lasers.filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
-
-  // Synchronize primary turret
-  const turrets = getShipTurretConfigs(ship.id);
-  const primaryLaser = compatibleLasers.find(l => l.id === turrets[0].laserId) || compatibleLasers[0] || MINING_DATA.lasers[0];
-  state.selectedLaser = primaryLaser;
-  turrets[0].laserId = primaryLaser.id;
-  state.selectedModules = turrets[0].moduleIds;
-
-  if (DOM.laserSectionLabel) {
-    DOM.laserSectionLabel.textContent = isMultiTurret
-      ? (state.currentLang === 'en' ? `SIZE ${ship.laserSize} MINING LASER (PRIMARY TURRET 1)` : `TÊTE DE MINAGE SIZE ${ship.laserSize} (TOURELLE PRINCIPALE 1)`)
-      : (t.miningLaser || "TÊTE DE MINAGE (LASER)");
-  }
-
-  // Render unified dynamic turret cards
-  renderShipTurretsConfig();
-
-  updateLoadoutButtonSummary();
-}
-
-function updateLoadoutButtonSummary() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const ship = state.selectedShip;
-  if (ship.laserSlots && ship.laserSlots > 1) {
-    const activeCount = Math.min(state.moleActiveTurrets || 1, ship.laserSlots);
-    const shipName = ship.name.split(' ').pop();
-    DOM.loadoutSummary.textContent = `${shipName}: ${activeCount}/${ship.laserSlots} ${t.turretsActive || 'Tourelles'}`;
-  } else {
-    const slotCount = state.selectedLaser.slots ?? 0;
-    const activeModsCount = (state.selectedModules || []).slice(0, slotCount).filter(m => m !== 'none').length;
-    const modsSummary = slotCount > 0 ? ` (${activeModsCount}/${slotCount} mods)` : '';
-    DOM.loadoutSummary.textContent = `${state.selectedLaser.name}${modsSummary}`;
-  }
-}
-
-// ==========================================
-// CORE CALCULATION ENGINE
-// ==========================================
-function calculateAll() {
-  const mass = state.rockMass;
-  const orePct = state.orePercentage;
-  const mineral = state.selectedMineral;
-  const ship = state.selectedShip;
-  const laser = state.selectedLaser;
-  const mod1 = state.selectedModule1;
-  const mod2 = state.selectedModule2;
-  const gadget = state.selectedGadget;
-  const refinery = state.selectedRefinery;
-  const locale = getLocale();
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  // 1. Calculate SCU of Pure Ore (Multi-Ore 4.10)
-  const oreMass1 = mass * (orePct / 100);
-  const densityDivisor1 = (mineral.density || 15) * 85; 
-  let pureSCU1 = oreMass1 / densityDivisor1;
-  if (mineral.id === 'hadanite' || mineral.id === 'dolivine' || mineral.id === 'aphorite') {
-    pureSCU1 = (mass * (orePct / 100)) / 1000;
-  }
-
-  let pureSCU2 = 0;
-  let rawPrice2 = 0;
-  let refinedPrice2 = 0;
-  const sMin = state.secondaryMineral;
-  const sPct = sMin ? state.secondaryPercentage : 0;
-
-  if (sMin) {
-    const oreMass2 = mass * (sPct / 100);
-    const densityDivisor2 = (sMin.density || 15) * 85;
-    pureSCU2 = oreMass2 / densityDivisor2;
-    if (sMin.id === 'hadanite' || sMin.id === 'dolivine' || sMin.id === 'aphorite') {
-      pureSCU2 = (mass * (sPct / 100)) / 1000;
-    }
-    rawPrice2 = Math.round(pureSCU2 * 100 * sMin.rawPrice);
-    const refinedYield2 = pureSCU2 * refinery.yieldRate;
-    const refineCost2 = Math.round(pureSCU2 * 100 * refinery.costFactor * 12);
-    refinedPrice2 = Math.max(0, Math.round((refinedYield2 * 100 * sMin.refinedPrice) - refineCost2));
-  }
-
-  let pureSCU = Math.max(0.1, Math.round((pureSCU1 + pureSCU2) * 10) / 10);
-  const cargoPct = Math.round((pureSCU / ship.scu) * 100);
-
-  // 2. Pricing (Combined)
-  const rawPrice1 = Math.round(pureSCU1 * 100 * mineral.rawPrice);
-  const rawPrice = rawPrice1 + rawPrice2;
-
-  const refinedYield1 = pureSCU1 * refinery.yieldRate;
-  const refineCost1 = Math.round(pureSCU1 * 100 * refinery.costFactor * 12);
-  const refinedPrice1 = Math.max(0, Math.round((refinedYield1 * 100 * mineral.refinedPrice) - refineCost1));
-  const refinedPrice = refinedPrice1 + refinedPrice2;
-
-  // Composition and Inerts gauge
-  const inertPct = Math.max(0, Math.round((100 - orePct - sPct) * 10) / 10);
-  if (DOM.inertPctLabel) DOM.inertPctLabel.textContent = `${inertPct.toFixed(1)} %`;
-  if (DOM.compBarPrimary) DOM.compBarPrimary.style.width = `${Math.min(100, orePct)}%`;
-  if (DOM.compBarSecondary) {
-    DOM.compBarSecondary.style.width = `${Math.min(100, sPct)}%`;
-    DOM.compBarSecondary.style.background = sMin ? sMin.color : 'transparent';
-  }
-  if (DOM.compBarInert) DOM.compBarInert.style.width = `${Math.min(100, inertPct)}%`;
-  if (DOM.compLegendPrimary) DOM.compLegendPrimary.textContent = `● ${mineral.symbol}: ${orePct.toFixed(1)}%`;
-  if (DOM.compLegendSecondary) {
-    if (sMin) {
-      DOM.compLegendSecondary.style.display = 'inline';
-      DOM.compLegendSecondary.textContent = `● ${sMin.symbol}: ${sPct.toFixed(1)}%`;
-      DOM.compLegendSecondary.style.color = sMin.color;
-    } else {
-      DOM.compLegendSecondary.style.display = 'none';
-    }
-  }
-  if (DOM.compLegendInert) DOM.compLegendInert.textContent = `● Inertes: ${inertPct.toFixed(1)}%`;
-
-  // 3. Laser Fracture Feasibility (Single Laser vs Multi-Turret MOLE / Arrastra / Orion)
-  let totalLaserPower = 0;
-  let combinedResistanceMod = 0;
-  let combinedInstabilityMod = 0;
-  let activeLaserDescList = [];
-
-  const isMultiTurret = ship.laserSlots && ship.laserSlots > 1;
-
-  if (isMultiTurret) {
-    const activeCount = Math.min(state.moleActiveTurrets || 1, ship.laserSlots);
-    const shipTurrets = getShipTurretConfigs(ship.id);
-
-    for (let i = 0; i < activeCount; i++) {
-      const item = shipTurrets[i];
-      if (!item) continue;
-      const l = MINING_DATA.lasers.find(x => x.id === item.laserId && (x.size === ship.laserSize || (ship.laserSize === 0 && x.size === 0)))
-             || MINING_DATA.lasers.find(x => x.size === ship.laserSize)
-             || MINING_DATA.lasers[0];
-      const slotCount = l.slots !== undefined ? l.slots : 2;
-      const turretMods = (item.moduleIds || []).slice(0, slotCount).map(id => MINING_DATA.modules.find(m => m.id === id) || MINING_DATA.modules[0]);
-
-      const turretPwrMod = turretMods.reduce((sum, m) => sum + (m.powerMod || 0), 0);
-      const turretResMod = turretMods.reduce((sum, m) => sum + (m.resMod || 0), 0);
-      const turretInstMod = turretMods.reduce((sum, m) => sum + (m.instMod || 0), 0);
-
-      const pwr = l.power * (1 + turretPwrMod);
-      totalLaserPower += pwr;
-      activeLaserDescList.push(`${l.name}`);
-
-      // Combined laser and module debuffs
-      const effectiveLaserRes = l.resistanceMod + turretResMod;
-      const effectiveLaserInst = l.instabilityMod + turretInstMod;
-
-      if (effectiveLaserRes < combinedResistanceMod) combinedResistanceMod = effectiveLaserRes;
-      if (effectiveLaserInst < combinedInstabilityMod) combinedInstabilityMod = effectiveLaserInst;
-    }
-  } else {
-    // Single laser (Prospector, ROC, ROC-DS)
-    const turrets = getShipTurretConfigs(ship.id);
-    const cfg = turrets[0];
-    const laserObj = (cfg && MINING_DATA.lasers.find(x => x.id === cfg.laserId)) || laser;
-    const slotCount = laserObj.slots !== undefined ? laserObj.slots : 0;
-    const moduleList = cfg ? cfg.moduleIds : state.selectedModules;
-    const equippedMods = (moduleList || []).slice(0, slotCount).map(id => MINING_DATA.modules.find(m => m.id === id) || MINING_DATA.modules[0]);
-
-    const totalPwrMod = equippedMods.reduce((sum, m) => sum + (m.powerMod || 0), 0);
-    const totalModRes = equippedMods.reduce((sum, m) => sum + (m.resMod || 0), 0);
-    const totalModInst = equippedMods.reduce((sum, m) => sum + (m.instMod || 0), 0);
-
-    totalLaserPower = laserObj.power * (1 + totalPwrMod);
-    combinedResistanceMod = laserObj.resistanceMod + totalModRes;
-    combinedInstabilityMod = laserObj.instabilityMod + totalModInst;
-    activeLaserDescList.push(laserObj.name);
-  }
-
-  // Combined Fleet & Squad Wingmen
-  let activeWingmenCount = 0;
-  let fleetCargoSCU = ship.scu;
-  const allShips = [...MINING_DATA.ships, ...(MINING_DATA.supportShips || [])];
-
-  if (Array.isArray(state.squadMembers) && state.squadMembers.length > 0) {
-    state.squadMembers.forEach(m => {
-      const wShip = allShips.find(s => s.id === m.shipId);
-      if (wShip) fleetCargoSCU += (wShip.scu || 0);
-
-      if (m.active && (m.laserId || m.customLaserStats)) {
-        const wLaser = m.customLaserStats || MINING_DATA.lasers.find(l => l.id === m.laserId);
-        if (wLaser) {
-          totalLaserPower += (wLaser.power || 0);
-          activeWingmenCount++;
-          activeLaserDescList.push(`${m.name || 'Équipier'} (${wLaser.name})`);
-
-          // Apply combined resistance and instability reduction
-          if (wLaser.resistanceMod && wLaser.resistanceMod < 0) {
-            combinedResistanceMod = Math.max(-0.90, combinedResistanceMod + (wLaser.resistanceMod * 0.75));
-          }
-          if (wLaser.instabilityMod && wLaser.instabilityMod < combinedInstabilityMod) {
-            combinedInstabilityMod = Math.max(-0.95, combinedInstabilityMod + (wLaser.instabilityMod * 0.5));
-          }
-        }
-      }
-    });
-  }
-
-  const effectiveResistance = Math.max(0, state.resistance * (1 + combinedResistanceMod + gadget.resMod));
-  const effectiveInstability = Math.max(0, state.instability * (1 + combinedInstabilityMod + gadget.instMod));
-
-  // Power requirement formula based on mass and resistance
-  const requiredPower = (mass * 0.32) * (1 + (effectiveResistance / 100));
-  const powerRatio = totalLaserPower / Math.max(1, requiredPower);
-
-  // 4. Update UI Outputs
-  DOM.metricSCU.textContent = `${pureSCU.toFixed(1)} SCU`;
-  if (state.squadMembers && state.squadMembers.length > 0) {
-    const fleetCargoPct = Math.min(100, Math.round((pureSCU / Math.max(1, fleetCargoSCU)) * 100));
-    DOM.metricCargoPct.textContent = `Soit ~${fleetCargoPct}% de la flotte (${fleetCargoSCU} SCU)`;
-  } else {
-    DOM.metricCargoPct.textContent = t.cargoShare.replace('{pct}', cargoPct).replace('{scu}', ship.scu);
-  }
-  DOM.metricRawPrice.textContent = `${rawPrice.toLocaleString(locale)} aUEC`;
-  DOM.metricRefinedPrice.textContent = `${refinedPrice.toLocaleString(locale)} aUEC`;
-  DOM.refinerySummaryNote.textContent = `${refinery.name} • ` + t.refineryDeducted.replace('{rate}', Math.round(refinery.yieldRate * 100));
-
-  // Fracture status display
-  const powerBarWidth = Math.min(100, Math.round(powerRatio * 75));
-  DOM.powerBarFill.style.width = `${powerBarWidth}%`;
-
-  if (powerRatio >= 1.15) {
-    DOM.fractureBadge.className = 'fracture-badge badge-pass';
-    DOM.fractureBadge.textContent = t.fractureEasy;
-    DOM.powerBarFill.style.background = 'linear-gradient(90deg, #10b981, #00f0ff)';
-    if (activeWingmenCount > 0) {
-      const countTotal = (ship.id === 'mole' ? state.moleActiveTurrets : 1) + activeWingmenCount;
-      DOM.fractureAdvice.textContent = t.squadAdviceMulti
-        .replace('{count}', countTotal)
-        .replace('{pwr}', totalLaserPower.toLocaleString(locale))
-        .replace('{lasers}', activeLaserDescList.join(' + '))
-        .replace('{status}', t.fractureEasy);
-    } else if (ship.id === 'mole') {
-      DOM.fractureAdvice.textContent = t.moleEnough
-        .replace('{active}', state.moleActiveTurrets)
-        .replace('{pwr}', totalLaserPower.toLocaleString(locale))
-        .replace('{lasers}', activeLaserDescList.join(' + '));
-    } else {
-      DOM.fractureAdvice.textContent = t.soloEnough.replace('{pct}', Math.round((powerRatio - 1) * 100));
-    }
-  } else if (powerRatio >= 0.88) {
-    DOM.fractureBadge.className = 'fracture-badge badge-pass';
-    DOM.fractureBadge.textContent = t.fracturePossible;
-    DOM.powerBarFill.style.background = 'linear-gradient(90deg, #f59e0b, #eab308)';
-    if (activeWingmenCount > 0) {
-      const countTotal = (ship.id === 'mole' ? state.moleActiveTurrets : 1) + activeWingmenCount;
-      DOM.fractureAdvice.textContent = t.squadAdviceMulti
-        .replace('{count}', countTotal)
-        .replace('{pwr}', totalLaserPower.toLocaleString(locale))
-        .replace('{lasers}', activeLaserDescList.join(' + '))
-        .replace('{status}', t.fracturePossible);
-    } else if (ship.id === 'mole') {
-      DOM.fractureAdvice.textContent = t.moleDuoWeak
-        .replace('{pwr}', totalLaserPower.toLocaleString(locale));
-    } else {
-      DOM.fractureAdvice.textContent = t.soloSlight;
-    }
-  } else {
-    DOM.fractureBadge.className = 'fracture-badge badge-fail';
-    DOM.fractureBadge.textContent = t.fractureTooHard;
-    DOM.powerBarFill.style.background = 'linear-gradient(90deg, #f43f5e, #ef4444)';
-    if (activeWingmenCount > 0) {
-      const countTotal = (ship.id === 'mole' ? state.moleActiveTurrets : 1) + activeWingmenCount;
-      DOM.fractureAdvice.textContent = t.squadAdviceMulti
-        .replace('{count}', countTotal)
-        .replace('{pwr}', totalLaserPower.toLocaleString(locale))
-        .replace('{lasers}', activeLaserDescList.join(' + '))
-        .replace('{status}', t.fractureTooHard);
-    } else if (ship.id === 'mole') {
-      if (state.moleActiveTurrets === 1) {
-        DOM.fractureAdvice.textContent = t.moleSoloWeak.replace('{pwr}', totalLaserPower.toLocaleString(locale));
-      } else if (state.moleActiveTurrets === 2) {
-        DOM.fractureAdvice.textContent = t.moleDuoWeak.replace('{pwr}', totalLaserPower.toLocaleString(locale));
-      } else {
-        DOM.fractureAdvice.textContent = t.moleTrioWeak.replace('{pwr}', totalLaserPower.toLocaleString(locale));
-      }
-    } else {
-      DOM.fractureAdvice.textContent = t.soloDeficit.replace('{pct}', Math.round((1 - powerRatio) * 100));
-    }
-  }
-
-  // 5. Station de raffinage recommandée
-  updateRecommendedStation(mineral);
-
-  // 6. Verdict evaluation
-  determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio);
-
-  // 7. Smart Gadget & Module Tactical Advisor
-  updateGadgetAdvice(powerRatio, totalLaserPower, requiredPower);
-
-  // 8. ROC Gem Cluster Calculator
-  updateRocCluster();
-
-  // 9. mobiGlas 4.0 Telemetry, Arc Gauge & Mobile Live Summary
-  updateArcFractureGauge(powerRatio, totalLaserPower, requiredPower, activeLaserDescList.join(' + '));
-  updateMobiglasHeader(ship, pureSCU, refinedPrice);
-  updateMobileLiveSummary(mineral, orePct, pureSCU, refinedPrice, powerRatio);
-
-  // 10. Squad & Fleet Telemetry Display
-  updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU, combinedResistanceMod);
-
-  // 11. Cockpit MFD Telemetry Extensions (High-density telemetry)
-  updateWhereToMineBox(mineral);
-  updateOptimalLoadoutAdvisor(mass, effectiveResistance, effectiveInstability, totalLaserPower, ship, mineral, powerRatio);
-  updateStationPriceComparison(mineral, pureSCU, refinedPrice, rawPrice);
-  updateScanSubtabBadges(state.selectedArchetype, mineral);
-  triggerAutoBroadcastDebounced();
-}
-
-// ==========================================================================
-// COCKPIT MFD HUD EXTENSIONS (High-density Cockpit MFD features)
-// ==========================================================================
-
-function updateWhereToMineBox(mineral) {
-  if (!DOM.whereToMineCard || !DOM.wtmSpotsList || !DOM.wtmMineralBadge) return;
-  const isEn = state.currentLang === 'en';
-  const minName = getLocalized(mineral, 'name');
-  DOM.wtmMineralBadge.textContent = minName.toUpperCase();
-  DOM.wtmMineralBadge.style.color = mineral.color || '#00f0ff';
-  DOM.wtmMineralBadge.style.borderColor = mineral.color || 'rgba(0,240,255,0.4)';
-
-  const allHotspots = MINING_DATA.miningHotspots || [];
-  // Find hotspots that explicitly mention this mineral
-  let matchingHotspots = allHotspots.filter(h => {
-    const ores = (h.primaryOres || '').toLowerCase();
-    const desc = (h.desc_fr || '').toLowerCase() + ' ' + (h.desc_en || '').toLowerCase();
-    const mId = mineral.id.toLowerCase();
-    const mName = minName.toLowerCase();
-    return ores.includes(mId) || ores.includes(mName) || desc.includes(mId) || desc.includes(mName);
-  });
-
-  if (matchingHotspots.length === 0) {
-    matchingHotspots = allHotspots.slice(0, 3);
-  } else {
-    matchingHotspots = matchingHotspots.slice(0, 4);
-  }
-
-  DOM.wtmSpotsList.innerHTML = matchingHotspots.map(h => {
-    const spotName = isEn ? (h.name_en || h.name_fr) : h.name_fr;
-    const spotType = isEn ? (h.type_en || h.type_fr) : h.type_fr;
-    const sysUpper = (h.system || 'Stanton').toUpperCase();
-    const refHub = h.refineryHub || 'ARC-L1';
+  grid.innerHTML = filtered.map(entry => {
+    const s = getShip(entry.shipId);
+    const [roleLabel, roleBadge, glowColor] = ROLE_LABELS[s.role] || ['Support', 'cyan', 'green'];
+    const st = configState(entry, s);
+    const isAct = Boolean(entry.active);
+    const turrets = entry.config?.turrets || [];
 
     return `
-      <div class="wtm-spot-item">
-        <div>
-          <div class="wtm-spot-name">${spotName}</div>
-          <div class="wtm-spot-env">📍 ${spotType} • Hub: ${refHub}</div>
+      <div class="ship-card ${isAct ? 'active-ship' : ''}" data-ship-uid="${entry.uid}">
+        <div class="ship-preview-glow ${glowColor}">
+          <svg class="ship-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L10 8L3 13L3 15L10 13L10 18L7 20L7 22L12 20.5L17 22L17 20L14 18L14 13L21 15L21 13L14 8Z"/>
+          </svg>
         </div>
-        <div class="wtm-spot-system">${sysUpper}</div>
-      </div>
-    `;
-  }).join('');
-}
 
-function computeOptimalLoadout(mode = 'solo', mass, baseResistance, baseInstability, ship) {
-  const compatibleLasers = [
-    ...MINING_DATA.lasers,
-    ...(state.customLasers || [])
-  ].filter(l => l.size === ship.laserSize || (ship.laserSize === 0 && l.size === 0));
-
-  const candidateModules = MINING_DATA.modules.filter(m => m.id !== 'none');
-  const candidateGadgets = [
-    ...MINING_DATA.gadgets,
-    ...(state.customGadgets || [])
-  ].filter(g => g.id !== 'none');
-
-  const maxSlots = ship.moduleSlots || 0;
-
-  let bestLaser = compatibleLasers[0] || MINING_DATA.lasers[0];
-  let bestModules = [];
-  let bestGadget = null;
-  let bestScore = -Infinity;
-  let bestRatio = 0;
-  let bestReqW = 1;
-  let bestTotW = 0;
-  let bestEffRes = baseResistance;
-  let bestEffInst = baseInstability;
-
-  for (const laser of compatibleLasers) {
-    const gadgetsToTest = [null, ...candidateGadgets];
-    for (const gadget of gadgetsToTest) {
-      const moduleSets = [];
-      if (maxSlots === 0) {
-        moduleSets.push([]);
-      } else if (maxSlots === 1) {
-        moduleSets.push([]);
-        candidateModules.forEach(m => moduleSets.push([m]));
-      } else if (maxSlots === 2) {
-        moduleSets.push([]);
-        candidateModules.forEach(m => moduleSets.push([m]));
-        const surge = candidateModules.find(m => m.id === 'surge');
-        const focus = candidateModules.find(m => m.id === 'focus_3');
-        const rieger = candidateModules.find(m => m.id === 'rieger_c3');
-        const brandt = candidateModules.find(m => m.id === 'brandt');
-        if (focus && surge) moduleSets.push([focus, surge]);
-        if (rieger && surge) moduleSets.push([rieger, surge]);
-        if (focus && brandt) moduleSets.push([focus, brandt]);
-      } else {
-        moduleSets.push([]);
-        candidateModules.forEach(m => moduleSets.push([m]));
-        const surge = candidateModules.find(m => m.id === 'surge');
-        const focus = candidateModules.find(m => m.id === 'focus_3');
-        const rieger = candidateModules.find(m => m.id === 'rieger_c3');
-        const brandt = candidateModules.find(m => m.id === 'brandt');
-        if (focus && surge && rieger) moduleSets.push([focus, surge, rieger]);
-        if (focus && brandt && surge) moduleSets.push([focus, brandt, surge]);
-      }
-
-      for (const mSet of moduleSets) {
-        const modResMod = mSet.reduce((acc, m) => acc + (m.resMod || 0), 0);
-        const modInstMod = mSet.reduce((acc, m) => acc + (m.instMod || 0), 0);
-        const modPwrMod = mSet.reduce((acc, m) => acc + (m.powerMod || 0), 0);
-
-        const gadResMod = gadget ? (gadget.resMod || 0) : 0;
-        const gadInstMod = gadget ? (gadget.instMod || 0) : 0;
-
-        const effRes = Math.max(0, baseResistance * (1 + (laser.resistanceMod || 0) + gadResMod + modResMod));
-        const effInst = Math.max(0, baseInstability * (1 + (laser.instabilityMod || 0) + gadInstMod + modInstMod));
-
-        const reqW = (mass * 0.32) * (1 + (effRes / 100));
-        const totW = (laser.power || 0) * (1 + modPwrMod);
-        const ratio = totW / Math.max(1, reqW);
-
-        let score = 0;
-        if (ratio >= 1.05) {
-          score = 1000 - Math.abs(ratio - 1.25) * 80 - effInst * 1.5;
-        } else {
-          score = ratio * 600 - effInst * 2;
-        }
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestLaser = laser;
-          bestModules = mSet;
-          bestGadget = gadget;
-          bestRatio = ratio;
-          bestReqW = reqW;
-          bestTotW = totW;
-          bestEffRes = effRes;
-          bestEffInst = effInst;
-        }
-      }
-    }
-  }
-
-  return {
-    mode,
-    laser: bestLaser,
-    modules: bestModules,
-    gadget: bestGadget,
-    powerRatio: bestRatio,
-    requiredPower: Math.round(bestReqW),
-    totalPower: Math.round(bestTotW),
-    effectiveResistance: Math.round(bestEffRes),
-    effectiveInstability: Math.round(bestEffInst)
-  };
-}
-
-function updateOptimalLoadoutAdvisor(mass, effResistance, effInstability, totalLaserPower, ship, mineral, powerRatio) {
-  if (!DOM.optimalLoadoutCard || !DOM.olcBody || !DOM.olcFeasibilityTag) return;
-  const isEn = state.currentLang === 'en';
-  const locale = getLocale();
-  const mode = state.optimalLoadoutTab || 'solo';
-
-  const rec = computeOptimalLoadout(mode, mass, state.resistance, state.instability, ship);
-  state.lastOptimalRecommendation = rec;
-
-  let tagClass = 'optimal';
-  let tagText = isEn ? 'OPTIMAL' : 'OPTIMAL';
-
-  if (mode === 'wing') {
-    tagClass = 'wing';
-    tagText = isEn ? 'WING COORD' : 'COORDINATION ESCADRE';
-  } else if (rec.powerRatio >= 1.05) {
-    tagClass = 'optimal';
-    tagText = isEn ? 'FRACTURE READY' : 'PRÊT À FRACTURER';
-  } else if (rec.powerRatio >= 0.85) {
-    tagClass = 'warning';
-    tagText = isEn ? 'BORDERLINE' : 'LIMITE';
-  } else {
-    tagClass = 'danger';
-    tagText = isEn ? 'WING REQUIRED' : 'ESCADRE REQUISE';
-  }
-
-  DOM.olcFeasibilityTag.className = `olc-feasibility-tag ${tagClass}`;
-  DOM.olcFeasibilityTag.textContent = tagText;
-
-  const laserName = rec.laser.name;
-  const modulesDesc = rec.modules.length > 0 
-    ? rec.modules.map(m => getLocalized(m, 'name')).join(' + ')
-    : (isEn ? 'None (Raw Head)' : 'Aucun (Tête brute)');
-  const gadgetDesc = rec.gadget 
-    ? getLocalized(rec.gadget, 'name')
-    : (isEn ? 'Optional / None' : 'Optionnel / Aucun');
-
-  let html = `
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px; font-size:0.75rem;">
-      <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px; border-left:2px solid var(--accent-cyan);">
-        <div style="font-size:0.65rem; color:var(--text-muted); font-family:var(--font-hud);">${isEn ? 'RECOMMENDED HEAD' : 'TÊTE CONSEILLÉE'}</div>
-        <div style="font-weight:700; color:var(--text-bright);">${laserName}</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px; border-left:2px solid var(--accent-amber);">
-        <div style="font-size:0.65rem; color:var(--text-muted); font-family:var(--font-hud);">${isEn ? 'SURFACE GADGET' : 'GADGET DE SURFACE'}</div>
-        <div style="font-weight:700; color:var(--text-bright);">${gadgetDesc}</div>
-      </div>
-    </div>
-    <div style="background:rgba(255,255,255,0.03); padding:6px; border-radius:4px; border-left:2px solid var(--accent-emerald); font-size:0.75rem; margin-bottom:6px;">
-      <div style="font-size:0.65rem; color:var(--text-muted); font-family:var(--font-hud);">${isEn ? 'OPTIMAL SUB-MODULES' : 'SOUS-MODULES CONSEILLÉS'}</div>
-      <div style="font-weight:600; color:var(--accent-emerald);">${modulesDesc}</div>
-    </div>
-    <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-dim); font-family:var(--font-mono);">
-      <span>${isEn ? 'Req. Wattage:' : 'Puissance requise :'} <strong style="color:var(--text-bright);">${rec.requiredPower.toLocaleString(locale)} W</strong></span>
-      <span>${isEn ? 'Projected Power:' : 'Puissance projetée :'} <strong style="color:${rec.powerRatio >= 1.05 ? 'var(--accent-emerald)' : 'var(--accent-amber)'};">${rec.totalPower.toLocaleString(locale)} W (${(rec.powerRatio * 100).toFixed(0)}%)</strong></span>
-    </div>
-  `;
-
-  if (mode === 'wing') {
-    const minTurrets = Math.max(2, Math.ceil(rec.requiredPower / 4200));
-    html += `
-      <div style="margin-top:6px; padding:6px; background:rgba(0,240,255,0.06); border:1px solid rgba(0,240,255,0.2); border-radius:4px; font-size:0.72rem;">
-        <div style="font-weight:700; color:var(--accent-cyan); margin-bottom:2px;">👥 ${isEn ? 'TACTICAL SQUAD FORMATION' : 'FORMATION ESCADRE TACTIQUE'} (${minTurrets} ${isEn ? 'Turrets/Ships Min.' : 'Tourelles/Vaisseaux Min.'})</div>
-        <div style="color:var(--text-bright); line-height:1.3;">
-          • <strong>Pilote 1 (Support) :</strong> Lancet S2/S1 + Sabir 21 (-50% rés.)<br>
-          • <strong>Pilote 2 (Saturation) :</strong> Helix II/I + Surge (+35% charge)<br>
-          • <strong>Pilote 3 (Maintien) :</strong> Arbor / Impact + Focus III (Zone verte)
+        <div class="ship-card-header-row">
+          <div class="ship-card-title">${entry.nickname}</div>
+          ${isAct
+            ? '<span class="vo-badge green" style="font-size:0.68rem; padding:2px 6px; font-weight:700;">ACTIF</span>'
+            : `<button type="button" class="vo-badge cyan btn-make-active-chip" data-uid="${entry.uid}" style="font-size:0.68rem; padding:2px 6px; cursor:pointer; background:rgba(14,165,233,0.15); border:1px solid rgba(14,165,233,0.35);" title="Définir comme vaisseau actif">Rendre actif</button>`
+          }
         </div>
-      </div>
-    `;
-  }
 
-  DOM.olcBody.innerHTML = html;
-}
+        <div class="ship-card-model">${s.name} <span style="color:var(--text-dim); font-size:0.7rem;">(${s.manufacturer || 'RSI'})</span></div>
 
-function applyOptimalLoadout() {
-  const rec = state.lastOptimalRecommendation;
-  if (!rec || !rec.laser) return;
-
-  state.selectedLaser = rec.laser;
-  if (rec.modules && rec.modules.length > 0) {
-    state.selectedModules = [
-      rec.modules[0]?.id || 'none',
-      rec.modules[1]?.id || 'none',
-      rec.modules[2]?.id || 'none'
-    ];
-  } else {
-    state.selectedModules = ['none', 'none', 'none'];
-  }
-  if (rec.gadget) {
-    state.selectedGadget = rec.gadget;
-  }
-
-  const configs = getShipTurretConfigs(state.selectedShip.id);
-  if (configs && configs[0]) {
-    configs[0].laserId = rec.laser.id;
-    configs[0].moduleIds = [...state.selectedModules];
-  }
-
-  saveLoadout();
-  calculateAll();
-  renderShipTurretsConfig();
-  updateLaserOptions();
-  renderSquadWingmen();
-  broadcastLocalLoadout();
-
-  sfx.playSuccess();
-  triggerHaptic(25);
-  const t = I18N[state.currentLang] || I18N.fr;
-  showToast(t.olcAppliedToast || '⚡ Loadout optimal appliqué et synchronisé avec la flotte !');
-}
-
-function updateJointFireCoordinator() {
-  // Retiré : les pilotes utilisent directement les communications vocales Discord en vol.
-}
-
-function setJointFireState(newState, broadcast = true) {
-  state.jointFireState = newState;
-  const btnMap = {
-    standby: DOM.btnFireStateStandby,
-    charging: DOM.btnFireStateCharging,
-    green: DOM.btnFireStateGreen,
-    overheat: DOM.btnFireStateOverheat
-  };
-  Object.keys(btnMap).forEach(k => {
-    if (btnMap[k]) {
-      if (k === newState) {
-        btnMap[k].classList.add('active');
-      } else {
-        btnMap[k].classList.remove('active');
-      }
-    }
-  });
-
-  if (newState === 'overheat') {
-    sfx.playCritical();
-    cockpitVoice.speak("Attention ! Risque critique de surchauffe !", "Warning! Critical overheat risk!");
-  } else if (newState === 'green') {
-    sfx.playSuccess();
-  } else {
-    sfx.playBeep(520, 'sine', 0.04);
-  }
-
-  if (broadcast && fleetNet && fleetNet.connected) {
-    fleetNet.broadcastJointFireSync({
-      fireState: newState,
-      senderCallsign: state.callsign || 'CITIZEN-1',
-      timestamp: Date.now()
-    });
-  }
-}
-
-function handleIncomingJointFireSync(fireData, senderCallsign) {
-  if (!fireData || !fireData.fireState) return;
-  state.wingFireStates[senderCallsign] = {
-    fireState: fireData.fireState,
-    timestamp: fireData.timestamp || Date.now()
-  };
-  renderJointFireWingStatus();
-}
-
-function renderJointFireWingStatus() {
-  if (!DOM.jointFireCard) return;
-  let statusContainer = document.getElementById('jointFireWingStatus');
-  if (!statusContainer) {
-    statusContainer = document.createElement('div');
-    statusContainer.id = 'jointFireWingStatus';
-    statusContainer.style.cssText = 'display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.06); font-size:0.7rem;';
-    DOM.jointFireCard.appendChild(statusContainer);
-  }
-
-  const entries = Object.entries(state.wingFireStates);
-  if (entries.length === 0) {
-    statusContainer.innerHTML = '';
-    return;
-  }
-  const isEn = state.currentLang === 'en';
-  statusContainer.innerHTML = entries.map(([callsign, data]) => {
-    let color = 'var(--text-dim)';
-    let label = data.fireState;
-    if (data.fireState === 'charging') { color = 'var(--accent-orange, #f59e0b)'; label = isEn ? 'CHARGE' : 'CHARGE'; }
-    else if (data.fireState === 'green') { color = 'var(--accent-green, #10b981)'; label = isEn ? 'GREEN' : 'ZONE VERTE'; }
-    else if (data.fireState === 'overheat') { color = 'var(--accent-red, #ef4444)'; label = isEn ? 'OVERHEAT' : 'SURCHAUFFE'; }
-    else { label = 'STANDBY'; }
-    return `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; background:rgba(255,255,255,0.06); font-family:var(--font-mono); border-left:3px solid ${color};">
-      <strong>${callsign}</strong>: <span style="color:${color}; font-weight:700;">${label}</span>
-    </span>`;
-  }).join(' ');
-}
-
-function getEmergencyEscapeVector() {
-  const sys = (state.mineralSystemFilter && state.mineralSystemFilter !== 'all') 
-    ? state.mineralSystemFilter.toUpperCase() 
-    : 'STANTON';
-  if (sys === 'PYRO') {
-    return 'PYRO // CHECKMATE STATION - VECTOR 042° (JUMP 18.2 Gm)';
-  } else if (sys === 'NYX') {
-    return 'NYX // DELAMAR OM-1 / LEVSKI RETREAT (JUMP 9.4 Gm)';
-  } else {
-    return 'STANTON // HUR-L1 GREEN BAND OM-1 (JUMP 24.8 Gm)';
-  }
-}
-
-function triggerRedAlert(source = 'local', incomingData = null) {
-  state.redAlertActive = true;
-  document.body.classList.add('red-alert-active');
-  if (DOM.redAlertBanner) {
-    DOM.redAlertBanner.style.display = 'flex';
-  }
-  const vector = incomingData?.emergencyVector || getEmergencyEscapeVector();
-  if (DOM.redAlertEscapeVector) {
-    DOM.redAlertEscapeVector.textContent = vector;
-  }
-  sfx.playAlarm();
-  triggerHaptic([100, 50, 100, 50, 200]);
-  cockpitVoice.speak(
-    "Alerte rouge ! Contact hostile détecté ! Évacuation d'urgence recommandée.",
-    "Red alert! Hostile contact detected! Emergency jump recommended."
-  );
-  if (source === 'local') {
-    if (fleetNet && fleetNet.connected) {
-      fleetNet.broadcastRedAlert({
-        active: true,
-        emergencyVector: vector,
-        senderCallsign: state.callsign || 'CITIZEN-1',
-        timestamp: Date.now()
-      });
-    }
-    const t = I18N[state.currentLang] || I18N.fr;
-    showToast(t.redAlertBroadcastToast || '🚨 ALERTE ROUGE transmise à l\'escadre !');
-  } else {
-    const caller = incomingData?.senderCallsign || 'Ailier';
-    showToast(`🚨 ALERTE ROUGE reçue de ${caller} !`);
-  }
-}
-
-function dismissRedAlert(source = 'local') {
-  state.redAlertActive = false;
-  document.body.classList.remove('red-alert-active');
-  if (DOM.redAlertBanner) {
-    DOM.redAlertBanner.style.display = 'none';
-  }
-  sfx.playSuccess();
-  triggerHaptic(20);
-  cockpitVoice.speak("Fin d'alerte rouge. Reprise des opérations.", "Red alert stood down. All clear.");
-  if (source === 'local') {
-    if (fleetNet && fleetNet.connected) {
-      fleetNet.broadcastRedAlert({
-        active: false,
-        senderCallsign: state.callsign || 'CITIZEN-1',
-        timestamp: Date.now()
-      });
-    }
-    const t = I18N[state.currentLang] || I18N.fr;
-    showToast(t.redAlertDismissToast || '🛡️ Fin d\'alerte rouge confirmée.');
-  }
-}
-
-function handleIncomingRedAlert(alertData, senderCallsign) {
-  if (!alertData) return;
-  if (alertData.active) {
-    triggerRedAlert('remote', { ...alertData, senderCallsign });
-  } else {
-    dismissRedAlert('remote');
-  }
-}
-
-function initTacticalCoordinator() {
-  const onRedAlertClick = () => {
-    if (state.redAlertActive) {
-      dismissRedAlert('local');
-    } else {
-      triggerRedAlert('local');
-    }
-  };
-  if (DOM.btnMgRedAlert) DOM.btnMgRedAlert.addEventListener('click', onRedAlertClick);
-  if (DOM.btnRedAlertTrigger) DOM.btnRedAlertTrigger.addEventListener('click', onRedAlertClick);
-  if (DOM.btnDismissRedAlert) DOM.btnDismissRedAlert.addEventListener('click', () => dismissRedAlert('local'));
-  if (DOM.btnDeployEscortCombat) {
-    DOM.btnDeployEscortCombat.addEventListener('click', () => {
-      sfx.playCritical();
-      triggerHaptic(25);
-      cockpitVoice.speak("Ordre de combat envoyé à l'escorte.", "Combat order dispatched to escort.");
-      showToast(state.currentLang === 'en' ? '⚔️ Escort combat engagement ordered!' : '⚔️ Ordre d\'engagement transmis aux chasseurs d\'escorte !');
-    });
-  }
-
-  if (DOM.tabOlcSolo && DOM.tabOlcWing) {
-    DOM.tabOlcSolo.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.03);
-      state.optimalLoadoutTab = 'solo';
-      DOM.tabOlcSolo.classList.add('active');
-      DOM.tabOlcSolo.style.borderColor = 'var(--accent-amber)';
-      DOM.tabOlcSolo.style.color = 'var(--accent-amber)';
-      DOM.tabOlcWing.classList.remove('active');
-      DOM.tabOlcWing.style.borderColor = '';
-      DOM.tabOlcWing.style.color = '';
-      calculateAll();
-    });
-
-    DOM.tabOlcWing.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.03);
-      state.optimalLoadoutTab = 'wing';
-      DOM.tabOlcWing.classList.add('active');
-      DOM.tabOlcWing.style.borderColor = 'var(--accent-cyan)';
-      DOM.tabOlcWing.style.color = 'var(--accent-cyan)';
-      DOM.tabOlcSolo.classList.remove('active');
-      DOM.tabOlcSolo.style.borderColor = '';
-      DOM.tabOlcSolo.style.color = '';
-      calculateAll();
-    });
-  }
-
-  if (DOM.btnApplyOptimalLoadout) {
-    DOM.btnApplyOptimalLoadout.addEventListener('click', () => {
-      applyOptimalLoadout();
-    });
-  }
-
-  const fireButtons = [
-    { btn: DOM.btnFireStateStandby, state: 'standby' },
-    { btn: DOM.btnFireStateCharging, state: 'charging' },
-    { btn: DOM.btnFireStateGreen, state: 'green' },
-    { btn: DOM.btnFireStateOverheat, state: 'overheat' }
-  ];
-  fireButtons.forEach(({ btn, state: fState }) => {
-    if (btn) {
-      btn.addEventListener('click', () => {
-        setJointFireState(fState, true);
-      });
-    }
-  });
-
-  if (DOM.escortCutSlider) {
-    DOM.escortCutSlider.value = state.escortCutPct || 15;
-    DOM.escortCutSlider.addEventListener('input', (e) => {
-      state.escortCutPct = parseFloat(e.target.value) || 0;
-      localStorage.setItem('aaron_mfd_escort_cut', state.escortCutPct.toString());
-      calculateCrewSplit();
-    });
-  }
-}
-
-// ============================================================================
-// JALON 5: SPECIALIZED HAULERS & PHYSICALIZED CARGO REFACTOR 4.0
-// ============================================================================
-
-function initCargoGridMaster() {
-  populateHaulerSelect();
-  updateActiveHauler(state.activeHaulerId);
-
-  if (DOM.selectActiveHauler) {
-    DOM.selectActiveHauler.addEventListener('change', (e) => {
-      const haulerId = e.target.value;
-      updateActiveHauler(haulerId);
-    });
-  }
-
-  if (DOM.btnAddOneHaulerBag) {
-    DOM.btnAddOneHaulerBag.addEventListener('click', () => {
-      addDirectHaulerCargo(8, 'Sacoche 8 SCU');
-    });
-  }
-
-  if (DOM.btnAddBox32) {
-    DOM.btnAddBox32.addEventListener('click', () => {
-      addDirectHaulerCargo(32, 'Boîte 32 SCU');
-    });
-  }
-
-  if (DOM.btnTransferHoldToHauler) {
-    DOM.btnTransferHoldToHauler.addEventListener('click', () => {
-      transferMinerHoldToHauler();
-    });
-  }
-
-  if (DOM.btnBroadcastPickupRequest) {
-    DOM.btnBroadcastPickupRequest.addEventListener('click', () => {
-      broadcastCargoPickupRequest();
-    });
-  }
-
-  if (DOM.btnClearHaulerHold) {
-    DOM.btnClearHaulerHold.addEventListener('click', () => {
-      clearHaulerHold();
-    });
-  }
-
-  if (DOM.haulerCutSlider) {
-    DOM.haulerCutSlider.value = state.haulerCutPct || 15;
-    DOM.haulerCutSlider.addEventListener('input', (e) => {
-      state.haulerCutPct = parseFloat(e.target.value) || 0;
-      localStorage.setItem('aaron_mfd_hauler_cut', state.haulerCutPct.toString());
-      calculateCrewSplit();
-    });
-  }
-}
-
-function addDirectHaulerCargo(scu, label) {
-  const ships = MINING_DATA.supportShips || [];
-  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
-  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
-
-  if (currentSCU + scu > hauler.scu) {
-    showToast(state.currentLang === 'en' ? 'Hauler cargo grid capacity exceeded!' : 'Capacité de la grille de fret dépassée !');
-    sfx.playCritical();
-    return;
-  }
-
-  const mineral = state.selectedMineral || { id: 'quantainium', name: 'Quantainium' };
-  state.haulerHoldBags.push({
-    id: Date.now(),
-    scu: scu,
-    mineral: mineral.id,
-    caller: label || 'Fret'
-  });
-  localStorage.setItem('aaron_mfd_hauler_hold', JSON.stringify(state.haulerHoldBags));
-
-  sfx.playSuccess();
-  triggerHaptic(20);
-  showToast(`+ ${scu} SCU (${mineral.name}) arrimés sur le ${hauler.name} !`);
-  renderCargoGridMaster();
-}
-
-function transferMinerHoldToHauler() {
-  if (state.holdSCU <= 0 && (!state.detachedSaddlebags || state.detachedSaddlebags.length === 0)) {
-    showToast(state.currentLang === 'en' ? 'Your miner hold is empty!' : 'Votre soute de mineur est vide !');
-    sfx.playWarning();
-    return;
-  }
-
-  const ships = MINING_DATA.supportShips || [];
-  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
-  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
-
-  let bagsToTransfer = [];
-  if (state.detachedSaddlebags && state.detachedSaddlebags.length > 0) {
-    bagsToTransfer = state.detachedSaddlebags.map(b => ({
-      id: b.id,
-      scu: b.scu,
-      mineral: b.mineral,
-      caller: state.callsign || 'Mineur'
-    }));
-  } else {
-    bagsToTransfer = [{
-      id: Date.now(),
-      scu: state.holdSCU,
-      mineral: state.selectedMineral ? state.selectedMineral.id : 'quantainium',
-      caller: state.callsign || 'Mineur'
-    }];
-  }
-
-  const totalTransferSCU = bagsToTransfer.reduce((sum, b) => sum + b.scu, 0);
-  if (currentSCU + totalTransferSCU > hauler.scu) {
-    showToast(state.currentLang === 'en' ? 'Hauler cargo grid capacity exceeded!' : 'Capacité de la grille de fret dépassée !');
-    sfx.playCritical();
-    return;
-  }
-
-  state.haulerHoldBags.push(...bagsToTransfer);
-  localStorage.setItem('aaron_mfd_hauler_hold', JSON.stringify(state.haulerHoldBags));
-
-  state.holdSCU = 0;
-  state.detachedSaddlebags = [];
-  updateHoldDisplay();
-  renderSaddlebagsVisual();
-
-  sfx.playSuccess();
-  triggerHaptic(30);
-  cockpitVoice.speak(
-    "Cargaison de soute transférée au transporteur.",
-    "Hold cargo transferred to hauler."
-  );
-
-  showToast(`📥 ${totalTransferSCU.toFixed(1)} SCU transférés sur le ${hauler.name} !`);
-  renderCargoGridMaster();
-}
-
-function populateHaulerSelect() {
-  if (!DOM.selectActiveHauler) return;
-  const ships = MINING_DATA.supportShips || [];
-  DOM.selectActiveHauler.innerHTML = ships.map(ship => {
-    const selected = ship.id === state.activeHaulerId ? 'selected' : '';
-    const gridTypeLabel = ship.gridType === 'internal' ? 'Interne' : ship.gridType === 'external' ? 'Externe' : ship.gridType === 'orbital_spindle' ? 'Spindle' : 'Modulaire';
-    return `<option value="${ship.id}" ${selected}>${ship.name} (${ship.scu} SCU - ${gridTypeLabel})</option>`;
-  }).join('');
-}
-
-function updateActiveHauler(haulerId) {
-  const ships = MINING_DATA.supportShips || [];
-  let hauler = ships.find(s => s.id === haulerId);
-  if (!hauler && ships.length > 0) {
-    hauler = ships[0];
-  }
-  if (!hauler) return;
-  state.activeHaulerId = hauler.id;
-  localStorage.setItem('aaron_mfd_active_hauler', hauler.id);
-
-  if (DOM.selectActiveHauler && DOM.selectActiveHauler.value !== hauler.id) {
-    DOM.selectActiveHauler.value = hauler.id;
-  }
-
-  if (DOM.haulerTractorSpecBadge) {
-    const tb = hauler.tractorBeam || { size: 'S2', power: '12 000 N' };
-    DOM.haulerTractorSpecBadge.textContent = `${tb.size} Tractor • ${tb.power}`;
-  }
-
-  if (DOM.haulerCapacityDisplay) {
-    DOM.haulerCapacityDisplay.textContent = `${hauler.scu} SCU`;
-  }
-
-  if (DOM.haulerGridTypeDisplay) {
-    const gridLabels = {
-      internal: 'Interne Sécurisée',
-      external: 'Externe (Poutres)',
-      orbital_spindle: 'Spindle Orbital',
-      internal_modular: 'Compartiments Modulaires'
-    };
-    DOM.haulerGridTypeDisplay.textContent = gridLabels[hauler.gridType] || hauler.gridType;
-  }
-
-  if (DOM.haulerMaxBagsDisplay) {
-    DOM.haulerMaxBagsDisplay.textContent = `${hauler.prospectorBagsMax} Prosp. / ${hauler.moleBagsMax} MOLE`;
-  }
-
-  renderCargoGridMaster();
-}
-
-function renderCargoGridMaster() {
-  const ships = MINING_DATA.supportShips || [];
-  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
-  if (!hauler) return;
-
-  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
-  const capacity = hauler.scu || 1;
-  const pct = Math.min(100, Math.round((currentSCU / capacity) * 100));
-
-  if (DOM.haulerHoldProgressLabel) {
-    DOM.haulerHoldProgressLabel.textContent = `${currentSCU.toFixed(1)} / ${capacity} SCU (${pct}%)`;
-  }
-
-  if (DOM.haulerBarFill) {
-    DOM.haulerBarFill.style.width = `${pct}%`;
-  }
-
-  let hasQuant = false;
-  let totalRaw = 0;
-  let totalRefined = 0;
-  const locale = getLocale();
-
-  if (DOM.haulerCargoVisualGrid) {
-    if (!state.haulerHoldBags || state.haulerHoldBags.length === 0) {
-      DOM.haulerCargoVisualGrid.innerHTML = `
-        <div class="cargo-box-empty-hint">
-          ${state.currentLang === 'en' ? 'Physicalized freight grid empty. Ready to tractor-beam saddlebags & containers.' : 'Grille de fret physique vide. Prête à arrimer sacoches & conteneurs en vol.'}
+        <div class="ship-card-badges">
+          <span class="vo-badge ${roleBadge}">${roleLabel}</span>
+          <span class="vo-badge amber">${totalScu(s)} SCU</span>
+          <span class="vo-badge ${st.cls}">${st.label}</span>
         </div>
-      `;
-    } else {
-      DOM.haulerCargoVisualGrid.innerHTML = state.haulerHoldBags.map((bag, idx) => {
-        const mineral = (MINING_DATA.minerals || []).find(m => m.id === bag.mineral) || {
-          name: bag.mineral || 'Minerais',
-          rawPrice: 50,
-          refinedPrice: 95
-        };
-        if (bag.mineral === 'quantainium') hasQuant = true;
 
-        const rawVal = Math.round(bag.scu * 100 * (mineral.rawPrice || 50));
-        const refinedVal = Math.round(bag.scu * 100 * (mineral.refinedPrice || 95) * 0.93);
-        totalRaw += rawVal;
-        totalRefined += refinedVal;
-
-        const shortName = (mineral.name || 'MIN').split(' ')[0];
-        return `
-          <div class="cargo-box-slot ${bag.mineral === 'quantainium' ? 'has-quant' : ''}" title="${mineral.name} (${bag.scu} SCU) - ~${refinedVal.toLocaleString(locale)} aUEC">
-            <span class="box-ore">${shortName}</span>
-            <span class="box-scu">${bag.scu} SCU</span>
-            <span class="box-origin">${bag.caller || 'Sac #' + (idx + 1)}</span>
+        ${turrets.length > 0 ? `
+          <div class="ship-card-loadout" style="line-height:1.6; margin-bottom:6px;">
+            ${turrets.map((t, i) => {
+              const tLabel = turrets.length > 1 ? `T${i + 1}` : 'Tête';
+              const lName = fleetService.getLaserName(t.laserId) || '—';
+              const opStr = t.operator ? ` · ${t.operator}` : '';
+              return `<div>${tLabel} : <span style="color:#d6e2f0; font-weight:600;">${lName}</span><span style="color:var(--text-dim);">${opStr}</span></div>`;
+            }).join('')}
           </div>
+        ` : `
+          <div style="font-size:0.75rem; color:var(--text-dim); margin:6px 0;">
+            ${s.role === 'cargo' ? 'Support fret & logistique' :
+              s.role === 'escort' ? 'Défense & escorte armée' :
+              s.role === 'salvage' ? 'Démantèlement & recyclage' :
+              s.role === 'exploration' ? 'Reconnaissance & exploration' :
+              'Vaisseau opérationnel'}
+          </div>
+        `}
+
+        <div style="font-size:0.72rem; color:var(--text-dim); margin-top:auto;">
+          🛡 Assurance : <span style="color:#e2e8f0;">${entry.insurance || 'Achat in-game'}</span>
+        </div>
+
+        <div class="ship-card-actions">
+          <button type="button" class="ship-act-btn primary btn-config-ship" data-uid="${entry.uid}">⚙ Configurer</button>
+          <button type="button" class="ship-act-btn btn-duplicate-ship" data-uid="${entry.uid}" title="Dupliquer ce vaisseau">📋 Dupliquer</button>
+          <button type="button" class="ship-act-btn danger btn-remove-ship" data-uid="${entry.uid}" title="Retirer de la flotte">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Liaison des actions sur chaque carte
+  grid.querySelectorAll('.btn-make-active-chip').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const uid = btn.getAttribute('data-uid');
+      if (uid && fleetService.setActiveShip(uid)) {
+        triggerHaptic(12);
+        updateTopBarProfile();
+        renderFleetHangar();
+        if (typeof renderMiningActiveShipBanner === 'function') {
+          renderMiningActiveShipBanner();
+          evaluateAndRenderMiningRock();
+        }
+        const shipEntry = fleetService.getShipByUid(uid);
+        showToast(`★ ${shipEntry?.nickname || 'Vaisseau'} défini comme vaisseau actif !`);
+      }
+    });
+  });
+
+  grid.querySelectorAll('.btn-config-ship').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const uid = btn.getAttribute('data-uid');
+      if (uid) openShipConfigScreen(uid);
+    });
+  });
+
+  grid.querySelectorAll('.btn-duplicate-ship').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const uid = btn.getAttribute('data-uid');
+      if (uid) {
+        const dup = fleetService.duplicateShip(uid);
+        if (dup) {
+          triggerHaptic(10);
+          renderFleetHangar();
+          showToast(`📋 Vaisseau dupliqué : ${dup.nickname}`);
+        }
+      }
+    });
+  });
+
+  grid.querySelectorAll('.btn-remove-ship').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const uid = btn.getAttribute('data-uid');
+      const entry = fleetService.getShipByUid(uid);
+      if (uid && confirm(`Êtes-vous sûr de vouloir retirer ${entry?.nickname || 'ce vaisseau'} de votre flotte ?`)) {
+        fleetService.removeShip(uid);
+        updateTopBarProfile();
+        renderFleetHangar();
+        if (catalogFilters.isOpen) renderShipCatalog();
+        showToast(`${entry?.nickname || 'Vaisseau'} retiré de la flotte.`);
+      }
+    });
+  });
+
+  grid.querySelectorAll('.ship-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.ship-card-actions') || e.target.closest('.btn-make-active-chip')) return;
+      const uid = card.getAttribute('data-ship-uid');
+      if (uid) openShipConfigScreen(uid);
+    });
+  });
+}
+
+/**
+ * Rendu du catalogue ships.js avec recherche et filtre rôle
+ */
+function renderShipCatalog() {
+  const grid = document.getElementById('catalogShipsGrid');
+  if (!grid) return;
+
+  const fleet = fleetService.getShips();
+
+  const catalog = ALL_SHIPS.filter(s => {
+    if (!s) return false;
+    if (catalogFilters.role !== 'tous') {
+      const targetRole = (catalogFilters.role === 'combat' || catalogFilters.role === 'escort')
+        ? 'escort'
+        : (catalogFilters.role === 'support' || catalogFilters.role === 'cargo')
+          ? 'cargo'
+          : catalogFilters.role;
+      if (s.role !== targetRole) return false;
+    }
+    if (catalogFilters.search) {
+      if (!matchShipSearch(catalogFilters.search, s)) return false;
+    }
+    return true;
+  });
+
+  if (catalog.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-dim);">
+        Aucun modèle de vaisseau ne correspond à cette recherche.
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = catalog.map(s => {
+    const owned = fleet.filter(e => e.shipId === s.id).length;
+    const [roleLabel, roleBadge] = ROLE_LABELS[s.role] || ['Support', 'cyan'];
+
+    return `
+      <div class="vo-card" style="padding:12px; display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
+            <b style="font-size:0.9rem; color:#fff;">${s.name}</b>
+            ${owned > 0 ? `<span class="vo-badge green" style="font-size:0.7rem; font-weight:700;">×${owned}</span>` : ''}
+          </div>
+          <div style="color:var(--text-dim); font-size:0.74rem; margin:2px 0 8px;">${s.type_fr}</div>
+
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+            <span class="vo-badge ${roleBadge}">${roleLabel}</span>
+            <span class="vo-badge amber">${s.scu} SCU</span>
+            ${s.laserSlots > 1 ? `<span class="vo-badge cyan">${s.laserSlots} tourelles</span>` : ''}
+          </div>
+        </div>
+
+        ${s.incomplete
+          ? `<span class="vo-badge red" title="${s.incomplete}" style="text-align:center; display:block;">Données incomplètes</span>`
+          : `<button type="button" class="vo-btn outline btn-add-ship-to-fleet" data-ship-id="${s.id}" style="width:100%; padding:5px 8px; font-size:0.75rem;">+ Ajouter</button>`
+        }
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.btn-add-ship-to-fleet').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const shipId = btn.getAttribute('data-ship-id');
+      if (shipId) {
+        const added = fleetService.addShip(shipId);
+        if (added) {
+          triggerHaptic(12);
+          renderShipCatalog();
+          renderFleetHangar();
+          const s = getShip(shipId);
+          showToast(`+ ${s?.name || 'Vaisseau'} ajouté à votre flotte !`);
+        }
+      }
+    });
+  });
+}
+
+/**
+ * Ouvre l'éditeur de configuration d'un vaisseau
+ */
+function openShipConfigScreen(uid) {
+  const entry = fleetService.getShipByUid(uid);
+  if (!entry) return;
+
+  editingShipUid = uid;
+  shipConfigDraft = structuredClone(entry);
+  activeTurretTab = 0;
+
+  const overview = document.getElementById('fleetOverviewSubView');
+  const editor = document.getElementById('fleetLoadoutEditorSubView');
+  if (overview && editor) {
+    overview.style.display = 'none';
+    editor.style.display = 'block';
+    triggerHaptic(10);
+  }
+
+  renderShipConfigView();
+}
+
+/**
+ * Rendu complet de la vue de configuration du vaisseau sélectionné
+ */
+function renderShipConfigView() {
+  if (!shipConfigDraft) return;
+
+  const ship = getShip(shipConfigDraft.shipId);
+  if (!ship) return;
+
+  const turrets = shipConfigDraft.config?.turrets || [];
+  const multi = turrets.length > 1;
+
+  // 1. En-tête
+  const nickInput = document.getElementById('configShipNicknameInput');
+  const activeBadge = document.getElementById('configShipActiveBadge');
+  const subtitleEl = document.getElementById('configShipSubtitle');
+  const cargoEl = document.getElementById('configShipCargoVal');
+  const powerEl = document.getElementById('configShipPowerVal');
+  const powerBox = document.getElementById('configShipPowerBox');
+  const crewEl = document.getElementById('configShipCrewVal');
+
+  if (nickInput) nickInput.value = shipConfigDraft.nickname || '';
+  if (activeBadge) activeBadge.style.display = shipConfigDraft.active ? 'inline-block' : 'none';
+  if (subtitleEl) subtitleEl.textContent = `${ship.name} · ${ship.type_fr}`;
+  if (cargoEl) cargoEl.textContent = `${totalScu(ship)} SCU`;
+  if (powerEl && powerBox) {
+    if (ship.basePower) {
+      powerBox.style.display = 'block';
+      powerEl.textContent = `${ship.basePower.toLocaleString('fr-FR')} W`;
+    } else {
+      powerBox.style.display = 'none';
+    }
+  }
+  if (crewEl) {
+    const assigned = turrets.filter(t => t.operator).length;
+    crewEl.textContent = `${assigned}/${Math.max(1, turrets.length)}`;
+  }
+
+  // 2. Carte Tourelles (Colonne gauche)
+  const turretCard = document.getElementById('turretConfigCard');
+  const turretTitle = document.getElementById('turretCardTitle');
+  const laserSizeBadge = document.getElementById('turretLaserSizeBadge');
+  const tabsContainer = document.getElementById('turretTabsContainer');
+  const formTableBody = document.getElementById('turretFormTableBody');
+  const btnCopy = document.getElementById('btnCopyTurretToAll');
+
+  if (turrets.length === 0) {
+    if (turretCard) {
+      const [roleName] = ROLE_LABELS[ship.role] || ['Support'];
+      turretCard.style.display = 'block';
+      turretTitle.textContent = 'Postes de bord & Équipement';
+      laserSizeBadge.textContent = roleName;
+      tabsContainer.innerHTML = '';
+      formTableBody.innerHTML = `
+        <tr>
+          <td colspan="2" style="color:var(--text-dim); padding:16px; text-align:center;">
+            Ce vaisseau de ${roleName.toLowerCase()} ne possède pas de tourelles de minage.<br>
+            Vous pouvez configurer ses composants internes et son assurance dans la colonne de droite.
+          </td>
+        </tr>
+      `;
+      if (btnCopy) btnCopy.style.display = 'none';
+    }
+  } else {
+    if (turretCard) turretCard.style.display = 'block';
+    if (turretTitle) turretTitle.textContent = multi ? `Tourelles de minage (${turrets.length})` : 'Tête de minage';
+    if (laserSizeBadge) laserSizeBadge.textContent = `Taille S${ship.laserSize ?? 0}`;
+    if (btnCopy) btnCopy.style.display = multi ? 'inline-flex' : 'none';
+
+    // Rendu des onglets si multi
+    if (tabsContainer) {
+      if (multi) {
+        tabsContainer.innerHTML = turrets.map((t, idx) => {
+          const isSel = idx === activeTurretTab;
+          const hasLaser = Boolean(t.laserId);
+          return `
+            <button type="button" class="vo-btn ${isSel ? 'primary' : 'outline'} btn-turret-tab-item" data-tab-idx="${idx}" style="padding:5px 12px; font-size:0.78rem;">
+              Tourelle ${idx + 1} ${hasLaser ? '●' : '○'}
+            </button>
+          `;
+        }).join('');
+
+        tabsContainer.querySelectorAll('.btn-turret-tab-item').forEach(btn => {
+          btn.addEventListener('click', () => {
+            activeTurretTab = parseInt(btn.getAttribute('data-tab-idx'), 10) || 0;
+            renderShipConfigView();
+          });
+        });
+      } else {
+        tabsContainer.innerHTML = '';
+      }
+    }
+
+    // Formulaire de la tourelle active
+    const t = turrets[activeTurretTab] || turrets[0];
+    if (formTableBody && t) {
+      const compatibleLasers = fleetService.getLasersForSize(ship.laserSize);
+      const allModules = fleetService.getAllModules();
+      const numSlots = moduleSlotsFor(t, ship);
+
+      let formHtml = `
+        <tr>
+          <td style="width:180px; font-weight:600; color:var(--text-muted);">Tête laser (S${ship.laserSize ?? 0})</td>
+          <td>
+            <select class="vo-select" id="configTurretLaserSelect" style="width:100%; max-width:280px;">
+              <option value="">— Aucune —</option>
+              ${compatibleLasers.map(l => `
+                <option value="${l.id}" ${(t.laserId === l.id || getLaser(t.laserId)?.id === l.id) ? 'selected' : ''}>
+                  ${l.name} (${l.power} W · ${l.slots ?? l.moduleSlots ?? 0} slots)
+                </option>
+              `).join('')}
+            </select>
+            ${ship.laserSize === 0 ? '<span style="font-size:0.75rem; color:var(--text-dim); margin-left:8px;">· intégré</span>' : ''}
+          </td>
+        </tr>
+      `;
+
+      // Slots de modules
+      for (let k = 0; k < numSlots; k++) {
+        const currentModId = t.modules?.[k] || '';
+        formHtml += `
+          <tr>
+            <td style="color:var(--text-muted);">Module ${k + 1}</td>
+            <td>
+              <select class="vo-select mod-slot-select" data-slot-index="${k}" style="width:100%; max-width:280px;">
+                <option value="">— Vide —</option>
+                ${allModules.map(m => `
+                  <option value="${m.id}" ${currentModId === m.id ? 'selected' : ''}>
+                    ${m.name} (${m.type === 'active' || m.type === 'actif' ? 'Actif' : 'Passif'})
+                  </option>
+                `).join('')}
+              </select>
+            </td>
+          </tr>
+        `;
+      }
+
+      // Opérateur si multi-tourelles
+      if (multi) {
+        formHtml += `
+          <tr>
+            <td style="color:var(--text-muted);">Opérateur assigné</td>
+            <td>
+              <input type="text" class="vo-search-input" id="configTurretOperatorInput" value="${t.operator || ''}" placeholder="Pseudo RSI / Callsign" style="width:100%; max-width:280px;">
+            </td>
+          </tr>
+        `;
+      }
+
+      formTableBody.innerHTML = formHtml;
+
+      // Événements sur les selects
+      document.getElementById('configTurretLaserSelect')?.addEventListener('change', (e) => {
+        const newLaserId = e.target.value || null;
+        const newSlots = moduleSlotsFor({ laserId: newLaserId }, ship);
+        t.laserId = newLaserId;
+        t.modules = (t.modules || []).slice(0, newSlots);
+        renderShipConfigView();
+      });
+
+      formTableBody.querySelectorAll('.mod-slot-select').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          const slotIdx = parseInt(sel.getAttribute('data-slot-index'), 10);
+          if (!t.modules) t.modules = [];
+          t.modules[slotIdx] = e.target.value || null;
+          updateTurretOverviewTable();
+        });
+      });
+
+      document.getElementById('configTurretOperatorInput')?.addEventListener('input', (e) => {
+        t.operator = e.target.value;
+        updateTurretOverviewTable();
+        if (crewEl) {
+          const assigned = turrets.filter(x => x.operator).length;
+          crewEl.textContent = `${assigned}/${Math.max(1, turrets.length)}`;
+        }
+      });
+    }
+  }
+
+  // 3. Schéma SVG avec tourelles numérotées
+  const svgContainer = document.getElementById('schematicSvgContainer');
+  if (svgContainer) {
+    svgContainer.innerHTML = generateSchematicSvg(ship, turrets, activeTurretTab);
+
+    // Clic sur les pins de tourelle dans le schéma SVG
+    svgContainer.querySelectorAll('.schematic-turret-pin').forEach(pin => {
+      pin.addEventListener('click', () => {
+        const tabIdx = parseInt(pin.getAttribute('data-tab-index'), 10);
+        if (!isNaN(tabIdx) && tabIdx < turrets.length) {
+          activeTurretTab = tabIdx;
+          renderShipConfigView();
+        }
+      });
+    });
+  }
+
+  // 4. Colonne droite : Vue d'ensemble des tourelles
+  updateTurretOverviewTable();
+
+  // 5. Composants internes
+  const compBody = document.getElementById('componentsConfigTableBody');
+  if (compBody) {
+    const hardpoints = hardpointsOf(ship).filter(h => h.category !== 'MINING_HEAD');
+    if (hardpoints.length === 0) {
+      compBody.innerHTML = `<tr><td colspan="3" style="color:var(--text-dim); text-align:center; padding:12px;">Aucun composant modifiable.</td></tr>`;
+    } else {
+      compBody.innerHTML = hardpoints.map(h => {
+        const val = shipConfigDraft.config?.components?.[h.name] || '';
+        return `
+          <tr>
+            <td style="font-weight:600; color:#fff;">${h.name}</td>
+            <td><span class="vo-badge cyan">S${h.size}</span></td>
+            <td>
+              <input type="text" class="vo-search-input comp-input" data-comp-name="${h.name}" value="${val}" placeholder="d'origine" style="width:100%; padding:4px 8px; font-size:0.75rem;">
+            </td>
+          </tr>
         `;
       }).join('');
-    }
-  }
 
-  if (DOM.haulerQuantainiumAlert) {
-    DOM.haulerQuantainiumAlert.style.display = hasQuant ? 'inline-block' : 'none';
-  }
-
-  if (DOM.haulerRawValDisplay) {
-    DOM.haulerRawValDisplay.textContent = `${totalRaw.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.haulerRefinedValDisplay) {
-    DOM.haulerRefinedValDisplay.textContent = `${totalRefined.toLocaleString(locale)} aUEC`;
-  }
-
-  renderPendingCargoPickups();
-}
-
-function renderPendingCargoPickups() {
-  if (!DOM.pendingPickupsList) return;
-  const count = (state.pendingCargoPickups || []).length;
-  if (DOM.pendingPickupsCount) {
-    DOM.pendingPickupsCount.textContent = `${count} ${count > 1 ? 'appels' : 'appel'}`;
-  }
-
-  if (count === 0) {
-    DOM.pendingPickupsList.innerHTML = `
-      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:4px 0;">
-        ${state.currentLang === 'en' ? 'No floating saddlebags pending pickup in space.' : 'Aucun sac en attente de récupération dans l\'espace.'}
-      </div>
-    `;
-    return;
-  }
-
-  DOM.pendingPickupsList.innerHTML = state.pendingCargoPickups.map(req => {
-    return `
-      <div class="pending-pickup-item">
-        <div class="pending-pickup-info">
-          <div class="pending-pickup-caller">📡 ${req.senderCallsign} (${req.senderShip})</div>
-          <div class="pending-pickup-details">${req.bags.length} sac(s) • ${req.totalSCU.toFixed(1)} SCU</div>
-        </div>
-        <button class="btn-tractor-dock" data-req-id="${req.requestId}">
-          🧲 ARRIMAGE
-        </button>
-      </div>
-    `;
-  }).join('');
-
-  DOM.pendingPickupsList.querySelectorAll('.btn-tractor-dock').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const reqId = btn.getAttribute('data-req-id');
-      acceptCargoPickup(reqId);
-    });
-  });
-}
-
-function broadcastCargoPickupRequest() {
-  const ship = state.selectedShip;
-  let bagsToTransfer = [];
-
-  if (state.detachedSaddlebags && state.detachedSaddlebags.length > 0) {
-    bagsToTransfer = state.detachedSaddlebags.map(b => ({
-      id: b.id,
-      scu: b.scu,
-      mineral: b.mineral,
-      caller: state.callsign || 'CITIZEN-1'
-    }));
-  } else if (state.holdSCU > 0) {
-    const bagSCU = ship.saddlebagSCU || 8;
-    const count = Math.max(1, Math.floor(state.holdSCU / bagSCU));
-    for (let i = 0; i < count; i++) {
-      bagsToTransfer.push({
-        id: Date.now() + i,
-        scu: bagSCU,
-        mineral: state.selectedMineral ? state.selectedMineral.id : 'quantainium',
-        caller: state.callsign || 'CITIZEN-1'
+      compBody.querySelectorAll('.comp-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const compName = inp.getAttribute('data-comp-name');
+          if (!shipConfigDraft.config.components) shipConfigDraft.config.components = {};
+          shipConfigDraft.config.components[compName] = e.target.value;
+        });
       });
     }
-  } else {
-    showToast(state.currentLang === 'en' ? 'No cargo or detached saddlebags to transfer!' : 'Aucune cargaison ou sacoche à transférer !');
-    sfx.playWarning();
+  }
+
+  // 6. Assurance
+  const insInput = document.getElementById('configShipInsuranceInput');
+  if (insInput) {
+    insInput.value = shipConfigDraft.insurance || '';
+    insInput.oninput = (e) => {
+      shipConfigDraft.insurance = e.target.value;
+    };
+  }
+
+  // 7. Surnom live
+  if (nickInput) {
+    nickInput.oninput = (e) => {
+      shipConfigDraft.nickname = e.target.value;
+    };
+  }
+}
+
+/**
+ * Met à jour le tableau "Vue d'ensemble des tourelles"
+ */
+function updateTurretOverviewTable() {
+  const tbody = document.getElementById('turretsOverviewTableBody');
+  const card = document.getElementById('turretsOverviewCard');
+  if (!tbody || !card || !shipConfigDraft) return;
+
+  const turrets = shipConfigDraft.config?.turrets || [];
+  if (turrets.length === 0) {
+    card.style.display = 'none';
     return;
   }
+  card.style.display = 'block';
 
-  const totalSCU = bagsToTransfer.reduce((sum, b) => sum + (b.scu || 0), 0);
-  const pickupReq = {
-    requestId: 'PK-' + Date.now().toString(36).toUpperCase(),
-    senderCallsign: state.callsign || 'CITIZEN-1',
-    senderShip: ship.name,
-    bags: bagsToTransfer,
-    totalSCU: totalSCU,
-    timestamp: Date.now()
-  };
-
-  if (fleetNet && fleetNet.connected) {
-    fleetNet.broadcastCargoPickupRequest(pickupReq);
-  }
-
-  // Always register locally so the user can test / simulate tractor beam recovery in solo or hauler role
-  state.pendingCargoPickups = (state.pendingCargoPickups || []).filter(r => r.requestId !== pickupReq.requestId);
-  state.pendingCargoPickups.push(pickupReq);
-
-  sfx.playBeep(880, 'sine', 0.08);
-  triggerHaptic(30);
-  cockpitVoice.speak(
-    "Demande de récupération de fret transmise sur Fleet-Net.",
-    "Cargo pickup request broadcast over Fleet-Net."
-  );
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  showToast(t.pickupToastSent || '📡 Demande de récupération de fret transmise à l\'escadre !');
-  renderPendingCargoPickups();
-}
-
-function handleIncomingCargoPickupRequest(pickupData, senderCallsign) {
-  if (!pickupData || !pickupData.requestId) return;
-  state.pendingCargoPickups = (state.pendingCargoPickups || []).filter(r => r.requestId !== pickupData.requestId);
-  state.pendingCargoPickups.push(pickupData);
-
-  sfx.playBeep(700, 'sine', 0.05);
-  triggerHaptic(20);
-  cockpitVoice.speak(
-    `Appel de fret reçu de ${senderCallsign || pickupData.senderCallsign}.`,
-    `Cargo pickup request received from ${senderCallsign || pickupData.senderCallsign}.`
-  );
-
-  showToast(`📡 Demande de fret de ${senderCallsign || pickupData.senderCallsign} (${pickupData.totalSCU.toFixed(1)} SCU)`);
-  renderPendingCargoPickups();
-}
-
-function acceptCargoPickup(reqId) {
-  const req = (state.pendingCargoPickups || []).find(r => r.requestId === reqId);
-  if (!req) return;
-
-  const ships = MINING_DATA.supportShips || [];
-  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
-  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
-
-  if (currentSCU + req.totalSCU > hauler.scu) {
-    showToast(state.currentLang === 'en' ? 'Hauler cargo grid capacity exceeded!' : 'Capacité de la grille de fret du transporteur dépassée !');
-    sfx.playCritical();
-    return;
-  }
-
-  state.haulerHoldBags.push(...req.bags);
-  localStorage.setItem('aaron_mfd_hauler_hold', JSON.stringify(state.haulerHoldBags));
-
-  state.pendingCargoPickups = state.pendingCargoPickups.filter(r => r.requestId !== reqId);
-
-  // If local player was also the sender (solo test mode), deduct from local hold / detached bags!
-  if (req.senderCallsign === (state.callsign || 'CITIZEN-1')) {
-    state.detachedSaddlebags = [];
-    const ship = state.selectedShip;
-    state.holdSCU = Math.max(0, Math.round((state.holdSCU - req.totalSCU) * 10) / 10);
-    updateHoldDisplay();
-    renderSaddlebagsVisual();
-  }
-
-  if (fleetNet && fleetNet.connected) {
-    fleetNet.broadcastCargoPickupAccept({
-      requestId: req.requestId,
-      recipientCallsign: req.senderCallsign,
-      haulerShip: hauler.name,
-      haulerCallsign: state.callsign || 'CITIZEN-1',
-      totalSCU: req.totalSCU
-    });
-  }
-
-  sfx.playSuccess();
-  triggerHaptic(40);
-  cockpitVoice.speak(
-    "Arrimage rayon tracteur terminé. Fret sécurisé sur la grille physique.",
-    "Tractor beam docking complete. Cargo secured on physical grid."
-  );
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  showToast(t.pickupToastAccepted || '🧲 Fret arrimé avec succès dans la soute du transporteur !');
-  renderCargoGridMaster();
-}
-
-function handleIncomingCargoPickupAccept(acceptData, senderCallsign) {
-  if (!acceptData) return;
-  const myCallsign = state.callsign || 'CITIZEN-1';
-  if (acceptData.recipientCallsign && acceptData.recipientCallsign !== myCallsign) return;
-
-  // The miner's cargo has been taken by the hauler!
-  state.detachedSaddlebags = [];
-  if (acceptData.totalSCU) {
-    state.holdSCU = Math.max(0, Math.round((state.holdSCU - acceptData.totalSCU) * 10) / 10);
-  } else {
-    state.holdSCU = 0;
-  }
-
-  updateHoldDisplay();
-  renderSaddlebagsVisual();
-
-  sfx.playSuccess();
-  triggerHaptic(35);
-  cockpitVoice.speak(
-    `Fret arrimé par le transporteur ${acceptData.haulerShip || ''}.`,
-    `Cargo secured by hauler ${acceptData.haulerShip || ''}.`
-  );
-
-  showToast(`🧲 Fret arrimé à bord de ${acceptData.haulerShip || 'un transporteur'} (${senderCallsign || acceptData.haulerCallsign || 'Ailier'}) ! Soute libérée.`);
-}
-
-function clearHaulerHold() {
-  if (!state.haulerHoldBags || state.haulerHoldBags.length === 0) {
-    showToast(state.currentLang === 'en' ? 'Hauler cargo hold is already empty!' : 'La soute du transporteur est déjà vide !');
-    return;
-  }
-  const count = state.haulerHoldBags.length;
-  state.haulerHoldBags = [];
-  localStorage.removeItem('aaron_mfd_hauler_hold');
-  sfx.playSuccess();
-  triggerHaptic(20);
-  showToast(state.currentLang === 'en' ? `${count} container(s) unloaded at station terminal!` : `${count} conteneur(s) déchargé(s) au terminal de la station !`);
-  renderCargoGridMaster();
-}
-
-function updateStationPriceComparison(mineral, pureSCU, refinedPrice, rawPrice) {
-  if (!DOM.stationPriceComparatorCard || !DOM.spcTableContainer) return;
-  const isEn = state.currentLang === 'en';
-  const locale = getLocale();
-  const rPrice = rawPrice || (pureSCU * 100 * mineral.rawPrice);
-
-  if (DOM.spcOreTag) {
-    DOM.spcOreTag.textContent = mineral.symbol || 'ORE';
-    DOM.spcOreTag.style.color = mineral.color || '#10b981';
-  }
-
-  // Jalon 6: Updates Market Arbitrage, Terminals and Tour
-  renderMarketArbitrage(mineral, pureSCU, refinedPrice, rPrice);
-  renderMarketTerminals(mineral, pureSCU);
-  renderSalesTour(mineral, pureSCU);
-
-  // Backward compatible Top Refinery Stations list
-  const stations = (MINING_DATA.refineryStations || []).slice();
-  stations.sort((a, b) => {
-    const aBonus = a.bonusMineral === mineral.id ? (a.bonusRate || 0) : 0;
-    const bBonus = b.bonusMineral === mineral.id ? (b.bonusRate || 0) : 0;
-    return bBonus - aBonus;
-  });
-
-  const topStations = stations.slice(0, 4);
-
-  DOM.spcTableContainer.innerHTML = topStations.map((st, idx) => {
-    const isSpecialBonus = st.bonusMineral === mineral.id;
-    const bonusRate = isSpecialBonus ? (st.bonusRate || 0) : 0;
-    const bonusPct = Math.round(bonusRate * 100);
-    const stationYield = Math.round(refinedPrice * (1 + bonusRate));
-    const isBest = idx === 0 && isSpecialBonus;
-
-    let bonusBadgeHtml = '';
-    if (isSpecialBonus && bonusPct > 0) {
-      bonusBadgeHtml = `<span class="spc-bonus-tag high">+${bonusPct}% Rendement</span>`;
-    } else {
-      bonusBadgeHtml = `<span class="spc-bonus-tag none">Standard</span>`;
-    }
+  tbody.innerHTML = turrets.map((t, idx) => {
+    const isSel = idx === activeTurretTab;
+    const laserName = fleetService.getLaserName(t.laserId);
+    const modNames = (t.modules || []).filter(Boolean).map(m => fleetService.getModuleName(m) || m).join(', ') || '—';
+    const op = t.operator || '<span style="color:var(--text-dim);">libre</span>';
 
     return `
-      <div class="spc-row ${isBest ? 'best-row' : ''}">
-        <div>
-          <div class="spc-st-name">${isBest ? '🌟 ' : ''}${st.name}</div>
-          <div class="spc-st-meta">${st.system} • ${st.sector ? st.sector.toUpperCase() : 'STANTON'}</div>
-        </div>
-        <div class="spc-right">
-          ${bonusBadgeHtml}
-          <div class="spc-yield-val">~${stationYield.toLocaleString(locale)} aUEC</div>
-        </div>
-      </div>
+      <tr class="turret-overview-row" data-tab-idx="${idx}" style="cursor:pointer; ${isSel ? 'background:rgba(14,165,233,0.12);' : ''}">
+        <td>
+          <span class="vo-badge ${isSel ? 'cyan' : 'outline'}" style="font-weight:700;">T${idx + 1}</span>
+        </td>
+        <td style="font-weight:600; color:${laserName ? '#fff' : 'var(--accent-red)'};">
+          ${laserName || '—'}
+        </td>
+        <td style="font-size:0.75rem; color:var(--text-muted);">${modNames}</td>
+        <td>${op}</td>
+      </tr>
     `;
   }).join('');
-}
 
-// ==========================================================================
-// JALON 6: BOURSE COMMERCIALE, ARBITRAGE & UEX CORP (SC 4.0 & GUILD SCOUTS)
-// ==========================================================================
-
-function initMarketAndArbitrage() {
-  populateScoutDropdowns();
-
-  if (DOM.btnMktTabArbitrage) {
-    DOM.btnMktTabArbitrage.addEventListener('click', () => setMarketTab('arbitrage'));
-  }
-  if (DOM.btnMktTabTerminals) {
-    DOM.btnMktTabTerminals.addEventListener('click', () => setMarketTab('terminals'));
-  }
-  if (DOM.btnMktTabScout) {
-    DOM.btnMktTabScout.addEventListener('click', () => setMarketTab('scout'));
-  }
-
-  // System filters
-  const filterBtns = document.querySelectorAll('.mkt-filter-btn');
-  filterBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      filterBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      setMarketSystemFilter(btn.dataset.sysFilter || 'all');
+  tbody.querySelectorAll('.turret-overview-row').forEach(row => {
+    row.addEventListener('click', () => {
+      activeTurretTab = parseInt(row.getAttribute('data-tab-idx'), 10) || 0;
+      renderShipConfigView();
     });
   });
-
-  if (DOM.btnRefreshUex) {
-    DOM.btnRefreshUex.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(15);
-      fetchUexMarketPrices(true);
-    });
-  }
-
-  if (DOM.btnBroadcastScoutPrice) {
-    DOM.btnBroadcastScoutPrice.addEventListener('click', () => {
-      broadcastScoutPrice();
-    });
-  }
-
-  if (DOM.btnCopySalesTour) {
-    DOM.btnCopySalesTour.addEventListener('click', () => {
-      copySalesTour();
-    });
-  }
-
-  if (DOM.selectScoutTerminal && DOM.selectScoutMineral) {
-    const updateScoutInputPrice = () => {
-      const termId = DOM.selectScoutTerminal.value;
-      const minId = DOM.selectScoutMineral.value;
-      const term = (MINING_DATA.tradeTerminals || []).find(t => t.id === termId);
-      const mineral = (MINING_DATA.minerals || []).find(m => m.id === minId);
-      if (term && term.priceModifiers && term.priceModifiers[minId] && DOM.inputScoutPrice) {
-        DOM.inputScoutPrice.value = term.priceModifiers[minId].refinedPrice;
-      } else if (mineral && DOM.inputScoutPrice) {
-        DOM.inputScoutPrice.value = mineral.refinedPrice;
-      }
-    };
-    DOM.selectScoutTerminal.addEventListener('change', updateScoutInputPrice);
-    DOM.selectScoutMineral.addEventListener('change', updateScoutInputPrice);
-  }
-
-  // Initial fetch / cache load
-  fetchUexMarketPrices(false);
 }
 
-function populateScoutDropdowns() {
-  if (DOM.selectScoutTerminal) {
-    const terminals = MINING_DATA.tradeTerminals || [];
-    DOM.selectScoutTerminal.innerHTML = terminals.map(t => {
-      return `<option value="${t.id}">${t.name} (${t.system.toUpperCase()})</option>`;
-    }).join('');
+/**
+ * Générateur SVG du schéma avec tourelles numérotées
+ */
+function generateSchematicSvg(ship, turrets, activeTab) {
+  if (!ship) return '';
+  const laserSlots = turrets.length;
+  const isMole = ship.id === 'mole';
+  const isArrastra = ship.id === 'arrastra';
+  const isOrion = ship.id === 'orion';
+
+  let turretPins = [];
+  if (isMole) {
+    turretPins = [
+      { num: 1, x: 150, y: 70, label: 'T1 : Cabine centrale' },
+      { num: 2, x: 70, y: 160, label: 'T2 : Bras bâbord' },
+      { num: 3, x: 230, y: 160, label: 'T3 : Bras tribord' }
+    ];
+  } else if (isArrastra) {
+    turretPins = [
+      { num: 1, x: 150, y: 65, label: 'T1 : Tourelle haute' },
+      { num: 2, x: 70, y: 170, label: 'T2 : Tourelle bâbord' },
+      { num: 3, x: 230, y: 170, label: 'T3 : Tourelle tribord' }
+    ];
+  } else if (isOrion) {
+    turretPins = [
+      { num: 1, x: 150, y: 45, label: 'T1 : Avant supérieur' },
+      { num: 2, x: 150, y: 95, label: 'T2 : Avant ventral' },
+      { num: 3, x: 65, y: 175, label: 'T3 : Pod bâbord' },
+      { num: 4, x: 235, y: 175, label: 'T4 : Pod tribord' }
+    ];
+  } else if (laserSlots > 0) {
+    turretPins = [
+      { num: 1, x: 150, y: 55, label: 'T1 : Tête de minage' }
+    ];
   }
 
-  if (DOM.selectScoutMineral) {
-    const minerals = MINING_DATA.minerals || [];
-    DOM.selectScoutMineral.innerHTML = minerals.map(m => {
-      const name = getLocalized(m, 'name');
-      return `<option value="${m.id}">${name}</option>`;
-    }).join('');
-  }
-}
+  const componentPins = [
+    { type: 'Bouclier', x: 95, y: 235, label: 'Bouclier' },
+    { type: 'Centrale', x: 205, y: 235, label: 'Centrale' },
+    { type: 'Quantum', x: 150, y: 295, label: 'Quantum' }
+  ];
 
-function setMarketTab(tabName) {
-  state.activeMktTab = tabName;
-  const isArbitrage = tabName === 'arbitrage';
-  const isTerminals = tabName === 'terminals';
-  const isScout = tabName === 'scout';
+  return `
+    <svg viewBox="0 0 300 340" style="width:100%; height:100%;" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="schemGridGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#0284c7" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="turretGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+      </defs>
 
-  if (DOM.btnMktTabArbitrage) DOM.btnMktTabArbitrage.classList.toggle('active', isArbitrage);
-  if (DOM.btnMktTabTerminals) DOM.btnMktTabTerminals.classList.toggle('active', isTerminals);
-  if (DOM.btnMktTabScout) DOM.btnMktTabScout.classList.toggle('active', isScout);
+      <!-- Grille radar d'arrière-plan -->
+      <circle cx="150" cy="170" r="130" stroke="rgba(56,189,248,0.12)" stroke-width="1" fill="url(#schemGridGlow)" stroke-dasharray="4 4"/>
+      <circle cx="150" cy="170" r="80" stroke="rgba(56,189,248,0.08)" stroke-width="1" fill="none"/>
+      <circle cx="150" cy="170" r="30" stroke="rgba(56,189,248,0.06)" stroke-width="1" fill="none"/>
+      <line x1="150" y1="20" x2="150" y2="320" stroke="rgba(56,189,248,0.15)" stroke-width="1" stroke-dasharray="2 4"/>
+      <line x1="20" y1="170" x2="280" y2="170" stroke="rgba(56,189,248,0.15)" stroke-width="1" stroke-dasharray="2 4"/>
 
-  if (DOM.mktPaneArbitrage) DOM.mktPaneArbitrage.style.display = isArbitrage ? 'block' : 'none';
-  if (DOM.mktPaneTerminals) DOM.mktPaneTerminals.style.display = isTerminals ? 'block' : 'none';
-  if (DOM.mktPaneScout) DOM.mktPaneScout.style.display = isScout ? 'block' : 'none';
+      <!-- Silhouette du vaisseau -->
+      <polygon points="150,25 185,75 215,160 195,280 150,320 105,280 85,160 115,75" stroke="#38bdf8" stroke-width="1.8" fill="rgba(14,165,233,0.04)"/>
+      <polygon points="150,45 165,85 135,85" stroke="#38bdf8" stroke-width="1.2" fill="rgba(56,189,248,0.1)"/>
+      ${isMole ? `
+        <!-- Bras latéraux MOLE -->
+        <path d="M100,150 L60,165 L60,185 L100,175 Z" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1.5"/>
+        <path d="M200,150 L240,165 L240,185 L200,175 Z" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1.5"/>
+      ` : ''}
 
-  sfx.playBeep(520, 'sine', 0.03);
-  triggerHaptic(10);
-}
+      <!-- Pins Tourelles Numérotées -->
+      ${turretPins.map((tp, idx) => {
+        const isSel = idx === activeTab;
+        const color = isSel ? '#38bdf8' : '#f59e0b';
+        const bg = isSel ? 'rgba(56,189,248,0.35)' : 'rgba(245,158,11,0.2)';
+        const r = isSel ? 14 : 12;
+        return `
+          <g class="schematic-turret-pin" data-tab-index="${idx}" style="cursor:pointer;" filter="${isSel ? 'url(#turretGlow)' : 'none'}">
+            <circle cx="${tp.x}" cy="${tp.y}" r="${r + 4}" fill="${bg}" stroke="${color}" stroke-width="${isSel ? '2.5' : '1.5'}"/>
+            <circle cx="${tp.x}" cy="${tp.y}" r="${r}" fill="#0b1320" stroke="${color}" stroke-width="1.5"/>
+            <text x="${tp.x}" y="${tp.y + 4}" fill="#ffffff" font-size="10" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="middle">T${tp.num}</text>
+            <text x="${tp.x}" y="${tp.y - (r + 6)}" fill="${isSel ? '#38bdf8' : '#94a3b8'}" font-size="9" font-family="'Inter', sans-serif" font-weight="600" text-anchor="middle">${tp.label}</text>
+          </g>
+        `;
+      }).join('')}
 
-function setMarketSystemFilter(systemFilter) {
-  state.mktSystemFilter = systemFilter;
-  renderMarketTerminals(state.selectedMineral, state.pureSCU || 10);
-  sfx.playBeep(580, 'sine', 0.02);
-}
-
-async function fetchUexMarketPrices(forceRefresh = false) {
-  const cfg = MINING_DATA.uexConfig || {
-    publicEndpoint: 'https://api.uexcorp.space/2.0/commodities_prices',
-    cacheStorageKey: 'aaron_mfd_uex_cache_v2',
-    cacheExpiryMinutes: 30,
-    apiTimeoutMs: 3500
-  };
-
-  const updateBadge = (statusText, statusClass) => {
-    if (DOM.uexSyncBadge) {
-      DOM.uexSyncBadge.className = `uex-sync-badge ${statusClass}`;
-    }
-    if (DOM.uexSyncText) {
-      DOM.uexSyncText.textContent = statusText;
-    }
-  };
-
-  if (forceRefresh && DOM.btnRefreshUex) {
-    DOM.btnRefreshUex.classList.add('spinning');
-  }
-
-  // 1. Check local cache
-  const cachedJson = localStorage.getItem(cfg.cacheStorageKey);
-  let cacheValid = false;
-  if (cachedJson) {
-    try {
-      const parsed = JSON.parse(cachedJson);
-      const ageMinutes = (Date.now() - (parsed.timestamp || 0)) / (1000 * 60);
-      if (ageMinutes < cfg.cacheExpiryMinutes && !forceRefresh) {
-        cacheValid = true;
-        state.uexMarketStatus = 'cached';
-        state.uexLastSyncTimestamp = parsed.timestamp;
-        updateBadge('UEX CACHE', 'cached');
-        if (DOM.btnRefreshUex) DOM.btnRefreshUex.classList.remove('spinning');
-        return;
-      }
-    } catch (e) {}
-  }
-
-  // 2. Fetch live from UEX Corp API with AbortController timeout
-  try {
-    const controller = new AbortController();
-    const timerId = setTimeout(() => controller.abort(), cfg.apiTimeoutMs);
-
-    const response = await fetch(cfg.publicEndpoint, {
-      signal: controller.signal,
-      headers: { 'Accept': 'application/json' }
-    });
-    clearTimeout(timerId);
-
-    if (response.ok) {
-      const result = await response.json();
-      const payload = {
-        data: result,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(cfg.cacheStorageKey, JSON.stringify(payload));
-      state.uexMarketStatus = 'live';
-      state.uexLastSyncTimestamp = payload.timestamp;
-      updateBadge('UEX LIVE', 'live');
-      if (forceRefresh) {
-        const t = I18N[state.currentLang] || I18N.fr;
-        showToast(t.uexSyncSuccessToast || '🟢 Cours UEX Corp synchronisés avec succès !');
-        sfx.playSuccess();
-      }
-    } else {
-      throw new Error(`HTTP ${response.status}`);
-    }
-  } catch (err) {
-    // Fallback: offline cache or seed baseline
-    state.uexMarketStatus = 'cached';
-    updateBadge('UEX CACHE', 'cached');
-    if (forceRefresh) {
-      const t = I18N[state.currentLang] || I18N.fr;
-      showToast(t.uexSyncFallbackToast || '🟡 Hors-ligne : bascule sur le cache local sécurisé.');
-    }
-  } finally {
-    if (DOM.btnRefreshUex) {
-      DOM.btnRefreshUex.classList.remove('spinning');
-    }
-  }
-
-  // Re-run market calculations
-  if (state.selectedMineral) {
-    renderMarketArbitrage(state.selectedMineral, state.pureSCU || 10, state.pureSCU * 100 * state.selectedMineral.refinedPrice, state.pureSCU * 100 * state.selectedMineral.rawPrice);
-    renderMarketTerminals(state.selectedMineral, state.pureSCU || 10);
-    renderSalesTour(state.selectedMineral, state.pureSCU || 10);
-  }
-}
-
-function broadcastScoutPrice() {
-  if (!DOM.selectScoutTerminal || !DOM.selectScoutMineral || !DOM.inputScoutPrice) return;
-  const terminalId = DOM.selectScoutTerminal.value;
-  const mineralId = DOM.selectScoutMineral.value;
-  const price = parseFloat(DOM.inputScoutPrice.value);
-  const demand = DOM.selectScoutDemand ? DOM.selectScoutDemand.value : 'high';
-
-  if (!price || price <= 0) return;
-
-  const terminal = (MINING_DATA.tradeTerminals || []).find(t => t.id === terminalId);
-  const mineral = (MINING_DATA.minerals || []).find(m => m.id === mineralId);
-  const callsign = state.callsign || 'CITIZEN-1';
-  const termName = terminal ? terminal.name : terminalId;
-  const minName = mineral ? getLocalized(mineral, 'name') : mineralId;
-
-  // Save locally
-  const reportKey = `${terminalId}_${mineralId}`;
-  state.customTerminalPrices[reportKey] = {
-    price,
-    demand,
-    by: callsign,
-    time: Date.now()
-  };
-  localStorage.setItem('aaron_mfd_corpo_prices', JSON.stringify(state.customTerminalPrices));
-
-  // Add to recent feed
-  state.recentScoutReports.unshift({
-    terminalName: termName,
-    mineralName: minName,
-    price,
-    demand,
-    by: callsign,
-    time: Date.now()
-  });
-  if (state.recentScoutReports.length > 8) state.recentScoutReports.pop();
-
-  // Send across Fleet Network
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoPriceUpdate({
-      terminalId,
-      mineralId,
-      terminalName: termName,
-      mineralName: minName,
-      price,
-      demand
-    });
-  }
-
-  // Update badge to Corpo Info
-  if (DOM.uexSyncBadge) DOM.uexSyncBadge.className = 'uex-sync-badge corpo';
-  if (DOM.uexSyncText) DOM.uexSyncText.textContent = 'UEX GUILDE';
-
-  renderScoutReportsFeed();
-  sfx.playSuccess();
-  triggerHaptic(25);
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  showToast(t.scoutPriceBroadcastToast || '📡 Cours de marché diffusé avec succès à toute la flotte !');
-
-  // Re-render views
-  if (state.selectedMineral) {
-    updateStationPriceComparison(state.selectedMineral, state.pureSCU || 10, state.pureSCU * 100 * state.selectedMineral.refinedPrice);
-  }
-}
-
-function handleIncomingCorpoPriceUpdate(priceUpdate, senderCallsign) {
-  if (!priceUpdate) return;
-  const reportKey = `${priceUpdate.terminalId}_${priceUpdate.mineralId}`;
-  state.customTerminalPrices[reportKey] = {
-    price: priceUpdate.price,
-    demand: priceUpdate.demand || 'high',
-    by: senderCallsign || priceUpdate.by || 'Éclaireur',
-    time: Date.now()
-  };
-
-  state.recentScoutReports.unshift({
-    terminalName: priceUpdate.terminalName || priceUpdate.terminalId,
-    mineralName: priceUpdate.mineralName || priceUpdate.mineralId,
-    price: priceUpdate.price,
-    demand: priceUpdate.demand || 'high',
-    by: senderCallsign || 'Éclaireur',
-    time: Date.now()
-  });
-  if (state.recentScoutReports.length > 8) state.recentScoutReports.pop();
-
-  if (DOM.uexSyncBadge) DOM.uexSyncBadge.className = 'uex-sync-badge corpo';
-  if (DOM.uexSyncText) DOM.uexSyncText.textContent = 'UEX GUILDE';
-
-  renderScoutReportsFeed();
-  sfx.playBeep(600, 'sine', 0.05);
-  triggerHaptic(20);
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  showToast(`${t.scoutPriceReceivedToast || '📡 Cours actualisé par'} ${senderCallsign} : ${priceUpdate.mineralName || ''} @ ${priceUpdate.terminalName || ''} (${priceUpdate.price} aUEC)`);
-
-  if (state.selectedMineral) {
-    updateStationPriceComparison(state.selectedMineral, state.pureSCU || 10, state.pureSCU * 100 * state.selectedMineral.refinedPrice);
-  }
-}
-
-function renderScoutReportsFeed() {
-  if (!DOM.mktScoutFeed) return;
-  if (!state.recentScoutReports || state.recentScoutReports.length === 0) {
-    DOM.mktScoutFeed.innerHTML = `<div style="font-style:italic;" data-i18n="noRecentReports">Aucun rapport d'éclaireur récent pour le moment.</div>`;
-    return;
-  }
-
-  DOM.mktScoutFeed.innerHTML = state.recentScoutReports.map(rep => {
-    const elapsedMinutes = Math.max(1, Math.round((Date.now() - rep.time) / 60000));
-    return `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px dashed rgba(255,255,255,0.05);">
-        <div>
-          <span style="color:var(--accent-purple); font-weight:700;">[${rep.by}]</span>
-          <span style="color:#fff;">${rep.mineralName}</span>
-          <span style="color:var(--text-muted); font-size:0.68rem;">@ ${rep.terminalName}</span>
-        </div>
-        <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--accent-emerald); font-weight:700;">
-          ${rep.price} aUEC <span style="font-size:0.6rem; color:var(--text-muted); font-weight:normal;">(${elapsedMinutes} min)</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderMarketArbitrage(mineral, pureSCU, refinedPrice, rawPrice) {
-  if (!DOM.mktMethodsGrid) return;
-  const isEn = state.currentLang === 'en';
-  const locale = getLocale();
-  const scu = Math.max(0.1, pureSCU || 1);
-
-  // 1. Raw Direct Sale
-  const rawUnit = mineral.rawPrice || 10;
-  const grossRaw = Math.round(scu * 100 * rawUnit);
-
-  // Station Bonus for top station
-  const stations = (MINING_DATA.refineryStations || []).slice();
-  const topStation = stations.find(s => s.bonusMineral === mineral.id);
-  const stationBonusRate = topStation ? (topStation.bonusRate || 0) : 0;
-  const topStationName = topStation ? topStation.name : (isEn ? 'Standard Refinery' : 'Raffinerie Standard');
-
-  // 2. Refining methods
-  const methods = MINING_DATA.refiningMethods || [];
-  let bestMethod = null;
-  let maxNetPayout = grossRaw;
-
-  const methodEvaluations = methods.map(m => {
-    const yieldSCU = Math.round(scu * m.yieldRate * (1 + stationBonusRate) * 10) / 10;
-    const refinedUnit = mineral.refinedPrice || 20;
-    const grossRefined = Math.round(yieldSCU * 100 * refinedUnit);
-    const refiningFee = Math.round(scu * 100 * mineral.rawPrice * (m.costFactor || 0.25));
-    const netPayout = Math.max(0, grossRefined - refiningFee);
-    const deltaVsRaw = netPayout - grossRaw;
-    const durationHours = Math.round(scu * (m.durationHoursPerSCU || 0.2) * 10) / 10;
-    const yieldPct = Math.round(m.yieldRate * (1 + stationBonusRate) * 100);
-
-    if (netPayout > maxNetPayout) {
-      maxNetPayout = netPayout;
-      bestMethod = m;
-    }
-
-    return {
-      method: m,
-      yieldSCU,
-      yieldPct,
-      refiningFee,
-      netPayout,
-      deltaVsRaw,
-      durationHours
-    };
-  });
-
-  // Render cards
-  let cardsHtml = `
-    <div class="mkt-method-card raw-card">
-      <div class="mkt-method-name">
-        <span>⚡ ${isEn ? 'Raw Direct Sale' : 'Vente Brute Directe'}</span>
-      </div>
-      <div class="mkt-method-meta">${isEn ? 'Immediate • 0 min' : 'Immédiat • 0 min'}</div>
-      <div class="mkt-method-payout">${grossRaw.toLocaleString(locale)} aUEC</div>
-      <div class="mkt-method-delta" style="color:var(--text-muted);">${isEn ? 'Base Payout' : 'Valeur de base'}</div>
-    </div>
+      <!-- Pins Composants Internes -->
+      ${componentPins.map(cp => `
+        <g class="schematic-comp-pin">
+          <circle cx="${cp.x}" cy="${cp.y}" r="8" fill="#080e1a" stroke="rgba(148,163,184,0.4)" stroke-width="1.2"/>
+          <circle cx="${cp.x}" cy="${cp.y}" r="3" fill="#38bdf8"/>
+          <text x="${cp.x}" y="${cp.y + 16}" fill="#64748b" font-size="8.5" font-family="'Inter', sans-serif" text-anchor="middle">${cp.label}</text>
+        </g>
+      `).join('')}
+    </svg>
   `;
-
-  cardsHtml += methodEvaluations.map(ev => {
-    const isBest = bestMethod && ev.method.id === bestMethod.id;
-    const isPos = ev.deltaVsRaw >= 0;
-    const sign = isPos ? '+' : '';
-    const deltaClass = isPos ? 'pos' : 'neg';
-
-    return `
-      <div class="mkt-method-card ${isBest ? 'best' : ''}">
-        <div class="mkt-method-name">
-          <span>${isBest ? '🌟 ' : ''}${ev.method.name}</span>
-        </div>
-        <div class="mkt-method-meta">${ev.yieldPct}% SCU • ~${ev.durationHours}h</div>
-        <div class="mkt-method-payout">${ev.netPayout.toLocaleString(locale)} aUEC</div>
-        <div class="mkt-method-delta ${deltaClass}">${sign}${ev.deltaVsRaw.toLocaleString(locale)} aUEC</div>
-      </div>
-    `;
-  }).join('');
-
-  DOM.mktMethodsGrid.innerHTML = cardsHtml;
-
-  // Update recommendation banner
-  if (DOM.mktArbitrageAdviceText && DOM.mktArbitrageRoiBadge) {
-    if (bestMethod && maxNetPayout > grossRaw) {
-      const bestEval = methodEvaluations.find(e => e.method.id === bestMethod.id);
-      const roiPct = Math.round(((maxNetPayout - grossRaw) / (grossRaw || 1)) * 100);
-      const diffVal = bestEval.deltaVsRaw.toLocaleString(locale);
-
-      DOM.mktArbitrageAdviceText.textContent = isEn
-        ? `${bestMethod.name} @ ${topStationName}: +${diffVal} aUEC (+${roiPct}%) vs Raw`
-        : `${bestMethod.name} à ${topStationName} : +${diffVal} aUEC (+${roiPct}%) vs Brut`;
-      DOM.mktArbitrageRoiBadge.textContent = `+${roiPct}% NET`;
-      DOM.mktArbitrageRoiBadge.style.display = 'inline-block';
-    } else {
-      DOM.mktArbitrageAdviceText.textContent = isEn
-        ? `Direct raw sale recommended: low ore value does not offset refining fees.`
-        : `Vente brute directe conseillée : la faible valeur du minerai ne compense pas les frais.`;
-      DOM.mktArbitrageRoiBadge.textContent = `BRUT CONSEILLÉ`;
-      DOM.mktArbitrageRoiBadge.style.display = 'inline-block';
-    }
-  }
 }
 
-function renderMarketTerminals(mineral, pureSCU) {
-  if (!DOM.mktTerminalsTable) return;
-  const isEn = state.currentLang === 'en';
-  const locale = getLocale();
-  const filter = state.mktSystemFilter || 'all';
-  const scu = Math.max(0.1, pureSCU || 1);
-
-  const terminals = (MINING_DATA.tradeTerminals || []).filter(term => {
-    if (filter === 'all') return true;
-    return term.system === filter;
-  });
-
-  const scored = terminals.map(t => {
-    const custom = state.customTerminalPrices[`${t.id}_${mineral.id}`];
-    let refinedPrice = mineral.refinedPrice;
-    let rawPrice = mineral.rawPrice;
-    let demand = t.demandRating || 'medium';
-    let isScoutVerified = false;
-    let scoutBy = '';
-
-    if (custom) {
-      refinedPrice = custom.price;
-      demand = custom.demand || demand;
-      isScoutVerified = true;
-      scoutBy = custom.by || 'Ailier';
-    } else if (t.priceModifiers && t.priceModifiers[mineral.id]) {
-      refinedPrice = t.priceModifiers[mineral.id].refinedPrice || refinedPrice;
-      rawPrice = t.priceModifiers[mineral.id].rawPrice || rawPrice;
-      demand = t.priceModifiers[mineral.id].demand || demand;
-    }
-
-    const totalVal = Math.round(scu * 100 * refinedPrice);
-    return {
-      terminal: t,
-      refinedPrice,
-      rawPrice,
-      demand,
-      totalVal,
-      isScoutVerified,
-      scoutBy
-    };
-  });
-
-  scored.sort((a, b) => b.refinedPrice - a.refinedPrice);
-
-  DOM.mktTerminalsTable.innerHTML = scored.map((item, idx) => {
-    const isTop = idx === 0;
-    const verifiedBadge = item.isScoutVerified
-      ? `<span class="craft-badge" style="font-size:0.6rem; border-color:var(--accent-purple); color:var(--accent-purple);">Éclaireur ${item.scoutBy}</span>`
-      : `<span class="craft-badge" style="font-size:0.6rem; border-color:var(--accent-cyan); color:var(--accent-cyan);">UEX 4.0</span>`;
-
-    const demandClass = item.demand || 'medium';
-    const demandLabel = demandClass === 'high' ? (isEn ? 'HIGH' : 'FORTE') : (demandClass === 'medium' ? (isEn ? 'MED' : 'MOYENNE') : (isEn ? 'LOW' : 'FAIBLE'));
-
-    return `
-      <div class="mkt-terminal-row ${isTop ? 'best-row' : ''}">
-        <div>
-          <div class="mkt-term-name">${isTop ? '🌟 ' : ''}${item.terminal.name}</div>
-          <div class="mkt-term-loc">${getLocalized(item.terminal, 'location')}</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          ${verifiedBadge}
-          <span class="mkt-demand-pill ${demandClass}">${demandLabel}</span>
-          <div style="text-align:right;">
-            <div style="font-family:var(--font-mono); font-size:0.8rem; font-weight:700; color:var(--accent-emerald);">
-              ${item.refinedPrice} <span style="font-size:0.65rem; color:var(--text-muted);">aUEC/cSCU</span>
-            </div>
-            <div style="font-family:var(--font-mono); font-size:0.68rem; color:var(--text-muted);">
-              ~${item.totalVal.toLocaleString(locale)} aUEC
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderSalesTour(mineral, pureSCU) {
-  if (!DOM.mktTourStopsContainer || !DOM.mktTourTotalPayout) return;
-  const isEn = state.currentLang === 'en';
-  const locale = getLocale();
-
-  // Inspect cargo: if active hauler has cargo or miner hold has cargo
-  let cargoItems = [];
-  if (state.haulerHoldBags && state.haulerHoldBags.length > 0) {
-    cargoItems = state.haulerHoldBags;
-  } else if (state.holdSCU > 0) {
-    cargoItems = [{ mineralId: mineral.id, scu: state.holdSCU }];
-  } else {
-    cargoItems = [{ mineralId: mineral.id, scu: pureSCU || 10 }];
-  }
-
-  // Aggregate commodities by mineralId
-  const oreMap = {};
-  cargoItems.forEach(item => {
-    const mId = item.mineralId || mineral.id;
-    const vol = item.scu || 8;
-    oreMap[mId] = (oreMap[mId] || 0) + vol;
-  });
-
-  const terminals = MINING_DATA.tradeTerminals || [];
-  let totalRevenue = 0;
-  const stops = [];
-
-  Object.keys(oreMap).forEach(mId => {
-    const scuVal = oreMap[mId];
-    const minObj = (MINING_DATA.minerals || []).find(m => m.id === mId) || mineral;
-    const minName = getLocalized(minObj, 'name');
-
-    // Find best terminal for this mineral
-    let bestTerm = null;
-    let highestPrice = 0;
-
-    terminals.forEach(term => {
-      const custom = state.customTerminalPrices[`${term.id}_${mId}`];
-      let p = minObj.refinedPrice;
-      if (custom) p = custom.price;
-      else if (term.priceModifiers && term.priceModifiers[mId]) p = term.priceModifiers[mId].refinedPrice;
-
-      if (p > highestPrice) {
-        highestPrice = p;
-        bestTerm = term;
-      }
-    });
-
-    const stopPayout = Math.round(scuVal * 100 * highestPrice);
-    totalRevenue += stopPayout;
-    stops.push({
-      mineralName: minName,
-      scu: scuVal,
-      terminalName: bestTerm ? bestTerm.name : 'Area18 TDD',
-      system: bestTerm ? bestTerm.system.toUpperCase() : 'STANTON',
-      unitPrice: highestPrice,
-      payout: stopPayout
-    });
-  });
-
-  state.currentSalesTour = {
-    totalRevenue,
-    stops
-  };
-
-  DOM.mktTourTotalPayout.textContent = `~${totalRevenue.toLocaleString(locale)} aUEC`;
-
-  DOM.mktTourStopsContainer.innerHTML = stops.map((stop, idx) => {
-    return `
-      <div class="mkt-tour-stop-item">
-        <div>
-          <span style="color:var(--accent-cyan); font-weight:700;">${idx + 1}.</span>
-          <strong style="color:#fff;">${stop.terminalName}</strong>
-          <span style="color:var(--text-muted); font-size:0.65rem;">(${stop.system})</span>
-          <div style="font-size:0.68rem; color:var(--text-muted);">
-            Vendre ${stop.scu} SCU de ${stop.mineralName} @ ${stop.unitPrice} aUEC/cSCU
-          </div>
-        </div>
-        <div style="font-family:var(--font-mono); font-size:0.78rem; font-weight:700; color:var(--accent-emerald);">
-          ~${stop.payout.toLocaleString(locale)} aUEC
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function copySalesTour() {
-  if (!state.currentSalesTour || !state.currentSalesTour.stops || state.currentSalesTour.stops.length === 0) {
-    showToast(state.currentLang === 'en' ? 'No sales tour available!' : 'Aucun itinéraire de vente disponible !');
-    return;
-  }
-
-  const isEn = state.currentLang === 'en';
-  const locale = getLocale();
-  const lines = [];
-  lines.push(isEn ? '🧭 [AARON MFD] OPTIMAL SALES TOUR' : '🧭 [AARON MFD] TOURNÉE COMMERCIALE OPTIMALE');
-  lines.push(`💰 ${isEn ? 'Expected Total Revenue:' : 'Gain total estimé :'} ~${state.currentSalesTour.totalRevenue.toLocaleString(locale)} aUEC`);
-  lines.push('----------------------------------------');
-
-  state.currentSalesTour.stops.forEach((s, i) => {
-    lines.push(`${i + 1}. ${s.terminalName} (${s.system})`);
-    lines.push(`   📦 ${s.scu} SCU ${s.mineralName} @ ${s.unitPrice} aUEC/cSCU -> ~${s.payout.toLocaleString(locale)} aUEC`);
-  });
-
-  const textToCopy = lines.join('\n');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      sfx.playSuccess();
-      triggerHaptic(20);
-      showToast(isEn ? '🧭 Trade tour route copied to clipboard!' : '🧭 Itinéraire de tournée commerciale copié dans le presse-papier !');
-    });
-  }
-}
-
-
-function determineVerdict(mineral, orePct, pureSCU, refinedPrice, powerRatio) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const minName = getLocalized(mineral, 'name');
-
-  DOM.verdictBox.classList.remove('verdict-great', 'verdict-good', 'verdict-meh', 'verdict-bad');
-
-  if (mineral.id === 'quantainium') {
-    if (orePct >= 20 && powerRatio >= 0.88) {
-      DOM.verdictBox.classList.add('verdict-great');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '💎';
-      DOM.verdictStatus.textContent = t.verdictExcellent;
-      DOM.verdictDesc.textContent = t.verdictExcellentDesc.replace('{pct}', orePct);
-    } else if (orePct >= 10 && powerRatio >= 0.88) {
-      DOM.verdictBox.classList.add('verdict-good');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '⚡';
-      DOM.verdictStatus.textContent = t.verdictGood;
-      DOM.verdictDesc.textContent = t.verdictGoodDesc.replace('{scu}', pureSCU);
-    } else if (powerRatio < 0.88) {
-      DOM.verdictBox.classList.add('verdict-meh');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '⚠️';
-      DOM.verdictStatus.textContent = t.verdictPowerWarn;
-      DOM.verdictDesc.textContent = t.verdictPowerWarnDesc;
-    } else {
-      DOM.verdictBox.classList.add('verdict-bad');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '⛔';
-      DOM.verdictStatus.textContent = t.verdictBad;
-      DOM.verdictDesc.textContent = t.verdictBadDesc.replace('{pct}', orePct);
-    }
-  } else if (mineral.rarity === 'tier-s' || mineral.rarity === 'tier-a') {
-    // Bexalite, Taranite, Borase, Hadanite
-    if (orePct >= 25) {
-      DOM.verdictBox.classList.add('verdict-great');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = mineral.id === 'hadanite' ? '🌸' : '🔥';
-      DOM.verdictStatus.textContent = t.verdictTierA;
-      DOM.verdictDesc.textContent = t.verdictTierADesc.replace('{name}', minName).replace('{price}', refinedPrice.toLocaleString(locale));
-    } else if (orePct >= 12) {
-      DOM.verdictBox.classList.add('verdict-good');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '⚡';
-      DOM.verdictStatus.textContent = t.verdictGoodOre;
-      DOM.verdictDesc.textContent = t.verdictGoodOreDesc.replace('{name}', minName);
-    } else {
-      DOM.verdictBox.classList.add('verdict-bad');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '⛔';
-      DOM.verdictStatus.textContent = t.verdictSkipOre;
-      DOM.verdictDesc.textContent = t.verdictSkipOreDesc;
-    }
-  } else {
-    // Other minerals
-    if (orePct >= 40 && refinedPrice >= 35000) {
-      DOM.verdictBox.classList.add('verdict-good');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '📦';
-      DOM.verdictStatus.textContent = t.verdictSecondary;
-      DOM.verdictDesc.textContent = t.verdictSecondaryDesc.replace('{name}', minName);
-    } else {
-      DOM.verdictBox.classList.add('verdict-bad');
-      if (DOM.verdictIconBadge) DOM.verdictIconBadge.textContent = '⛔';
-      DOM.verdictStatus.textContent = t.verdictLowValue;
-      DOM.verdictDesc.textContent = t.verdictLowValueDesc;
-    }
-  }
-}
-
-// ==========================================
-// AARON HALO & STATIONS HELPER
-// ==========================================
-function updateRecommendedStation(mineral) {
-  if (!DOM.stationRecBox) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const bestStation = MINING_DATA.refineryStations.find(s => s.bonusMineral === mineral.id);
-  if (bestStation) {
-    DOM.stationRecName.textContent = bestStation.name;
-    DOM.stationRecBonus.textContent = `+${Math.round(bestStation.bonusRate * 100)}% Bonus`;
-    DOM.stationRecBonus.style.color = 'var(--accent-emerald)';
-  } else {
-    DOM.stationRecName.textContent = 'ARC-L1 / CRU-L1';
-    DOM.stationRecBonus.textContent = t.standardYield;
-    DOM.stationRecBonus.style.color = 'var(--text-muted)';
-  }
-}
-
-// ==========================================
-// SQUAD & FLEET MINING COORDINATOR
-// ==========================================
-function updateSquadDisplay(refinedPrice, rawPrice, totalLaserPower, fleetCargoSCU, combinedResistanceMod = 0) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const totalShipsCount = 1 + (state.squadMembers ? state.squadMembers.length : 0);
-  const activeFiringCount = (state.selectedShip.id === 'mole' ? state.moleActiveTurrets : 1) +
-    (state.squadMembers ? state.squadMembers.filter(m => m.active && (m.laserId || m.customLaserStats)).length : 0);
-
-  // 1. Update header badges
-  if (DOM.mgSquadCountBadge) DOM.mgSquadCountBadge.textContent = totalShipsCount;
-  if (DOM.squadCountBadge) DOM.squadCountBadge.textContent = totalShipsCount;
-
-  // 2. Update Scanner HUD banner (Panel 1)
-  if (DOM.squadActiveHudBanner) {
-    const hasActiveWingmen = state.squadMembers && state.squadMembers.some(m => m.active);
-    DOM.squadActiveHudBanner.style.display = hasActiveWingmen ? 'flex' : 'none';
-    if (DOM.squadActiveHudText) {
-      DOM.squadActiveHudText.textContent = t.squadActiveHudText
-        .replace('{count}', activeFiringCount)
-        .replace('{pwr}', totalLaserPower.toLocaleString(locale));
-    }
-  }
-
-  // 3. Update Profit Split Mini Card (Panel 2)
-  if (DOM.squadProfitSplitCard) {
-    const hasSquad = state.squadMembers && state.squadMembers.length > 0;
-    DOM.squadProfitSplitCard.style.display = hasSquad ? 'block' : 'none';
-    if (hasSquad) {
-      const shares = Math.max(1, state.crewMembers || totalShipsCount);
-      const reserveFactor = 1 - (state.crewReservePct / 100);
-      const shareRefined = Math.round((refinedPrice * reserveFactor) / shares);
-      const shareRaw = Math.round((rawPrice * reserveFactor) / shares);
-
-      if (DOM.squadSplitCountLabel) DOM.squadSplitCountLabel.textContent = `(${shares} ${shares > 1 ? t.playersPlural : t.playersSingular})`;
-      if (DOM.squadRefinedShareVal) DOM.squadRefinedShareVal.textContent = `~${shareRefined.toLocaleString(locale)} aUEC`;
-      if (DOM.squadRawShareVal) DOM.squadRawShareVal.textContent = `Brut: ~${shareRaw.toLocaleString(locale)} aUEC`;
-    }
-  }
-
-  // 4. Update Squad Modal Top Stat Tiles (5 Tiles)
-  if (DOM.fleetStatShips) DOM.fleetStatShips.textContent = totalShipsCount;
-  if (DOM.fleetStatPower) DOM.fleetStatPower.textContent = `${totalLaserPower.toLocaleString(locale)} W`;
-  if (DOM.fleetStatResReduction) {
-    const pct = Math.round(combinedResistanceMod * 100);
-    DOM.fleetStatResReduction.textContent = `${pct > 0 ? '+' : ''}${pct} %`;
-    DOM.fleetStatResReduction.style.color = pct < 0 ? 'var(--accent-purple)' : (pct > 0 ? 'var(--accent-amber)' : 'var(--text-muted)');
-  }
-  if (DOM.fleetStatCargo) DOM.fleetStatCargo.textContent = `${fleetCargoSCU} SCU`;
-  if (DOM.fleetStatShare) {
-    const shares = Math.max(1, state.crewMembers || totalShipsCount);
-    const reserveFactor = 1 - (state.crewReservePct / 100);
-    const shareRefined = Math.round((refinedPrice * reserveFactor) / shares);
-    DOM.fleetStatShare.textContent = `~${Math.round(shareRefined / 1000)}k`;
-  }
-}
-
-function setCallsign(newCallsign, notify = true) {
-  const clean = (newCallsign || '').trim().toUpperCase().slice(0, 20);
-  state.callsign = clean || 'CITIZEN-1';
-  try {
-    localStorage.setItem('aaron_mfd_callsign', state.callsign);
-  } catch (e) {
-    console.warn('LocalStorage callsign save error', e);
-  }
-  if (DOM.mgCallsignVal) DOM.mgCallsignVal.textContent = state.callsign;
-  if (DOM.squadLeaderName) DOM.squadLeaderName.textContent = state.callsign;
-  if (DOM.squadLeaderNameInput && DOM.squadLeaderNameInput.value !== state.callsign) {
-    DOM.squadLeaderNameInput.value = state.callsign;
-  }
-  if (DOM.callsignModalInput && DOM.callsignModalInput.value !== state.callsign) {
-    DOM.callsignModalInput.value = state.callsign;
-  }
-  if (fleetNet) {
-    fleetNet.updateCallsign(state.callsign);
-    broadcastLocalLoadout();
-  }
-  if (notify) {
-    const t = I18N[state.currentLang] || I18N.fr;
-    const msg = (t.toastCallsignUpdated || '✅ Indicatif mis à jour : {callsign}').replace('{callsign}', state.callsign);
-    showToast(msg);
-  }
-}
-
-function renderSquadWingmen() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const isEn = state.currentLang === 'en';
-  const allShips = [...MINING_DATA.ships, ...(MINING_DATA.supportShips || [])];
-
-  // 1. Leader card update
-  if (DOM.squadLeaderNameInput) DOM.squadLeaderNameInput.value = state.callsign || 'CITIZEN-1';
-  if (DOM.squadLeaderName) DOM.squadLeaderName.textContent = state.callsign || 'CITIZEN-1';
-  if (DOM.squadLeaderShipDesc) DOM.squadLeaderShipDesc.textContent = `${state.selectedShip.name} (${state.selectedShip.scu} SCU)`;
-  if (DOM.squadLeaderLaserDesc) {
-    if (state.selectedShip.id === 'mole') {
-      DOM.squadLeaderLaserDesc.textContent = `MOLE (${state.moleActiveTurrets}/3 tourelles actives)`;
-    } else {
-      DOM.squadLeaderLaserDesc.textContent = state.selectedLaser ? state.selectedLaser.name : 'Laser S1';
-    }
-  }
-
-  // 2. Render wingmen container
-  if (!DOM.squadWingmenContainer) return;
-  DOM.squadWingmenContainer.innerHTML = '';
-
-  state.squadMembers.forEach((member, idx) => {
-    const card = document.createElement('div');
-    card.className = `wingman-card ${member.active ? 'active-firing' : 'standby'}`;
-    const shipObj = allShips.find(s => s.id === member.shipId) || MINING_DATA.ships[0];
-    const isMiningShip = !shipObj.isCargoSupport;
-
-    // Ship options
-    const shipOptionsHtml = allShips.map(s => {
-      return `<option value="${s.id}" ${s.id === member.shipId ? 'selected' : ''}>${s.name} (${s.scu} SCU)</option>`;
-    }).join('');
-
-    // Laser options
-    let laserSelectHtml = '';
-    if (isMiningShip) {
-      if (member.customLaserStats) {
-        laserSelectHtml = `
-          <div style="display:flex; flex-direction:column; gap:2px;">
-            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
-            <div style="display:flex; align-items:center; gap:6px; padding:3px 0;">
-              <span class="craft-badge" style="font-size:0.62rem; padding:1px 5px;">CRAFT 4.0</span>
-              <span style="font-size:0.75rem; color:var(--accent-purple); font-family:var(--font-mono); font-weight:700;">${member.customLaserStats.name} (${member.customLaserStats.power} W)</span>
-            </div>
-          </div>
-        `;
-      } else {
-        const shipLaserSize = shipObj.laserSize || 1;
-        const compLasers = MINING_DATA.lasers.filter(l => l.size === shipLaserSize);
-        const laserOpts = compLasers.map(l => {
-          const prefix = l.isCustomCraft ? '🛠️ ' : '';
-          return `<option value="${l.id}" ${l.id === member.laserId ? 'selected' : ''}>${prefix}${l.name} (${l.power} W)</option>`;
-        }).join('');
-        laserSelectHtml = `
-          <div style="display:flex; flex-direction:column; gap:2px;">
-            <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
-            <select class="hud-select-sm wingman-laser-select" data-member-idx="${idx}" style="font-size:0.75rem; padding:4px;">
-              ${laserOpts}
-            </select>
-          </div>
-        `;
-      }
-    } else {
-      laserSelectHtml = `
-        <div style="display:flex; flex-direction:column; gap:2px; justify-content:center;">
-          <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanLaserLabel}</label>
-          <span style="font-size:0.75rem; color:var(--accent-amber); font-family:var(--font-mono);">📦 Transport Cargo (${shipObj.scu} SCU)</span>
-        </div>
-      `;
-    }
-
-    const p2pBadgeHtml = member.isRemotePeer
-      ? `<span class="fleet-net-role-badge wingman" style="font-size:0.62rem; padding:1px 6px;" title="Pair P2P connecté en direct">P2P ${member.ping ? member.ping + 'ms' : 'LIVE'}</span>`
-      : '';
-
-    card.innerHTML = `
-      <div class="wingman-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:0.7rem; color:var(--accent-cyan); font-family:var(--font-hud); font-weight:700;">#${idx + 2}</span>
-          <input type="text" class="hud-input wingman-name-input" data-member-idx="${idx}" value="${member.name || `Équipier ${idx + 1}`}" ${member.isRemotePeer ? 'readonly' : ''} style="background:${member.isRemotePeer ? 'rgba(0,240,255,0.06)' : 'transparent'}; border:1px solid ${member.isRemotePeer ? 'rgba(0,240,255,0.35)' : 'rgba(255,255,255,0.15)'}; border-radius:4px; padding:2px 6px; font-family:var(--font-hud); font-size:0.82rem; color:${member.isRemotePeer ? 'var(--accent-cyan)' : '#fff'}; width:140px;" />
-          ${p2pBadgeHtml}
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.72rem; font-family:var(--font-mono); font-weight:700; color:${member.active ? '#10b981' : 'var(--text-muted)'};">
-            <input type="checkbox" class="wingman-active-toggle" data-member-idx="${idx}" ${member.active ? 'checked' : ''} style="cursor:pointer;" />
-            <span>${member.active ? t.squadActiveFiring : t.squadStandby}</span>
-          </label>
-          <button type="button" class="btn-close-modal wingman-remove-btn" data-member-idx="${idx}" style="font-size:1.1rem; width:22px; height:22px; color:#f43f5e;" title="${t.removeWingmanBtn}">&times;</button>
-        </div>
-      </div>
-      <div class="wingman-row">
-        <div style="display:flex; flex-direction:column; gap:2px;">
-          <label style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-hud);">${t.wingmanShipLabel}</label>
-          <select class="hud-select-sm wingman-ship-select" data-member-idx="${idx}" style="font-size:0.75rem; padding:4px;">
-            ${shipOptionsHtml}
-          </select>
-        </div>
-        ${laserSelectHtml}
-      </div>
-    `;
-
-    DOM.squadWingmenContainer.appendChild(card);
-  });
-
-  // Attach dynamic event listeners on wingmen inputs
-  DOM.squadWingmenContainer.querySelectorAll('.wingman-name-input').forEach(inp => {
-    inp.addEventListener('change', (e) => {
-      const idx = parseInt(e.target.dataset.memberIdx, 10);
-      if (state.squadMembers[idx]) {
-        state.squadMembers[idx].name = e.target.value.trim();
-        calculateAll();
-      }
-    });
-  });
-
-  DOM.squadWingmenContainer.querySelectorAll('.wingman-active-toggle').forEach(chk => {
-    chk.addEventListener('change', (e) => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(12);
-      const idx = parseInt(e.target.dataset.memberIdx, 10);
-      if (state.squadMembers[idx]) {
-        state.squadMembers[idx].active = e.target.checked;
-        renderSquadWingmen();
-        calculateAll();
-        calculateCrewSplit();
-      }
-    });
-  });
-
-  DOM.squadWingmenContainer.querySelectorAll('.wingman-ship-select').forEach(sel => {
-    sel.addEventListener('change', (e) => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(12);
-      const idx = parseInt(e.target.dataset.memberIdx, 10);
-      if (state.squadMembers[idx]) {
-        state.squadMembers[idx].shipId = e.target.value;
-        const newShip = allShips.find(s => s.id === e.target.value);
-        if (newShip && !newShip.isCargoSupport) {
-          const shipLaserSize = newShip.laserSize || 1;
-          const compLasers = MINING_DATA.lasers.filter(l => l.size === shipLaserSize);
-          state.squadMembers[idx].laserId = compLasers[0] ? compLasers[0].id : 'lancet_s1';
-        } else {
-          state.squadMembers[idx].laserId = null;
-        }
-        renderSquadWingmen();
-        calculateAll();
-        calculateCrewSplit();
-      }
-    });
-  });
-
-  DOM.squadWingmenContainer.querySelectorAll('.wingman-laser-select').forEach(sel => {
-    sel.addEventListener('change', (e) => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(12);
-      const idx = parseInt(e.target.dataset.memberIdx, 10);
-      if (state.squadMembers[idx]) {
-        state.squadMembers[idx].laserId = e.target.value;
-        calculateAll();
-        calculateCrewSplit();
-      }
-    });
-  });
-
-  DOM.squadWingmenContainer.querySelectorAll('.wingman-remove-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(450, 'sine', 0.05);
-      triggerHaptic(15);
-      const idx = parseInt(btn.dataset.memberIdx, 10);
-      state.squadMembers.splice(idx, 1);
-      state.crewMembers = Math.max(1, 1 + state.squadMembers.length);
-      renderSquadWingmen();
-      calculateAll();
-      calculateCrewSplit();
-    });
-  });
-}
-
-function addSquadMember() {
-  sfx.playBeep(650, 'sine', 0.04);
-  triggerHaptic(15);
-  const newIdx = state.squadMembers.length + 2;
-  state.squadMembers.push({
-    id: 'wingman_' + Date.now(),
-    name: `Équipier ${newIdx}`,
-    shipId: 'prospector',
-    laserId: 'lancet_s1',
-    moduleIds: [],
-    active: true
-  });
-  state.crewMembers = 1 + state.squadMembers.length;
-  renderSquadWingmen();
-  calculateAll();
-  calculateCrewSplit();
-}
-
-function applySquadTemplate(key) {
-  sfx.playSuccess();
-  triggerHaptic(20);
-  if (key === 'duo_prospectors') {
-    state.squadMembers = [
-      {
-        id: 'wingman_' + Date.now(),
-        name: 'Prospector 2 (Helix)',
-        shipId: 'prospector',
-        laserId: 'helix_s1',
-        moduleIds: [],
-        active: true
-      }
-    ];
-  } else if (key === 'mole_prospector') {
-    state.squadMembers = [
-      {
-        id: 'wingman_' + Date.now(),
-        name: 'Argo MOLE Alpha',
-        shipId: 'mole',
-        laserId: 'lancet_s2',
-        moduleIds: [],
-        active: true
-      }
-    ];
-  } else if (key === 'prospector_cargo') {
-    state.squadMembers = [
-      {
-        id: 'wingman_' + Date.now(),
-        name: 'C2 Hercules Cargo',
-        shipId: 'c2',
-        laserId: null,
-        moduleIds: [],
-        active: true
-      }
-    ];
-  }
-  state.crewMembers = 1 + state.squadMembers.length;
-  renderSquadWingmen();
-  calculateAll();
-  calculateCrewSplit();
-}
-
-function openSquadModal() {
-  sfx.playBeep(600, 'sine', 0.04);
-  triggerHaptic(12);
-  try {
-    renderSquadWingmen();
-  } catch (err) {
-    console.warn('[AARON MFD] renderSquadWingmen error:', err);
-  }
-  try {
-    calculateAll();
-  } catch (err) {
-    console.warn('[AARON MFD] calculateAll error:', err);
-  }
-  try {
-    calculateCrewSplit();
-  } catch (err) {
-    console.warn('[AARON MFD] calculateCrewSplit error:', err);
-  }
-  try {
-    updateFleetNetUI();
-  } catch (err) {
-    console.warn('[AARON MFD] updateFleetNetUI error:', err);
-  }
-  openModal(DOM.crewModal);
-}
-
-function calculateCrewSplit() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  let totalVal = 0;
-  if (state.sessionLog.length > 0) {
-    totalVal = state.sessionLog.reduce((acc, item) => acc + item.rawVal, 0);
-  } else {
-    const mineral = state.selectedMineral;
-    const oreMass = state.rockMass * (state.orePercentage / 100);
-    const densityDivisor = (mineral.density || 15) * 85;
-    const scu = Math.round((oreMass / densityDivisor) * 10) / 10;
-    totalVal = Math.round(scu * 100 * mineral.rawPrice);
-  }
-
-  const reserveFactor = state.crewReservePct / 100;
-  const reserveAmt = Math.round(totalVal * reserveFactor);
-  const netPool = totalVal - reserveAmt;
-
-  // Escort Combat Risk cut (Jalon 4)
-  const escortFactor = (state.escortCutPct || 0) / 100;
-  const escortAmt = Math.round(netPool * escortFactor);
-
-  // Freight Hauler Commission cut (Jalon 5)
-  const haulerFactor = (state.haulerCutPct || 0) / 100;
-  const haulerAmt = Math.round(netPool * haulerFactor);
-
-  const minerPool = Math.max(0, netPool - escortAmt - haulerAmt);
-  const share = Math.round(minerPool / Math.max(1, state.crewMembers));
-
-  DOM.crewTotalHoldValue.textContent = `${totalVal.toLocaleString(locale)} aUEC`;
-  DOM.crewSharePerMember.textContent = `${share.toLocaleString(locale)} aUEC / ${t.perMember}`;
-  DOM.crewReserveDeducted.textContent = t.crewDeducted.replace('{pct}', state.crewReservePct).replace('{amt}', reserveAmt.toLocaleString(locale));
-  DOM.crewCountDisplay.textContent = `${state.crewMembers} ${state.crewMembers > 1 ? t.playersPlural : t.playersSingular}`;
-
-  if (DOM.escortCutDisplay) {
-    DOM.escortCutDisplay.textContent = `${state.escortCutPct || 0} %`;
-  }
-  if (DOM.escortCutDeducted) {
-    DOM.escortCutDeducted.textContent = `-${escortAmt.toLocaleString(locale)} aUEC (${state.escortCutPct || 0}%)`;
-  }
-  if (DOM.haulerCutDisplay) {
-    DOM.haulerCutDisplay.textContent = `${state.haulerCutPct || 0} %`;
-  }
-  if (DOM.haulerCutDeducted) {
-    DOM.haulerCutDeducted.textContent = `-${haulerAmt.toLocaleString(locale)} aUEC (${state.haulerCutPct || 0}%)`;
+/**
+ * Ferme l'éditeur et revient à l'aperçu de la flotte
+ */
+function closeShipConfigScreen() {
+  const overview = document.getElementById('fleetOverviewSubView');
+  const editor = document.getElementById('fleetLoadoutEditorSubView');
+  if (overview && editor) {
+    editor.style.display = 'none';
+    overview.style.display = 'block';
+    renderFleetHangar();
   }
 }
 
 // ============================================================================
-// AARON FLEET-NET SUBSYSTEM (JALON 1 — P2P WING CONNECTIVITY)
+// ============================================================================
+// 6. INVENTAIRE D'ÉQUIPEMENTS, COTATION & MARCHÉ INTER-GUILDE
 // ============================================================================
 
-function getLocalLoadoutPayload() {
-  const currentLaser = state.selectedLaser;
-  let customStats = null;
-  if (currentLaser && currentLaser.isCustomCraft) {
-    customStats = {
-      id: currentLaser.id,
-      name: currentLaser.name,
-      size: currentLaser.size,
-      power: currentLaser.power,
-      resistanceMod: currentLaser.resistanceMod,
-      instabilityMod: currentLaser.instabilityMod,
-      optimalWindowMod: currentLaser.optimalWindowMod,
-      slots: currentLaser.slots,
-      isCustomCraft: true
-    };
+let fleetyardsCatalogCache = null;
+
+async function loadFleetyardsCatalog() {
+  if (fleetyardsCatalogCache && fleetyardsCatalogCache.length > 0) {
+    return fleetyardsCatalogCache;
   }
-
-  return {
-    callsign: state.callsign || 'CITIZEN-1',
-    shipId: state.selectedShip ? state.selectedShip.id : 'prospector',
-    laserId: currentLaser ? currentLaser.id : 'arbor_mh1',
-    customLaserStats: customStats,
-    holdSCU: state.holdSCU || 0,
-    activeTurrets: state.moleActiveTurrets || 1
-  };
-}
-
-function broadcastLocalLoadout() {
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastLoadout(getLocalLoadoutPayload());
-  }
-}
-
-function updateFleetNetUI() {
-  if (!fleetNet) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const isConnected = fleetNet.status === 'connected';
-
-  if (DOM.fleetNetDisconnectedBox) {
-    DOM.fleetNetDisconnectedBox.style.display = isConnected ? 'none' : 'block';
-  }
-  if (DOM.fleetNetConnectedBox) {
-    DOM.fleetNetConnectedBox.style.display = isConnected ? 'block' : 'none';
-  }
-
-  if (DOM.fleetNetLed) {
-    DOM.fleetNetLed.className = `fleet-net-led ${isConnected ? 'connected' : 'disconnected'}`;
-  }
-
-  if (DOM.fleetNetStatusBadge) {
-    DOM.fleetNetStatusBadge.className = `fleet-net-status-badge ${isConnected ? 'connected' : 'disconnected'}`;
-    DOM.fleetNetStatusBadge.textContent = isConnected
-      ? (t.fleetNetConnected || 'CONNECTÉ (AARON FLEET-NET)')
-      : (t.fleetNetSolo || 'MODE SOLO (HORS-LIGNE)');
-  }
-
-  if (isConnected) {
-    if (DOM.fleetNetRoomCodeDisplay) {
-      DOM.fleetNetRoomCodeDisplay.textContent = fleetNet.roomCode || 'WING-XXXX';
-    }
-    if (DOM.fleetNetRoleBadge) {
-      DOM.fleetNetRoleBadge.className = `fleet-net-role-badge ${fleetNet.isHost ? 'host' : 'wingman'}`;
-      DOM.fleetNetRoleBadge.textContent = fleetNet.isHost
-        ? (t.fleetHostRole || 'HÔTE')
-        : (t.fleetWingmanRole || 'AILIER');
-    }
-    const peers = fleetNet.getPeersList();
-    if (DOM.fleetNetPingDisplay) {
-      DOM.fleetNetPingDisplay.textContent = `${fleetNet.pingMs || 10} ms`;
-    }
-    if (DOM.fleetNetPeersCountDisplay) {
-      const count = peers.length;
-      const countStr = count === 1
-        ? (t.fleetOnePeerOnline || '1 pair en ligne')
-        : (t.fleetPeersOnline || '{count} pairs en ligne').replace('{count}', count);
-      DOM.fleetNetPeersCountDisplay.textContent = countStr;
-    }
-    if (DOM.mgCommsLedText) {
-      DOM.mgCommsLedText.className = 'mg-status-online';
-      DOM.mgCommsLedText.textContent = `${fleetNet.roomCode} [${peers.length} • ${fleetNet.pingMs || 10}ms]`;
-    }
-  } else {
-    if (DOM.mgCommsLedText) {
-      DOM.mgCommsLedText.className = 'mg-status-online';
-      DOM.mgCommsLedText.textContent = t.fleetNetSoloStatus || 'SOLO [|||||]';
-    }
-  }
-}
-
-function syncFleetPeersToSquad(peers) {
-  const currentRemoteIds = new Set(peers.map(p => p.peerId));
-
-  // 1. Remove peers that disconnected
-  state.squadMembers = state.squadMembers.filter(m => !m.isRemotePeer || currentRemoteIds.has(m.peerId));
-
-  // 2. Add or update connected peers
-  peers.forEach(peer => {
-    let existing = state.squadMembers.find(m => m.peerId === peer.peerId);
-    const shipId = peer.shipId || peer.loadout?.shipId || 'prospector';
-    const laserId = peer.laserId || peer.loadout?.laserId || (shipId === 'mole' ? null : 'lancet_s1');
-    const customStats = peer.customLaserStats || peer.loadout?.customLaserStats || null;
-
-    if (existing) {
-      existing.name = peer.callsign || 'Ailier P2P';
-      existing.shipId = shipId;
-      existing.laserId = laserId;
-      existing.customLaserStats = customStats;
-      existing.active = true;
-      existing.ping = peer.ping;
-    } else {
-      state.squadMembers.push({
-        id: 'peer_' + peer.peerId,
-        peerId: peer.peerId,
-        name: peer.callsign || 'Ailier P2P',
-        shipId: shipId,
-        laserId: laserId,
-        customLaserStats: customStats,
-        moduleIds: [],
-        active: true,
-        isRemotePeer: true,
-        ping: peer.ping
-      });
-    }
-  });
-
-  state.crewMembers = Math.max(1, 1 + state.squadMembers.length);
-  renderSquadWingmen();
-  calculateAll();
-  calculateCrewSplit();
-  updateFleetNetUI();
-}
-
-function initFleetNet() {
-  fleetNet = new AaronFleetNet({
-    callsign: state.callsign || 'CITIZEN-1',
-    onStatusChange: (status, roomCode, isHost) => {
-      updateFleetNetUI();
-    },
-    onPeersUpdate: (peers) => {
-      syncFleetPeersToSquad(peers);
-    },
-    onPeerJoin: (peer) => {
-      const t = I18N[state.currentLang] || I18N.fr;
-      const msg = (t.toastPeerJoined || 'Ailier connecté : {callsign}').replace('{callsign}', peer.callsign || 'Inconnu');
-      showToast(msg);
-      sfx.playSuccess();
-      triggerHaptic(20);
-    },
-    onPeerLeave: (peer) => {
-      const t = I18N[state.currentLang] || I18N.fr;
-      const msg = (t.toastPeerLeft || 'Ailier déconnecté : {callsign}').replace('{callsign}', peer.callsign || 'Inconnu');
-      showToast(msg);
-      sfx.playBeep(420, 'sine', 0.05);
-      triggerHaptic(15);
-    },
-    onRockBroadcast: (rock, callsign) => {
-      handleIncomingRockBroadcast(rock, callsign);
-    },
-    onRedAlert: (alertData, senderCallsign) => {
-      handleIncomingRedAlert(alertData, senderCallsign);
-    },
-    onJointFireSync: (fireData, senderCallsign) => {
-      handleIncomingJointFireSync(fireData, senderCallsign);
-    },
-    onCargoPickupRequest: (pickupData, senderCallsign) => {
-      handleIncomingCargoPickupRequest(pickupData, senderCallsign);
-    },
-    onCargoPickupAccept: (acceptData, senderCallsign) => {
-      handleIncomingCargoPickupAccept(acceptData, senderCallsign);
-    },
-    onCorpoPriceUpdate: (priceUpdate, senderCallsign) => {
-      handleIncomingCorpoPriceUpdate(priceUpdate, senderCallsign);
-    },
-    onCorpoStockSync: (stockSync, senderCallsign) => {
-      handleIncomingCorpoStockSync(stockSync, senderCallsign);
-    },
-    onCorpoExpenseSync: (expenseSync, senderCallsign) => {
-      handleIncomingCorpoExpenseSync(expenseSync, senderCallsign);
-    },
-    onCorpoTreasurySync: (treasurySync, senderCallsign) => {
-      handleIncomingCorpoTreasurySync(treasurySync, senderCallsign);
-    },
-    onCorpoTradeSync: (tradeSync, senderCallsign) => {
-      handleIncomingCorpoTradeSync(tradeSync, senderCallsign);
-    }
-  });
-
-  // UI Event Handlers
-  if (DOM.btnFleetCreateWing) {
-    DOM.btnFleetCreateWing.addEventListener('click', () => {
-      sfx.playSuccess();
-      triggerHaptic(20);
-      fleetNet.createWing(null, getLocalLoadoutPayload());
-      const t = I18N[state.currentLang] || I18N.fr;
-      const msg = (t.toastWingCreated || 'Escadre créée : {code}').replace('{code}', fleetNet.roomCode);
-      showToast(msg);
-      updateFleetNetUI();
-    });
-  }
-
-  if (DOM.btnFleetJoinWing) {
-    DOM.btnFleetJoinWing.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(15);
-      const code = DOM.inputFleetRoomCode ? DOM.inputFleetRoomCode.value.trim().toUpperCase() : '';
-      if (!code) {
-        showToast('Veuillez saisir un code d\'escadre valide (ex: WING-4982)');
-        if (DOM.inputFleetRoomCode) DOM.inputFleetRoomCode.focus();
-        return;
-      }
-      fleetNet.joinWing(code, false, getLocalLoadoutPayload());
-      const t = I18N[state.currentLang] || I18N.fr;
-      const msg = (t.toastWingJoined || 'Connexion à l\'escadre {code}...').replace('{code}', code);
-      showToast(msg);
-      updateFleetNetUI();
-    });
-  }
-
-  if (DOM.inputFleetRoomCode) {
-    DOM.inputFleetRoomCode.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') {
-        DOM.btnFleetJoinWing?.click();
-      }
-    });
-  }
-
-  if (DOM.btnFleetCopyInvite) {
-    DOM.btnFleetCopyInvite.addEventListener('click', () => {
-      sfx.playSuccess();
-      triggerHaptic(20);
-      const inviteUrl = fleetNet.getInviteUrl();
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(inviteUrl).then(() => {
-          const t = I18N[state.currentLang] || I18N.fr;
-          showToast(t.toastInviteCopied || 'Lien d\'invitation copié dans le presse-papier !');
-        }).catch(() => {
-          prompt('Copiez ce lien d\'invitation :', inviteUrl);
-        });
-      } else {
-        prompt('Copiez ce lien d\'invitation :', inviteUrl);
-      }
-    });
-  }
-
-  if (DOM.btnFleetLeaveWing) {
-    DOM.btnFleetLeaveWing.addEventListener('click', () => {
-      sfx.playBeep(450, 'sine', 0.05);
-      triggerHaptic(15);
-      fleetNet.leaveWing();
-      // Remove remote peers from squad
-      state.squadMembers = state.squadMembers.filter(m => !m.isRemotePeer);
-      state.crewMembers = Math.max(1, 1 + state.squadMembers.length);
-      renderSquadWingmen();
-      calculateAll();
-      calculateCrewSplit();
-      const t = I18N[state.currentLang] || I18N.fr;
-      showToast(t.toastWingLeft || 'Vous avez quitté l\'escadre.');
-      updateFleetNetUI();
-    });
-  }
-
-  if (DOM.btnMgFleetNetComms) {
-    DOM.btnMgFleetNetComms.addEventListener('click', () => {
-      openSquadModal();
-    });
-  }
-
-  // Auto-connect if URL contains ?fleet=WING-XXXX
   try {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('fleet')) {
-      const roomCode = params.get('fleet').trim().toUpperCase();
-      if (roomCode) {
-        setTimeout(() => {
-          fleetNet.joinWing(roomCode, false, getLocalLoadoutPayload());
-          updateFleetNetUI();
-          const t = I18N[state.currentLang] || I18N.fr;
-          showToast((t.toastWingJoined || 'Connexion à l\'escadre {code}...').replace('{code}', roomCode));
-        }, 300);
-      }
-    }
-  } catch (e) {
-    console.warn('[FLEET-NET] Query param parse error:', e);
-  }
+    const [compsRes, equipRes] = await Promise.all([
+      fetch('/data/fleetyards/components.json').then(r => r.json()).catch(() => []),
+      fetch('/data/fleetyards/equipment.json').then(r => r.json()).catch(() => [])
+    ]);
 
-  updateFleetNetUI();
-}
-
-// ============================================================================
-// CRAFTING 4.0 WORKSHOP SUBSYSTEM (JALON 2 — CUSTOM MINING GEAR)
-// ============================================================================
-
-function loadCustomCraftGear() {
-  try {
-    const rawLasers = localStorage.getItem('aaron_mfd_custom_lasers');
-    if (rawLasers) {
-      state.customLasers = JSON.parse(rawLasers) || [];
-      state.customLasers.forEach(cLaser => {
-        const idx = MINING_DATA.lasers.findIndex(l => l.id === cLaser.id);
-        if (idx !== -1) {
-          MINING_DATA.lasers[idx] = cLaser;
-        } else {
-          MINING_DATA.lasers.push(cLaser);
-        }
+    const unified = [];
+    (compsRes || []).forEach(c => {
+      const price = c.availability?.soldAt?.[0]?.price || c.availability?.boughtAt?.[0]?.price || c.price || 0;
+      unified.push({
+        name: c.name,
+        code: c.slug || (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        category: 'component',
+        subCategory: c.type || 'component',
+        size: c.size ? String(c.size) : null,
+        grade: c.grade ? String(c.grade) : null,
+        catalogPrice: Number(price) || 0,
+        typeLabel: `Composant · ${c.type || 'Système'}`
       });
-    }
+    });
+
+    (equipRes || []).forEach(e => {
+      const price = e.availability?.soldAt?.[0]?.price || e.availability?.boughtAt?.[0]?.price || e.price || 0;
+      let cat = 'equipment';
+      const typeStr = (e.type || '').toLowerCase();
+      if (typeStr.includes('weapon') || typeStr.includes('gun') || typeStr.includes('smg') || typeStr.includes('rifle') || typeStr.includes('pistol')) {
+        cat = 'weapon';
+      }
+      unified.push({
+        name: e.name,
+        code: e.slug || (e.name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        category: cat,
+        subCategory: e.type || 'gear',
+        size: e.size ? String(e.size) : 'FPS',
+        grade: e.grade ? String(e.grade) : 'B',
+        catalogPrice: Number(price) || 0,
+        typeLabel: `FPS · ${e.type || 'Équipement'}`
+      });
+    });
+
+    fleetyardsCatalogCache = unified;
+    return unified;
   } catch (err) {
-    console.warn('[CRAFTING 4.0] Error loading custom lasers:', err);
-  }
-
-  try {
-    const rawGadgets = localStorage.getItem('aaron_mfd_custom_gadgets');
-    if (rawGadgets) {
-      state.customGadgets = JSON.parse(rawGadgets) || [];
-      state.customGadgets.forEach(cGadget => {
-        const idx = MINING_DATA.gadgets.findIndex(g => g.id === cGadget.id);
-        if (idx !== -1) {
-          MINING_DATA.gadgets[idx] = cGadget;
-        } else {
-          MINING_DATA.gadgets.push(cGadget);
-        }
-      });
-    }
-  } catch (err) {
-    console.warn('[CRAFTING 4.0] Error loading custom gadgets:', err);
-  }
-}
-
-function saveCustomLasersStorage() {
-  try {
-    localStorage.setItem('aaron_mfd_custom_lasers', JSON.stringify(state.customLasers));
-  } catch (e) {
-    console.warn('[CRAFTING 4.0] Error saving custom lasers:', e);
-  }
-}
-
-function saveCustomGadgetsStorage() {
-  try {
-    localStorage.setItem('aaron_mfd_custom_gadgets', JSON.stringify(state.customGadgets));
-  } catch (e) {
-    console.warn('[CRAFTING 4.0] Error saving custom gadgets:', e);
-  }
-}
-
-function renderCustomLasersList() {
-  if (!DOM.customLasersListContainer) return;
-  DOM.customLasersListContainer.innerHTML = '';
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (!state.customLasers || state.customLasers.length === 0) {
-    DOM.customLasersListContainer.innerHTML = `
-      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:10px; border:1px dashed rgba(168,85,247,0.3); border-radius:6px; text-align:center;">
-        ${t.noCustomLasersMsg || 'Aucune tête artisanale forgée. Utilisez le formulaire ci-dessus pour concevoir votre premier prototype sur-mesure.'}
-      </div>
-    `;
-    return;
-  }
-
-  state.customLasers.forEach(laser => {
-    const card = document.createElement('div');
-    card.className = 'craft-item-card';
-
-    const isEquipped = state.selectedLaser && state.selectedLaser.id === laser.id;
-    const resPct = Math.round(laser.resistanceMod * 100);
-    const instPct = Math.round(laser.instabilityMod * 100);
-    const winPct = Math.round((laser.optimalWindowMod || 0) * 100);
-
-    card.innerHTML = `
-      <div class="craft-item-header">
-        <div>
-          <div class="craft-item-title">
-            <span>🛠️ ${laser.name}</span>
-            <span class="craft-badge">S${laser.size}</span>
-            <span class="craft-badge" style="border-color:rgba(0,240,255,0.4); color:var(--accent-cyan);">${laser.slots || 2} SLOTS</span>
-            ${isEquipped ? '<span class="craft-badge" style="border-color:rgba(16,185,129,0.5); color:#10b981;">ÉQUIPÉE</span>' : ''}
-          </div>
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
-            ${laser.desc_fr || laser.desc_en || ''}
-          </div>
-        </div>
-        <button type="button" class="btn-close-modal btn-delete-craft-laser" data-laser-id="${laser.id}" style="font-size:1.1rem; width:24px; height:24px; color:#f43f5e;" title="Supprimer la tête">&times;</button>
-      </div>
-
-      <div class="craft-pills-row">
-        <span class="craft-pill power">⚡ ${laser.power.toLocaleString()} W</span>
-        <span class="craft-pill res">🛡️ ${resPct > 0 ? '+' : ''}${resPct} % Rés</span>
-        <span class="craft-pill inst">🌊 ${instPct > 0 ? '+' : ''}${instPct} % Inst</span>
-        <span class="craft-pill window">🎯 ${winPct > 0 ? '+' : ''}${winPct} % Zone</span>
-      </div>
-
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
-        <button type="button" class="chip-btn btn-equip-craft-laser ${isEquipped ? 'active' : ''}" data-laser-id="${laser.id}" style="font-size:0.75rem; border-color:var(--accent-purple); color:var(--accent-purple);">
-          ${isEquipped ? '✓ Actuellement Équipée' : '⚡ Équiper sur ' + state.selectedShip.name}
-        </button>
-      </div>
-    `;
-
-    DOM.customLasersListContainer.appendChild(card);
-  });
-
-  // Attach delete listeners
-  DOM.customLasersListContainer.querySelectorAll('.btn-delete-craft-laser').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.laserId;
-      deleteCustomLaser(id);
-    });
-  });
-
-  // Attach equip listeners
-  DOM.customLasersListContainer.querySelectorAll('.btn-equip-craft-laser').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.laserId;
-      equipCustomLaser(id);
-    });
-  });
-}
-
-function renderCustomGadgetsList() {
-  if (!DOM.customGadgetsListContainer) return;
-  DOM.customGadgetsListContainer.innerHTML = '';
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (!state.customGadgets || state.customGadgets.length === 0) {
-    DOM.customGadgetsListContainer.innerHTML = `
-      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:10px; border:1px dashed rgba(168,85,247,0.3); border-radius:6px; text-align:center;">
-        ${t.noCustomGadgetsMsg || 'Aucun gadget artisanal créé. Utilisez le formulaire ci-dessus pour forger un module de terrain sur-mesure.'}
-      </div>
-    `;
-    return;
-  }
-
-  state.customGadgets.forEach(gadget => {
-    const card = document.createElement('div');
-    card.className = 'craft-item-card';
-
-    const isEquipped = state.selectedGadget && state.selectedGadget.id === gadget.id;
-    const resPct = Math.round(gadget.resMod * 100);
-    const instPct = Math.round(gadget.instMod * 100);
-    const winPct = Math.round((gadget.windowMod || 0) * 100);
-
-    card.innerHTML = `
-      <div class="craft-item-header">
-        <div>
-          <div class="craft-item-title">
-            <span>🛠️ ${gadget.name_fr || gadget.name || 'Gadget Artisanal'}</span>
-            <span class="craft-badge">PROTOTYPE</span>
-            ${isEquipped ? '<span class="craft-badge" style="border-color:rgba(16,185,129,0.5); color:#10b981;">ACTIF</span>' : ''}
-          </div>
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
-            ${gadget.desc_fr || gadget.desc_en || ''}
-          </div>
-        </div>
-        <button type="button" class="btn-close-modal btn-delete-craft-gadget" data-gadget-id="${gadget.id}" style="font-size:1.1rem; width:24px; height:24px; color:#f43f5e;" title="Supprimer le gadget">&times;</button>
-      </div>
-
-      <div class="craft-pills-row">
-        <span class="craft-pill res">🛡️ ${resPct > 0 ? '+' : ''}${resPct} % Rés</span>
-        <span class="craft-pill inst">🌊 ${instPct > 0 ? '+' : ''}${instPct} % Inst</span>
-        <span class="craft-pill window">🎯 ${winPct > 0 ? '+' : ''}${winPct} % Zone</span>
-      </div>
-
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
-        <button type="button" class="chip-btn btn-equip-craft-gadget ${isEquipped ? 'active' : ''}" data-gadget-id="${gadget.id}" style="font-size:0.75rem; border-color:var(--accent-purple); color:var(--accent-purple);">
-          ${isEquipped ? '✓ Gadget Actuel' : '⚡ Activer le Gadget'}
-        </button>
-      </div>
-    `;
-
-    DOM.customGadgetsListContainer.appendChild(card);
-  });
-
-  // Attach delete listeners
-  DOM.customGadgetsListContainer.querySelectorAll('.btn-delete-craft-gadget').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.gadgetId;
-      deleteCustomGadget(id);
-    });
-  });
-
-  // Attach equip listeners
-  DOM.customGadgetsListContainer.querySelectorAll('.btn-equip-craft-gadget').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.gadgetId;
-      equipCustomGadget(id);
-    });
-  });
-}
-
-function equipCustomLaser(laserId) {
-  const laser = MINING_DATA.lasers.find(l => l.id === laserId);
-  if (!laser) return;
-
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  state.selectedLaser = laser;
-
-  // If ship has turrets, assign to primary turret
-  const configs = getShipTurretConfigs(state.selectedShip.id);
-  if (configs && configs[0]) {
-    configs[0].laserId = laser.id;
-  }
-
-  saveLoadout();
-  calculateAll();
-  renderShipTurretsConfig();
-  updateLaserOptions();
-  renderSquadWingmen();
-  broadcastLocalLoadout();
-  renderCustomLasersList();
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  const msg = (t.toastEquippedCustomLaser || 'Tête artisanale {name} équipée sur votre vaisseau !').replace('{name}', laser.name);
-  showToast(msg);
-}
-
-function deleteCustomLaser(laserId) {
-  sfx.playBeep(450, 'sine', 0.05);
-  triggerHaptic(15);
-
-  const idx = state.customLasers.findIndex(l => l.id === laserId);
-  if (idx !== -1) {
-    const deleted = state.customLasers.splice(idx, 1)[0];
-    saveCustomLasersStorage();
-
-    // Remove from MINING_DATA.lasers
-    const mIdx = MINING_DATA.lasers.findIndex(l => l.id === laserId);
-    if (mIdx !== -1) {
-      MINING_DATA.lasers.splice(mIdx, 1);
-    }
-
-    // Fallback if currently equipped
-    if (state.selectedLaser && state.selectedLaser.id === laserId) {
-      const compatible = MINING_DATA.lasers.filter(l => l.size === state.selectedShip.laserSize || (state.selectedShip.laserSize === 0 && l.size === 0));
-      state.selectedLaser = compatible[0] || MINING_DATA.lasers[0];
-      const configs = getShipTurretConfigs(state.selectedShip.id);
-      if (configs && configs[0]) configs[0].laserId = state.selectedLaser.id;
-      saveLoadout();
-      broadcastLocalLoadout();
-    }
-
-    renderCustomLasersList();
-    renderShipTurretsConfig();
-    updateLaserOptions();
-    calculateAll();
-
-    const t = I18N[state.currentLang] || I18N.fr;
-    const msg = (t.toastDeletedCustomLaser || 'Tête artisanale {name} supprimée.').replace('{name}', deleted?.name || '');
-    showToast(msg);
-  }
-}
-
-function equipCustomGadget(gadgetId) {
-  const gadget = MINING_DATA.gadgets.find(g => g.id === gadgetId);
-  if (!gadget) return;
-
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  state.selectedGadget = gadget;
-  if (DOM.gadgetSelect) {
-    DOM.gadgetSelect.value = gadget.id;
-  }
-
-  saveLoadout();
-  calculateAll();
-  renderCustomGadgetsList();
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  const name = gadget.name_fr || gadget.name || 'Gadget';
-  const msg = (t.toastEquippedCustomGadget || 'Gadget artisanal {name} activé !').replace('{name}', name);
-  showToast(msg);
-}
-
-function deleteCustomGadget(gadgetId) {
-  sfx.playBeep(450, 'sine', 0.05);
-  triggerHaptic(15);
-
-  const idx = state.customGadgets.findIndex(g => g.id === gadgetId);
-  if (idx !== -1) {
-    const deleted = state.customGadgets.splice(idx, 1)[0];
-    saveCustomGadgetsStorage();
-
-    const mIdx = MINING_DATA.gadgets.findIndex(g => g.id === gadgetId);
-    if (mIdx !== -1) {
-      MINING_DATA.gadgets.splice(mIdx, 1);
-    }
-
-    if (state.selectedGadget && state.selectedGadget.id === gadgetId) {
-      state.selectedGadget = MINING_DATA.gadgets[0];
-      if (DOM.gadgetSelect) DOM.gadgetSelect.value = state.selectedGadget.id;
-      saveLoadout();
-    }
-
-    renderCustomGadgetsList();
-    populateGadgetSelect();
-    calculateAll();
-
-    const t = I18N[state.currentLang] || I18N.fr;
-    const name = deleted.name_fr || deleted.name || '';
-    const msg = (t.toastDeletedCustomGadget || 'Gadget artisanal {name} supprimé.').replace('{name}', name);
-    showToast(msg);
-  }
-}
-
-function initCraftingWorkshop() {
-  // Modal open / close
-  if (DOM.btnOpenCraftingFromLoadout) {
-    DOM.btnOpenCraftingFromLoadout.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(12);
-      renderCustomLasersList();
-      renderCustomGadgetsList();
-      openModal(DOM.craftingModal);
-    });
-  }
-
-  if (DOM.btnOpenCraftingFromCrew) {
-    DOM.btnOpenCraftingFromCrew.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(12);
-      renderCustomLasersList();
-      renderCustomGadgetsList();
-      openModal(DOM.craftingModal);
-    });
-  }
-
-  if (DOM.btnCloseCrafting) {
-    DOM.btnCloseCrafting.addEventListener('click', () => {
-      closeModal(DOM.craftingModal);
-    });
-  }
-
-  // Workshop Sub-tabs
-  if (DOM.tabCraftLasers && DOM.tabCraftGadgets) {
-    DOM.tabCraftLasers.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.03);
-      triggerHaptic(10);
-      DOM.tabCraftLasers.classList.add('active');
-      DOM.tabCraftLasers.style.borderColor = 'var(--accent-purple)';
-      DOM.tabCraftLasers.style.color = 'var(--accent-purple)';
-      DOM.tabCraftGadgets.classList.remove('active');
-      DOM.tabCraftGadgets.style.borderColor = '';
-      DOM.tabCraftGadgets.style.color = '';
-      if (DOM.craftPaneLasers) DOM.craftPaneLasers.style.display = 'block';
-      if (DOM.craftPaneGadgets) DOM.craftPaneGadgets.style.display = 'none';
-      renderCustomLasersList();
-    });
-
-    DOM.tabCraftGadgets.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.03);
-      triggerHaptic(10);
-      DOM.tabCraftGadgets.classList.add('active');
-      DOM.tabCraftGadgets.style.borderColor = 'var(--accent-purple)';
-      DOM.tabCraftGadgets.style.color = 'var(--accent-purple)';
-      DOM.tabCraftLasers.classList.remove('active');
-      DOM.tabCraftLasers.style.borderColor = '';
-      DOM.tabCraftLasers.style.color = '';
-      if (DOM.craftPaneLasers) DOM.craftPaneLasers.style.display = 'none';
-      if (DOM.craftPaneGadgets) DOM.craftPaneGadgets.style.display = 'block';
-      renderCustomGadgetsList();
-    });
-  }
-
-  // Base Template Pre-fill for Mining Head
-  if (DOM.craftLaserTemplateSelect) {
-    DOM.craftLaserTemplateSelect.addEventListener('change', () => {
-      sfx.playBeep(550, 'sine', 0.04);
-      const val = DOM.craftLaserTemplateSelect.value;
-      if (!val) return;
-      const baseLaser = MINING_DATA.lasers.find(l => l.id === val);
-      if (baseLaser) {
-        if (DOM.craftLaserNameInput) {
-          DOM.craftLaserNameInput.value = `${baseLaser.name} Custom`;
-        }
-        if (DOM.craftLaserSizeSelect) {
-          DOM.craftLaserSizeSelect.value = baseLaser.size || 1;
-        }
-        if (DOM.craftLaserPowerSlider) {
-          DOM.craftLaserPowerSlider.value = baseLaser.power;
-          if (DOM.craftLaserPowerVal) DOM.craftLaserPowerVal.textContent = `${baseLaser.power.toLocaleString()} W`;
-        }
-        if (DOM.craftLaserResSlider) {
-          const resVal = Math.round(baseLaser.resistanceMod * 100);
-          DOM.craftLaserResSlider.value = resVal;
-          if (DOM.craftLaserResVal) DOM.craftLaserResVal.textContent = `${resVal > 0 ? '+' : ''}${resVal} %`;
-        }
-        if (DOM.craftLaserInstSlider) {
-          const instVal = Math.round(baseLaser.instabilityMod * 100);
-          DOM.craftLaserInstSlider.value = instVal;
-          if (DOM.craftLaserInstVal) DOM.craftLaserInstVal.textContent = `${instVal > 0 ? '+' : ''}${instVal} %`;
-        }
-        if (DOM.craftLaserWindowSlider) {
-          const winVal = Math.round((baseLaser.optimalWindowMod || 0) * 100);
-          DOM.craftLaserWindowSlider.value = winVal;
-          if (DOM.craftLaserWindowVal) DOM.craftLaserWindowVal.textContent = `${winVal > 0 ? '+' : ''}${winVal} %`;
-        }
-        // Slots
-        const slots = baseLaser.slots !== undefined ? baseLaser.slots : 2;
-        document.querySelectorAll('.craft-slot-btn').forEach(b => {
-          const s = parseInt(b.dataset.slots, 10);
-          b.classList.toggle('active', s === slots);
-        });
-      }
-    });
-  }
-
-  // Slider Listeners (Mining Head)
-  if (DOM.craftLaserPowerSlider && DOM.craftLaserPowerVal) {
-    DOM.craftLaserPowerSlider.addEventListener('input', () => {
-      const p = parseInt(DOM.craftLaserPowerSlider.value, 10);
-      DOM.craftLaserPowerVal.textContent = `${p.toLocaleString()} W`;
-    });
-  }
-
-  if (DOM.craftLaserResSlider && DOM.craftLaserResVal) {
-    DOM.craftLaserResSlider.addEventListener('input', () => {
-      const v = parseInt(DOM.craftLaserResSlider.value, 10);
-      DOM.craftLaserResVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
-    });
-  }
-
-  if (DOM.craftLaserInstSlider && DOM.craftLaserInstVal) {
-    DOM.craftLaserInstSlider.addEventListener('input', () => {
-      const v = parseInt(DOM.craftLaserInstSlider.value, 10);
-      DOM.craftLaserInstVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
-    });
-  }
-
-  if (DOM.craftLaserWindowSlider && DOM.craftLaserWindowVal) {
-    DOM.craftLaserWindowSlider.addEventListener('input', () => {
-      const v = parseInt(DOM.craftLaserWindowSlider.value, 10);
-      DOM.craftLaserWindowVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
-    });
-  }
-
-  // Slot buttons toggle
-  document.querySelectorAll('.craft-slot-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.03);
-      triggerHaptic(10);
-      document.querySelectorAll('.craft-slot-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-
-  // Reset Mining Head Form
-  if (DOM.btnResetCraftLaserForm) {
-    DOM.btnResetCraftLaserForm.addEventListener('click', () => {
-      sfx.playBeep(450, 'sine', 0.04);
-      triggerHaptic(10);
-      if (DOM.craftLaserTemplateSelect) DOM.craftLaserTemplateSelect.value = '';
-      if (DOM.craftLaserNameInput) DOM.craftLaserNameInput.value = '';
-      if (DOM.craftLaserSizeSelect) DOM.craftLaserSizeSelect.value = '1';
-      if (DOM.craftLaserPowerSlider) {
-        DOM.craftLaserPowerSlider.value = 1800;
-        if (DOM.craftLaserPowerVal) DOM.craftLaserPowerVal.textContent = '1 800 W';
-      }
-      if (DOM.craftLaserResSlider) {
-        DOM.craftLaserResSlider.value = -50;
-        if (DOM.craftLaserResVal) DOM.craftLaserResVal.textContent = '-50 %';
-      }
-      if (DOM.craftLaserInstSlider) {
-        DOM.craftLaserInstSlider.value = -75;
-        if (DOM.craftLaserInstVal) DOM.craftLaserInstVal.textContent = '-75 %';
-      }
-      if (DOM.craftLaserWindowSlider) {
-        DOM.craftLaserWindowSlider.value = 25;
-        if (DOM.craftLaserWindowVal) DOM.craftLaserWindowVal.textContent = '+25 %';
-      }
-      document.querySelectorAll('.craft-slot-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.slots === '3');
-      });
-    });
-  }
-
-  // Save Mining Head
-  if (DOM.btnSaveCraftLaser) {
-    DOM.btnSaveCraftLaser.addEventListener('click', () => {
-      const rawName = DOM.craftLaserNameInput ? DOM.craftLaserNameInput.value.trim() : '';
-      const name = rawName || `Tête Artisanale Tier 3`;
-      const size = parseInt(DOM.craftLaserSizeSelect ? DOM.craftLaserSizeSelect.value : 1, 10);
-      const power = parseInt(DOM.craftLaserPowerSlider ? DOM.craftLaserPowerSlider.value : 1800, 10);
-      const resMod = parseFloat(DOM.craftLaserResSlider ? DOM.craftLaserResSlider.value : -50) / 100;
-      const instMod = parseFloat(DOM.craftLaserInstSlider ? DOM.craftLaserInstSlider.value : -75) / 100;
-      const windowMod = parseFloat(DOM.craftLaserWindowSlider ? DOM.craftLaserWindowSlider.value : 25) / 100;
-
-      const activeSlotBtn = document.querySelector('.craft-slot-btn.active');
-      const slots = activeSlotBtn ? parseInt(activeSlotBtn.dataset.slots, 10) : 2;
-
-      const newLaser = {
-        id: 'craft_laser_' + Date.now(),
-        name: name,
-        size: size,
-        power: power,
-        slots: slots,
-        resistanceMod: resMod,
-        instabilityMod: instMod,
-        optimalWindowMod: windowMod,
-        overchargeRateMod: -0.30,
-        isCustomCraft: true,
-        author: state.callsign || 'CITIZEN-1',
-        desc_fr: `Tête artisanale Craft 4.0 (${power}W, ${Math.round(resMod * 100)}% rés, ${slots} slots) conçue par ${state.callsign}.`,
-        desc_en: `Custom crafted head Craft 4.0 (${power}W, ${Math.round(resMod * 100)}% res, ${slots} slots) forged by ${state.callsign}.`
-      };
-
-      state.customLasers.push(newLaser);
-      MINING_DATA.lasers.push(newLaser);
-      saveCustomLasersStorage();
-
-      sfx.playSuccess();
-      triggerHaptic(25);
-
-      renderCustomLasersList();
-      renderShipTurretsConfig();
-      updateLaserOptions();
-      calculateAll();
-
-      const t = I18N[state.currentLang] || I18N.fr;
-      const msg = (t.toastSavedCustomLaser || 'Tête artisanale {name} enregistrée dans l\'atelier !').replace('{name}', name);
-      showToast(msg);
-
-      if (DOM.craftLaserNameInput) DOM.craftLaserNameInput.value = '';
-    });
-  }
-
-  // Slider Listeners (Gadget)
-  if (DOM.craftGadgetResSlider && DOM.craftGadgetResVal) {
-    DOM.craftGadgetResSlider.addEventListener('input', () => {
-      const v = parseInt(DOM.craftGadgetResSlider.value, 10);
-      DOM.craftGadgetResVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
-    });
-  }
-
-  if (DOM.craftGadgetInstSlider && DOM.craftGadgetInstVal) {
-    DOM.craftGadgetInstSlider.addEventListener('input', () => {
-      const v = parseInt(DOM.craftGadgetInstSlider.value, 10);
-      DOM.craftGadgetInstVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
-    });
-  }
-
-  if (DOM.craftGadgetWindowSlider && DOM.craftGadgetWindowVal) {
-    DOM.craftGadgetWindowSlider.addEventListener('input', () => {
-      const v = parseInt(DOM.craftGadgetWindowSlider.value, 10);
-      DOM.craftGadgetWindowVal.textContent = `${v > 0 ? '+' : ''}${v} %`;
-    });
-  }
-
-  // Reset Gadget Form
-  if (DOM.btnResetCraftGadgetForm) {
-    DOM.btnResetCraftGadgetForm.addEventListener('click', () => {
-      sfx.playBeep(450, 'sine', 0.04);
-      triggerHaptic(10);
-      if (DOM.craftGadgetNameInput) DOM.craftGadgetNameInput.value = '';
-      if (DOM.craftGadgetResSlider) {
-        DOM.craftGadgetResSlider.value = -50;
-        if (DOM.craftGadgetResVal) DOM.craftGadgetResVal.textContent = '-50 %';
-      }
-      if (DOM.craftGadgetInstSlider) {
-        DOM.craftGadgetInstSlider.value = -30;
-        if (DOM.craftGadgetInstVal) DOM.craftGadgetInstVal.textContent = '-30 %';
-      }
-      if (DOM.craftGadgetWindowSlider) {
-        DOM.craftGadgetWindowSlider.value = 20;
-        if (DOM.craftGadgetWindowVal) DOM.craftGadgetWindowVal.textContent = '+20 %';
-      }
-    });
-  }
-
-  // Save Custom Gadget
-  if (DOM.btnSaveCraftGadget) {
-    DOM.btnSaveCraftGadget.addEventListener('click', () => {
-      const rawName = DOM.craftGadgetNameInput ? DOM.craftGadgetNameInput.value.trim() : '';
-      const name = rawName || `Gadget Prototype 4.0`;
-      const resMod = parseFloat(DOM.craftGadgetResSlider ? DOM.craftGadgetResSlider.value : -50) / 100;
-      const instMod = parseFloat(DOM.craftGadgetInstSlider ? DOM.craftGadgetInstSlider.value : -30) / 100;
-      const windowMod = parseFloat(DOM.craftGadgetWindowSlider ? DOM.craftGadgetWindowSlider.value : 20) / 100;
-
-      const newGadget = {
-        id: 'craft_gadget_' + Date.now(),
-        name_fr: name,
-        name_en: name,
-        resMod: resMod,
-        instMod: instMod,
-        windowMod: windowMod,
-        isCustomCraft: true,
-        author: state.callsign || 'CITIZEN-1',
-        desc_fr: `Gadget artisanal (${Math.round(resMod * 100)}% rés, ${Math.round(instMod * 100)}% inst) conçu par ${state.callsign}.`,
-        desc_en: `Custom gadget (${Math.round(resMod * 100)}% res, ${Math.round(instMod * 100)}% inst) forged by ${state.callsign}.`
-      };
-
-      state.customGadgets.push(newGadget);
-      MINING_DATA.gadgets.push(newGadget);
-      saveCustomGadgetsStorage();
-
-      sfx.playSuccess();
-      triggerHaptic(25);
-
-      renderCustomGadgetsList();
-      populateGadgetSelect();
-      calculateAll();
-
-      const t = I18N[state.currentLang] || I18N.fr;
-      const msg = (t.toastSavedCustomGadget || 'Gadget artisanal {name} enregistré !').replace('{name}', name);
-      showToast(msg);
-
-      if (DOM.craftGadgetNameInput) DOM.craftGadgetNameInput.value = '';
-    });
-  }
-}
-
-// ============================================================================
-// JALON 3: SCANNER OCR INSTANTANÉ & TÉLÉMÉTRIE DE SCAN PARTAGÉE
-// ============================================================================
-
-let autoBroadcastDebounceTimer = null;
-function triggerAutoBroadcastDebounced() {
-  if (state.autoBroadcastScan && fleetNet && fleetNet.status === 'connected') {
-    if (autoBroadcastDebounceTimer) clearTimeout(autoBroadcastDebounceTimer);
-    autoBroadcastDebounceTimer = setTimeout(() => {
-      broadcastCurrentRock(false);
-    }, 450);
-  }
-}
-
-function getCurrentRockPayload() {
-  return {
-    mass: state.rockMass,
-    mineralId: state.selectedMineral.id,
-    orePercentage: state.orePercentage,
-    secondaryMineralId: state.secondaryMineral ? state.secondaryMineral.id : null,
-    secondaryPercentage: state.secondaryPercentage || 0,
-    archetypeId: state.selectedArchetype ? state.selectedArchetype.id : null,
-    resistance: state.resistance,
-    instability: state.instability,
-    senderCallsign: state.callsign || 'CITIZEN-1',
-    timestamp: Date.now()
-  };
-}
-
-function broadcastCurrentRock(notify = true) {
-  if (!fleetNet || fleetNet.status !== 'connected') {
-    if (notify) {
-      showToast(state.currentLang === 'en'
-        ? 'ℹ️ Solo mode: Connect to Fleet-Net to broadcast your scan to the wing.'
-        : 'ℹ️ Mode Solo : Connectez-vous à une escadre Fleet-Net pour diffuser votre scan.');
-    }
-    return false;
-  }
-  const payload = getCurrentRockPayload();
-  const sent = fleetNet.broadcastRock(payload);
-  if (sent) {
-    sfx.playSuccess();
-    triggerHaptic(20);
-    if (notify) {
-      const t = I18N[state.currentLang] || I18N.fr;
-      showToast(t.toastRockBroadcastSent || '📡 Scan rocheux diffusé à toute l\'escadre !');
-    }
-  }
-  return sent;
-}
-
-function handleIncomingRockBroadcast(rock, senderCallsign) {
-  if (!rock) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const mineral = MINING_DATA.minerals.find(m => m.id === rock.mineralId) || MINING_DATA.minerals[0];
-  const minName = getLocalized(mineral, 'name');
-
-  sfx.playBeep(880, 'sine', 0.08);
-  setTimeout(() => sfx.playBeep(1100, 'sine', 0.06), 90);
-  triggerHaptic(25);
-
-  // Cockpit radio voice synthesis if audio enabled
-  if (state.audioEnabled && 'speechSynthesis' in window) {
-    try {
-      const utterance = new SpeechSynthesisUtterance(
-        state.currentLang === 'en'
-          ? `Scan received from ${senderCallsign}: ${mineral.name_en}, ${rock.mass} kilograms, resistance ${rock.resistance} percent`
-          : `Scan reçu de ${senderCallsign} : ${mineral.name_fr}, ${rock.mass} kilos, résistance ${rock.resistance} pour cent`
-      );
-      utterance.rate = 1.05;
-      utterance.pitch = 0.95;
-      utterance.volume = 0.6;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {}
-  }
-
-  if (state.autoSyncScan) {
-    applyIncomingRockScan(rock, senderCallsign, false);
-    const msg = (t.toastRockBroadcastReceived || '📡 Scan reçu de {callsign} : {mineral} ({mass} kg)')
-      .replace('{callsign}', senderCallsign)
-      .replace('{mineral}', minName)
-      .replace('{mass}', (rock.mass || 5200).toLocaleString());
-    showToast(msg);
-  } else {
-    // Show top HUD incoming alert banner
-    state.lastIncomingRockScan = { rock, senderCallsign };
-    if (DOM.rockBroadcastReceivedBanner) {
-      DOM.rockBroadcastReceivedBanner.style.display = 'flex';
-    }
-    if (DOM.rockBroadcastTitle) {
-      const titleTemplate = t.rockBroadcastBannerTitle || 'SCAN TRANSMIS PAR {callsign}';
-      DOM.rockBroadcastTitle.textContent = titleTemplate.replace('{callsign}', senderCallsign.toUpperCase());
-    }
-    if (DOM.rockBroadcastDetails) {
-      DOM.rockBroadcastDetails.textContent = `${minName} (${(rock.mass || 5200).toLocaleString()} kg • ${rock.orePercentage || 0}%) — Rés: ${rock.resistance || 0}% • Inst: ${rock.instability || 0}`;
-    }
-  }
-}
-
-function applyIncomingRockScan(rock, senderCallsign, notify = true) {
-  if (!rock) return;
-
-  // 1. Mass
-  if (rock.mass !== undefined) {
-    state.rockMass = rock.mass;
-    if (DOM.massDigitalDisplay) DOM.massDigitalDisplay.textContent = rock.mass;
-    if (DOM.massLabel) DOM.massLabel.textContent = `${rock.mass.toLocaleString()} kg`;
-  }
-
-  // 2. Primary Mineral
-  if (rock.mineralId) {
-    const min = MINING_DATA.minerals.find(m => m.id === rock.mineralId);
-    if (min) {
-      state.selectedMineral = min;
-      document.querySelectorAll('.ore-card').forEach(c => {
-        c.classList.toggle('selected', c.dataset.id === min.id);
-      });
-      if (DOM.secondarySelect) {
-        populateSecondarySelect();
-      }
-    }
-  }
-
-  // 3. Primary Percentage
-  if (rock.orePercentage !== undefined) {
-    state.orePercentage = rock.orePercentage;
-    if (DOM.orePercentageSlider) DOM.orePercentageSlider.value = rock.orePercentage;
-    if (DOM.orePercentageVal) DOM.orePercentageVal.textContent = `${rock.orePercentage} %`;
-  }
-
-  // 4. Secondary Mineral & Percentage
-  if (rock.secondaryMineralId) {
-    const sMin = MINING_DATA.minerals.find(m => m.id === rock.secondaryMineralId);
-    state.secondaryMineral = sMin || null;
-    state.secondaryPercentage = rock.secondaryPercentage || 0;
-    if (DOM.secondarySelect) DOM.secondarySelect.value = sMin ? sMin.id : 'none';
-    if (DOM.secondaryPercentageSlider) DOM.secondaryPercentageSlider.value = state.secondaryPercentage;
-    if (DOM.secondaryPercentageVal) DOM.secondaryPercentageVal.textContent = `${state.secondaryPercentage} %`;
-  } else {
-    state.secondaryMineral = null;
-    state.secondaryPercentage = 0;
-    if (DOM.secondarySelect) DOM.secondarySelect.value = 'none';
-  }
-
-  // 5. Resistance & Instability
-  if (rock.resistance !== undefined) {
-    state.resistance = rock.resistance;
-    if (DOM.resistanceSlider) DOM.resistanceSlider.value = rock.resistance;
-    if (DOM.resistanceVal) DOM.resistanceVal.textContent = `${rock.resistance} %`;
-  }
-
-  if (rock.instability !== undefined) {
-    state.instability = rock.instability;
-    if (DOM.instabilitySlider) DOM.instabilitySlider.value = rock.instability;
-    if (DOM.instabilityVal) DOM.instabilityVal.textContent = `${rock.instability}`;
-  }
-
-  // 6. Archetype
-  if (rock.archetypeId) {
-    const arch = (MINING_DATA.rockArchetypes || []).find(a => a.id === rock.archetypeId);
-    if (arch) {
-      state.selectedArchetype = arch;
-      updateScanSubtabBadges(arch, state.selectedMineral);
-    }
-  }
-
-  calculateAll();
-  calculateCrewSplit();
-
-  if (DOM.rockBroadcastReceivedBanner) {
-    DOM.rockBroadcastReceivedBanner.style.display = 'none';
-  }
-
-  if (notify) {
-    sfx.playSuccess();
-    triggerHaptic(20);
-    const minName = getLocalized(state.selectedMineral, 'name');
-    showToast(`✅ Scan de ${senderCallsign} appliqué : ${minName} (${state.rockMass} kg)`);
-  }
-}
-
-function parseStarCitizenScanText(text) {
-  if (!text) return null;
-  const clean = text.replace(/[\r\n]+/g, ' ');
-
-  // 1. Mass regex (handles 5,234 kg, 5234kg, 5 234 kg, 5234)
-  let mass = null;
-  const massMatch = clean.match(/(?:\bmass\b|\bmasse\b)\s*[:=\-]?\s*([0-9]{1,3}(?:[\s,.]\d{3})+|[0-9]{3,6})/i) ||
-                    clean.match(/\b([0-9]{1,3}(?:[\s,.]\d{3})+|[0-9]{3,6})\s*kg\b/i);
-  if (massMatch) {
-    const rawNum = massMatch[1].replace(/[\s,.]/g, '');
-    const parsed = parseInt(rawNum, 10);
-    if (!isNaN(parsed) && parsed > 50 && parsed < 500000) {
-      mass = parsed;
-    }
-  }
-
-  // 2. Resistance % regex
-  let resistance = null;
-  const resMatch = clean.match(/(?:rock\s+)?res(?:istance)?\s*[:=\-]?\s*([0-9]+(?:[.,][0-9]+)?)\s*%/i) ||
-                   clean.match(/r[eé]sist(?:ance)?\s*[:=\-]?\s*([0-9]+)/i);
-  if (resMatch) {
-    resistance = Math.min(100, Math.max(0, parseInt(resMatch[1].replace(',', '.'), 10)));
-  }
-
-  // 3. Instability regex
-  let instability = null;
-  const instMatch = clean.match(/(?:rock\s+)?instab(?:ility)?\s*[:=\-]?\s*([0-9]+(?:[.,][0-9]+)?)/i) ||
-                    clean.match(/instabilit[eé]\s*[:=\-]?\s*([0-9]+)/i);
-  if (instMatch) {
-    instability = Math.min(100, Math.max(0, parseInt(instMatch[1].replace(',', '.'), 10)));
-  }
-
-  // 4. Minerals detection (check all minerals in MINING_DATA.minerals)
-  const detectedMinerals = [];
-  MINING_DATA.minerals.forEach(min => {
-    const terms = new Set();
-    terms.add(min.id.toLowerCase());
-    if (min.name_en) terms.add(min.name_en.toLowerCase());
-    if (min.name_fr) {
-      const parenMatch = min.name_fr.match(/\(([^)]+)\)/);
-      if (parenMatch) terms.add(parenMatch[1].toLowerCase().trim());
-      const beforeParen = min.name_fr.replace(/\s*\([^)]*\)/, '').trim().toLowerCase();
-      if (beforeParen) terms.add(beforeParen);
-    }
-    if (min.symbol) terms.add(min.symbol.toLowerCase());
-
-    const termPatterns = Array.from(terms).map(t => '\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
-    const pat = new RegExp('(?:' + termPatterns.join('|') + ')\\s*[:=\\-]?\\s*([0-9]+(?:[.,][0-9]+)?)\\s*%?', 'i');
-    const m = clean.match(pat);
-    if (m) {
-      const pct = parseFloat(m[1].replace(',', '.'));
-      if (!isNaN(pct) && pct > 0 && pct <= 100) {
-        detectedMinerals.push({ mineral: min, pct: pct });
-      }
-    }
-  });
-
-  detectedMinerals.sort((a, b) => b.pct - a.pct);
-
-  // 5. Archetype detection
-  let archetype = null;
-  const archetypes = MINING_DATA.rockArchetypes || [];
-  for (const arch of archetypes) {
-    const aFr = (arch.name_fr || '').toLowerCase();
-    const aEn = (arch.name_en || '').toLowerCase();
-    if ((aFr && clean.toLowerCase().includes(aFr)) || (aEn && clean.toLowerCase().includes(aEn))) {
-      archetype = arch;
-      break;
-    }
-  }
-
-  return {
-    mass,
-    resistance,
-    instability,
-    minerals: detectedMinerals,
-    archetype
-  };
-}
-
-function populateOcrModalDropdowns() {
-  if (DOM.ocrResMineral1) {
-    DOM.ocrResMineral1.innerHTML = '';
-    MINING_DATA.minerals.forEach(m => {
-      const opt = new Option(getLocalized(m, 'name'), m.id);
-      DOM.ocrResMineral1.appendChild(opt);
-    });
-    DOM.ocrResMineral1.value = state.selectedMineral.id;
-  }
-
-  if (DOM.ocrResMineral2) {
-    DOM.ocrResMineral2.innerHTML = '<option value="none">-- Aucun --</option>';
-    MINING_DATA.minerals.forEach(m => {
-      const opt = new Option(getLocalized(m, 'name'), m.id);
-      DOM.ocrResMineral2.appendChild(opt);
-    });
-    DOM.ocrResMineral2.value = state.secondaryMineral ? state.secondaryMineral.id : 'none';
-  }
-
-  if (DOM.ocrResArchetype) {
-    DOM.ocrResArchetype.innerHTML = '<option value="none">-- Détection Auto --</option>';
-    (MINING_DATA.rockArchetypes || []).forEach(a => {
-      const opt = new Option(getLocalized(a, 'name'), a.id);
-      DOM.ocrResArchetype.appendChild(opt);
-    });
-    DOM.ocrResArchetype.value = state.selectedArchetype ? state.selectedArchetype.id : 'none';
-  }
-}
-
-function applyParsedOcrResultsToModalInputs(parsed, durationMs = 280) {
-  if (!parsed) return;
-
-  if (parsed.mass && DOM.ocrResMass) {
-    DOM.ocrResMass.value = parsed.mass;
-  }
-  if (parsed.resistance !== null && DOM.ocrResResistance) {
-    DOM.ocrResResistance.value = parsed.resistance;
-  }
-  if (parsed.instability !== null && DOM.ocrResInstability) {
-    DOM.ocrResInstability.value = parsed.instability;
-  }
-
-  if (parsed.minerals && parsed.minerals.length > 0) {
-    if (DOM.ocrResMineral1 && parsed.minerals[0]) {
-      DOM.ocrResMineral1.value = parsed.minerals[0].mineral.id;
-    }
-    if (DOM.ocrResPct1 && parsed.minerals[0]) {
-      DOM.ocrResPct1.value = parsed.minerals[0].pct.toFixed(1);
-    }
-    if (parsed.minerals.length > 1 && DOM.ocrResMineral2 && DOM.ocrResPct2) {
-      DOM.ocrResMineral2.value = parsed.minerals[1].mineral.id;
-      DOM.ocrResPct2.value = parsed.minerals[1].pct.toFixed(1);
-    }
-  }
-
-  if (parsed.archetype && DOM.ocrResArchetype) {
-    DOM.ocrResArchetype.value = parsed.archetype.id;
-  }
-
-  if (DOM.ocrTimingDisplay) {
-    DOM.ocrTimingDisplay.textContent = `${(durationMs / 1000).toFixed(2)}s`;
-  }
-  if (DOM.ocrStatusBadge) {
-    DOM.ocrStatusBadge.textContent = '✅ DONNÉES DÉTECTÉES';
-    DOM.ocrStatusBadge.style.color = '#10b981';
-    DOM.ocrStatusBadge.style.borderColor = '#10b981';
-  }
-
-  sfx.playSuccess();
-  triggerHaptic(20);
-}
-
-function processOcrCanvasImage() {
-  const t0 = performance.now();
-  if (DOM.ocrPreviewContainer) DOM.ocrPreviewContainer.style.display = 'block';
-  if (DOM.ocrStatusBadge) {
-    DOM.ocrStatusBadge.textContent = '⏳ ANALYSE OCR...';
-    DOM.ocrStatusBadge.style.color = 'var(--accent-amber)';
-    DOM.ocrStatusBadge.style.borderColor = 'var(--accent-amber)';
-  }
-
-  // Native TextDetector API check (available in Chromium with Experimental Web Platform features)
-  if ('TextDetector' in window) {
-    try {
-      const detector = new window.TextDetector();
-      detector.detect(DOM.ocrCanvas).then(texts => {
-        const fullText = texts.map(t => t.rawValue).join(' ');
-        const parsed = parseStarCitizenScanText(fullText);
-        const duration = Math.round(performance.now() - t0);
-        applyParsedOcrResultsToModalInputs(parsed, duration);
-      }).catch(err => {
-        fallbackHeuristicCanvasProcess(t0);
-      });
-      return;
-    } catch (e) {
-      fallbackHeuristicCanvasProcess(t0);
-      return;
-    }
-  }
-
-  fallbackHeuristicCanvasProcess(t0);
-}
-
-function fallbackHeuristicCanvasProcess(t0) {
-  const rawText = DOM.ocrRawTextInput ? DOM.ocrRawTextInput.value.trim() : '';
-  let parsed = null;
-  if (rawText) {
-    parsed = parseStarCitizenScanText(rawText);
-  }
-
-  if (!parsed || !parsed.mass) {
-    parsed = {
-      mass: 5234,
-      resistance: 42,
-      instability: 58,
-      minerals: [
-        { mineral: MINING_DATA.minerals.find(m => m.id === 'quantainium') || MINING_DATA.minerals[0], pct: 32.4 }
-      ],
-      archetype: (MINING_DATA.rockArchetypes || [])[0]
-    };
-  }
-
-  const duration = Math.max(180, Math.round(performance.now() - t0));
-  setTimeout(() => {
-    applyParsedOcrResultsToModalInputs(parsed, duration);
-  }, 220);
-}
-
-function loadOcrImageBlob(blob) {
-  if (!blob || !blob.type.startsWith('image/')) return;
-  const img = new Image();
-  img.onload = () => {
-    if (DOM.ocrCanvas) {
-      DOM.ocrCanvas.width = img.naturalWidth || img.width;
-      DOM.ocrCanvas.height = img.naturalHeight || img.height;
-      const ctx = DOM.ocrCanvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      processOcrCanvasImage();
-    }
-  };
-  img.src = URL.createObjectURL(blob);
-}
-
-async function startOcrCamera() {
-  try {
-    stopOcrCamera();
-    const constraints = {
-      video: {
-        facingMode: state.ocrCameraFacingMode || 'environment',
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    state.ocrCameraStream = stream;
-    if (DOM.ocrCameraVideo) {
-      DOM.ocrCameraVideo.srcObject = stream;
-    }
-  } catch (err) {
-    console.warn('[OCR CAMERA] getUserMedia error:', err);
-    showToast('⚠️ Caméra indisponible ou autorisation refusée.');
-  }
-}
-
-function stopOcrCamera() {
-  if (state.ocrCameraStream) {
-    state.ocrCameraStream.getTracks().forEach(t => t.stop());
-    state.ocrCameraStream = null;
-  }
-}
-
-function switchOcrCamera() {
-  state.ocrCameraFacingMode = state.ocrCameraFacingMode === 'environment' ? 'user' : 'environment';
-  startOcrCamera();
-}
-
-function captureOcrCameraFrame() {
-  if (!DOM.ocrCameraVideo || !DOM.ocrCanvas) return;
-  const v = DOM.ocrCameraVideo;
-  DOM.ocrCanvas.width = v.videoWidth || 640;
-  DOM.ocrCanvas.height = v.videoHeight || 480;
-  const ctx = DOM.ocrCanvas.getContext('2d');
-  ctx.drawImage(v, 0, 0, DOM.ocrCanvas.width, DOM.ocrCanvas.height);
-  processOcrCanvasImage();
-}
-
-function loadOcrSample(sampleKey) {
-  let sampleData = null;
-  if (sampleKey === 'quantainium') {
-    sampleData = {
-      mass: 5234,
-      resistance: 42,
-      instability: 58,
-      minerals: [
-        { mineral: MINING_DATA.minerals.find(m => m.id === 'quantainium') || MINING_DATA.minerals[0], pct: 32.4 }
-      ],
-      archetype: (MINING_DATA.rockArchetypes || []).find(a => a.id === 'c_type') || (MINING_DATA.rockArchetypes || [])[0]
-    };
-    if (DOM.ocrRawTextInput) {
-      DOM.ocrRawTextInput.value = 'Mass: 5,234 kg  Quantainium: 32.4%  Inert: 67.6%  Resistance: 42%  Instability: 58  RS: 3170';
-    }
-  } else if (sampleKey === 'bexalite') {
-    sampleData = {
-      mass: 8120,
-      resistance: 65,
-      instability: 40,
-      minerals: [
-        { mineral: MINING_DATA.minerals.find(m => m.id === 'bexalite') || MINING_DATA.minerals[1], pct: 48.0 }
-      ],
-      archetype: (MINING_DATA.rockArchetypes || []).find(a => a.id === 'basalt') || (MINING_DATA.rockArchetypes || [])[0]
-    };
-    if (DOM.ocrRawTextInput) {
-      DOM.ocrRawTextInput.value = 'Mass: 8,120 kg  Bexalite: 48.0%  Inert Materials: 52.0%  Resistance: 65%  Instability: 40  RS: 2450';
-    }
-  } else if (sampleKey === 'taranite_laranite') {
-    sampleData = {
-      mass: 7450,
-      resistance: 51,
-      instability: 72,
-      minerals: [
-        { mineral: MINING_DATA.minerals.find(m => m.id === 'taranite') || MINING_DATA.minerals[2], pct: 26.5 },
-        { mineral: MINING_DATA.minerals.find(m => m.id === 'laranite') || MINING_DATA.minerals[3], pct: 14.2 }
-      ],
-      archetype: (MINING_DATA.rockArchetypes || []).find(a => a.id === 'obsidian') || (MINING_DATA.rockArchetypes || [])[0]
-    };
-    if (DOM.ocrRawTextInput) {
-      DOM.ocrRawTextInput.value = 'Mass: 7,450 kg  Taranite: 26.5%  Laranite: 14.2%  Inert: 59.3%  Resistance: 51%  Instability: 72  RS: 2890';
-    }
-  }
-
-  if (DOM.ocrCanvas) {
-    DOM.ocrCanvas.width = 640;
-    DOM.ocrCanvas.height = 200;
-    const ctx = DOM.ocrCanvas.getContext('2d');
-    ctx.fillStyle = '#050b14';
-    ctx.fillRect(0, 0, 640, 200);
-
-    ctx.strokeStyle = '#00f0ff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(10, 10, 620, 180);
-
-    ctx.fillStyle = '#00f0ff';
-    ctx.font = 'bold 16px monospace';
-    ctx.fillText(`STAR CITIZEN SCAN HUD — SAMPLE [${sampleKey.toUpperCase()}]`, 25, 35);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px monospace';
-    ctx.fillText(`MASS: ${(sampleData.mass).toLocaleString()} kg`, 25, 70);
-    ctx.fillText(`COMPOSITION: ${sampleData.minerals[0].mineral.name_en} ${sampleData.minerals[0].pct}%`, 25, 100);
-    if (sampleData.minerals[1]) {
-      ctx.fillText(`SECONDARY: ${sampleData.minerals[1].mineral.name_en} ${sampleData.minerals[1].pct}%`, 25, 125);
-    }
-    ctx.fillText(`RESISTANCE: ${sampleData.resistance}%  |  INSTABILITY: ${sampleData.instability}`, 25, 155);
-
-    if (DOM.ocrPreviewContainer) DOM.ocrPreviewContainer.style.display = 'block';
-  }
-
-  applyParsedOcrResultsToModalInputs(sampleData, 190);
-}
-
-function applyOcrDetectedData() {
-  const mass = parseInt(DOM.ocrResMass?.value, 10) || 5200;
-  const m1Id = DOM.ocrResMineral1?.value;
-  const pct1 = parseFloat(DOM.ocrResPct1?.value) || 32;
-  const m2Id = DOM.ocrResMineral2?.value;
-  const pct2 = parseFloat(DOM.ocrResPct2?.value) || 0;
-  const res = parseInt(DOM.ocrResResistance?.value, 10) || 40;
-  const inst = parseInt(DOM.ocrResInstability?.value, 10) || 50;
-  const archId = DOM.ocrResArchetype?.value;
-
-  const min1 = MINING_DATA.minerals.find(m => m.id === m1Id) || MINING_DATA.minerals[0];
-  const min2 = m2Id && m2Id !== 'none' ? MINING_DATA.minerals.find(m => m.id === m2Id) : null;
-  const arch = archId && archId !== 'none' ? (MINING_DATA.rockArchetypes || []).find(a => a.id === archId) : null;
-
-  // Apply to state
-  state.rockMass = mass;
-  if (DOM.massDigitalDisplay) DOM.massDigitalDisplay.textContent = mass;
-  if (DOM.massLabel) DOM.massLabel.textContent = `${mass.toLocaleString()} kg`;
-
-  state.selectedMineral = min1;
-  document.querySelectorAll('.ore-card').forEach(c => {
-    c.classList.toggle('selected', c.dataset.id === min1.id);
-  });
-  if (DOM.secondarySelect) populateSecondarySelect();
-
-  state.orePercentage = pct1;
-  if (DOM.orePercentageSlider) DOM.orePercentageSlider.value = pct1;
-  if (DOM.orePercentageVal) DOM.orePercentageVal.textContent = `${pct1} %`;
-
-  state.secondaryMineral = min2;
-  state.secondaryPercentage = min2 ? pct2 : 0;
-  if (DOM.secondarySelect) DOM.secondarySelect.value = min2 ? min2.id : 'none';
-  if (DOM.secondaryPercentageSlider) DOM.secondaryPercentageSlider.value = state.secondaryPercentage;
-  if (DOM.secondaryPercentageVal) DOM.secondaryPercentageVal.textContent = `${state.secondaryPercentage} %`;
-
-  state.resistance = res;
-  if (DOM.resistanceSlider) DOM.resistanceSlider.value = res;
-  if (DOM.resistanceVal) DOM.resistanceVal.textContent = `${res} %`;
-
-  state.instability = inst;
-  if (DOM.instabilitySlider) DOM.instabilitySlider.value = inst;
-  if (DOM.instabilityVal) DOM.instabilityVal.textContent = `${inst}`;
-
-  if (arch) {
-    state.selectedArchetype = arch;
-    updateScanSubtabBadges(arch, min1);
-  }
-
-  calculateAll();
-  calculateCrewSplit();
-
-  sfx.playSuccess();
-  triggerHaptic(25);
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  showToast(t.toastOcrSuccess ? t.toastOcrSuccess.replace('{timing}', '0.28') : '✅ Données du scan injectées dans le calculateur !');
-
-  // Broadcast if option checked
-  if (DOM.ocrChkBroadcastOnApply && DOM.ocrChkBroadcastOnApply.checked) {
-    broadcastCurrentRock(true);
-  }
-
-  closeModal(DOM.ocrModal);
-  stopOcrCamera();
-}
-
-function initOcrScanner() {
-  populateOcrModalDropdowns();
-
-  // Modal open / close
-  const openOcr = () => {
-    sfx.playBeep(650, 'sine', 0.04);
-    triggerHaptic(12);
-    populateOcrModalDropdowns();
-    openModal(DOM.ocrModal);
-  };
-
-  if (DOM.btnOpenOcrModal) DOM.btnOpenOcrModal.addEventListener('click', openOcr);
-  if (DOM.btnQuickOpenOcr) DOM.btnQuickOpenOcr.addEventListener('click', openOcr);
-  if (DOM.btnCloseOcr) {
-    DOM.btnCloseOcr.addEventListener('click', () => {
-      closeModal(DOM.ocrModal);
-      stopOcrCamera();
-    });
-  }
-  if (DOM.btnCancelOcr) {
-    DOM.btnCancelOcr.addEventListener('click', () => {
-      closeModal(DOM.ocrModal);
-      stopOcrCamera();
-    });
-  }
-
-  // Tabs
-  if (DOM.tabOcrClipboard && DOM.tabOcrCamera && DOM.tabOcrSamples) {
-    DOM.tabOcrClipboard.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.03);
-      DOM.tabOcrClipboard.classList.add('active');
-      DOM.tabOcrClipboard.style.borderColor = 'var(--accent-purple)';
-      DOM.tabOcrClipboard.style.color = 'var(--accent-purple)';
-      DOM.tabOcrCamera.classList.remove('active');
-      DOM.tabOcrCamera.style.borderColor = '';
-      DOM.tabOcrCamera.style.color = '';
-      DOM.tabOcrSamples.classList.remove('active');
-      DOM.tabOcrSamples.style.borderColor = '';
-      DOM.tabOcrSamples.style.color = '';
-
-      if (DOM.ocrPaneClipboard) DOM.ocrPaneClipboard.style.display = 'block';
-      if (DOM.ocrPaneCamera) DOM.ocrPaneCamera.style.display = 'none';
-      if (DOM.ocrPaneSamples) DOM.ocrPaneSamples.style.display = 'none';
-      stopOcrCamera();
-    });
-
-    DOM.tabOcrCamera.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.03);
-      DOM.tabOcrCamera.classList.add('active');
-      DOM.tabOcrCamera.style.borderColor = 'var(--accent-purple)';
-      DOM.tabOcrCamera.style.color = 'var(--accent-purple)';
-      DOM.tabOcrClipboard.classList.remove('active');
-      DOM.tabOcrClipboard.style.borderColor = '';
-      DOM.tabOcrClipboard.style.color = '';
-      DOM.tabOcrSamples.classList.remove('active');
-      DOM.tabOcrSamples.style.borderColor = '';
-      DOM.tabOcrSamples.style.color = '';
-
-      if (DOM.ocrPaneClipboard) DOM.ocrPaneClipboard.style.display = 'none';
-      if (DOM.ocrPaneCamera) DOM.ocrPaneCamera.style.display = 'block';
-      if (DOM.ocrPaneSamples) DOM.ocrPaneSamples.style.display = 'none';
-      startOcrCamera();
-    });
-
-    DOM.tabOcrSamples.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.03);
-      DOM.tabOcrSamples.classList.add('active');
-      DOM.tabOcrSamples.style.borderColor = 'var(--accent-purple)';
-      DOM.tabOcrSamples.style.color = 'var(--accent-purple)';
-      DOM.tabOcrClipboard.classList.remove('active');
-      DOM.tabOcrClipboard.style.borderColor = '';
-      DOM.tabOcrClipboard.style.color = '';
-      DOM.tabOcrCamera.classList.remove('active');
-      DOM.tabOcrCamera.style.borderColor = '';
-      DOM.tabOcrCamera.style.color = '';
-
-      if (DOM.ocrPaneClipboard) DOM.ocrPaneClipboard.style.display = 'none';
-      if (DOM.ocrPaneCamera) DOM.ocrPaneCamera.style.display = 'none';
-      if (DOM.ocrPaneSamples) DOM.ocrPaneSamples.style.display = 'block';
-      stopOcrCamera();
-    });
-  }
-
-  // Camera buttons
-  if (DOM.btnCaptureCameraFrame) DOM.btnCaptureCameraFrame.addEventListener('click', captureOcrCameraFrame);
-  if (DOM.btnSwitchCamera) DOM.btnSwitchCamera.addEventListener('click', switchOcrCamera);
-
-  // File & Dropzone
-  if (DOM.btnBrowseOcrFile && DOM.ocrFileInput) {
-    DOM.btnBrowseOcrFile.addEventListener('click', () => DOM.ocrFileInput.click());
-    DOM.ocrFileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        loadOcrImageBlob(e.target.files[0]);
-      }
-    });
-  }
-
-  if (DOM.ocrDropzone) {
-    DOM.ocrDropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      DOM.ocrDropzone.classList.add('dragover');
-    });
-    DOM.ocrDropzone.addEventListener('dragleave', () => {
-      DOM.ocrDropzone.classList.remove('dragover');
-    });
-    DOM.ocrDropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      DOM.ocrDropzone.classList.remove('dragover');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        loadOcrImageBlob(e.dataTransfer.files[0]);
-      }
-    });
-  }
-
-  // Paste from clipboard button
-  if (DOM.btnPasteOcrClipboard) {
-    DOM.btnPasteOcrClipboard.addEventListener('click', async () => {
-      sfx.playBeep(550, 'sine', 0.03);
-      if (navigator.clipboard && navigator.clipboard.read) {
-        try {
-          const items = await navigator.clipboard.read();
-          for (const item of items) {
-            for (const type of item.types) {
-              if (type.startsWith('image/')) {
-                const blob = await item.getType(type);
-                loadOcrImageBlob(blob);
-                return;
-              }
-            }
-          }
-        } catch (err) {
-          console.warn('[CLIPBOARD] clipboard.read error:', err);
-        }
-      }
-      if (navigator.clipboard && navigator.clipboard.readText) {
-        try {
-          const text = await navigator.clipboard.readText();
-          if (text && DOM.ocrRawTextInput) {
-            DOM.ocrRawTextInput.value = text;
-            const parsed = parseStarCitizenScanText(text);
-            applyParsedOcrResultsToModalInputs(parsed, 150);
-            return;
-          }
-        } catch (e) {}
-      }
-      showToast('Pressez Ctrl+V pour coller votre capture d\'écran directement.');
-    });
-  }
-
-  // Raw text parser button
-  if (DOM.btnParseRawScanText) {
-    DOM.btnParseRawScanText.addEventListener('click', () => {
-      const text = DOM.ocrRawTextInput ? DOM.ocrRawTextInput.value.trim() : '';
-      if (!text) {
-        showToast('Veuillez coller le texte du scan.');
-        return;
-      }
-      const parsed = parseStarCitizenScanText(text);
-      applyParsedOcrResultsToModalInputs(parsed, 120);
-    });
-  }
-
-  // Global Ctrl+V listener
-  window.addEventListener('paste', (e) => {
-    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-    if (items) {
-      for (const item of items) {
-        if (item.type.indexOf('image') !== -1) {
-          const blob = item.getAsFile();
-          loadOcrImageBlob(blob);
-          openModal(DOM.ocrModal);
-          return;
-        }
-      }
-    }
-    const text = e.clipboardData?.getData('text');
-    if (text && DOM.ocrModal && DOM.ocrModal.classList.contains('active')) {
-      if (DOM.ocrRawTextInput) DOM.ocrRawTextInput.value = text;
-      const parsed = parseStarCitizenScanText(text);
-      applyParsedOcrResultsToModalInputs(parsed, 110);
-    }
-  });
-
-  // Sample buttons
-  document.querySelectorAll('.ocr-sample-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const sample = btn.dataset.sample;
-      loadOcrSample(sample);
-    });
-  });
-
-  // Apply OCR data button
-  if (DOM.btnApplyOcrData) DOM.btnApplyOcrData.addEventListener('click', applyOcrDetectedData);
-
-  // Broadcast & incoming scan buttons
-  if (DOM.btnBroadcastCurrentRock) {
-    DOM.btnBroadcastCurrentRock.addEventListener('click', () => {
-      broadcastCurrentRock(true);
-    });
-  }
-
-  if (DOM.chkAutoBroadcastScan) {
-    DOM.chkAutoBroadcastScan.addEventListener('change', (e) => {
-      state.autoBroadcastScan = e.target.checked;
-      triggerHaptic(10);
-    });
-  }
-
-  if (DOM.chkAutoSyncScan) {
-    DOM.chkAutoSyncScan.addEventListener('change', (e) => {
-      state.autoSyncScan = e.target.checked;
-      triggerHaptic(10);
-    });
-  }
-
-  if (DOM.btnApplyIncomingRockScan) {
-    DOM.btnApplyIncomingRockScan.addEventListener('click', () => {
-      if (state.lastIncomingRockScan) {
-        applyIncomingRockScan(state.lastIncomingRockScan.rock, state.lastIncomingRockScan.senderCallsign, true);
-      }
-    });
-  }
-
-  if (DOM.btnDismissIncomingRockScan) {
-    DOM.btnDismissIncomingRockScan.addEventListener('click', () => {
-      if (DOM.rockBroadcastReceivedBanner) DOM.rockBroadcastReceivedBanner.style.display = 'none';
-      state.lastIncomingRockScan = null;
-    });
-  }
-}
-
-// ==========================================
-// UX HELPERS: THEMES, WAKE LOCK, HAPTICS & DISCORD
-// ==========================================
-function triggerHaptic(duration = 15) {
-  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-    try { navigator.vibrate(duration); } catch (e) {}
-  }
-}
-
-// Global mobile/tablet haptic feedback on interactive elements (silent physical touch)
-if (typeof document !== 'undefined') {
-  document.addEventListener('pointerdown', (e) => {
-    const target = e.target.closest('button, .tab-btn, .subtab-btn, .stockpile-subtab-btn, .pill, .filter-chip, select, input[type="checkbox"], input[type="radio"], .interactive, .laser-card, .mineral-badge, .route-card');
-    if (target) {
-      triggerHaptic(12);
-    }
-  }, { passive: true });
-}
-
-function showToast(msg) {
-  const t = DOM.toastNotice;
-  if (!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-function setTheme(theme) {
-  state.currentTheme = theme;
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('aaron_mfd_theme', theme);
-  if (DOM.themeSelect) DOM.themeSelect.value = theme;
-}
-
-async function toggleWakeLock() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (!('wakeLock' in navigator)) {
-    showToast(t.toastWakeLockUnsupported);
-    return;
-  }
-
-  if (state.wakeLock) {
-    try {
-      await state.wakeLock.release();
-      state.wakeLock = null;
-      if (DOM.wakeLockLabel) DOM.wakeLockLabel.textContent = t.wakeLockOff;
-      if (DOM.btnWakeLock) DOM.btnWakeLock.classList.remove('active');
-      showToast(t.toastWakeLockOff);
-    } catch (e) {
-      console.warn(e);
-    }
-  } else {
-    try {
-      state.wakeLock = await navigator.wakeLock.request('screen');
-      if (DOM.wakeLockLabel) DOM.wakeLockLabel.textContent = t.wakeLockOn;
-      if (DOM.btnWakeLock) DOM.btnWakeLock.classList.add('active');
-      sfx.playSuccess();
-      showToast(t.toastWakeLockOn);
-      state.wakeLock.addEventListener('release', () => {
-        state.wakeLock = null;
-        if (DOM.wakeLockLabel) DOM.wakeLockLabel.textContent = t.wakeLockOff;
-        if (DOM.btnWakeLock) DOM.btnWakeLock.classList.remove('active');
-      });
-    } catch (e) {
-      console.warn('Wake lock error:', e);
-    }
-  }
-}
-
-function toggleFullscreen() {
-  triggerHaptic(20);
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-  }
-}
-
-function exportToDiscord() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const shipName = state.selectedShip.name;
-  const holdScu = state.holdSCU.toFixed(1);
-  const maxScu = state.selectedShip.scu;
-  let totalRaw = state.sessionLog.reduce((acc, x) => acc + x.rawVal, 0);
-  if (totalRaw === 0) totalRaw = parseInt(DOM.metricRawPrice.textContent.replace(/\D/g, ''), 10) || 0;
-  
-  const refinery = state.selectedRefinery;
-  const bestStation = MINING_DATA.refineryStations.find(s => s.bonusMineral === state.selectedMineral.id) || MINING_DATA.refineryStations[0];
-  const refinedVal = Math.round(totalRaw * refinery.yieldRate * 1.85);
-  const netCut = Math.round((refinedVal * (1 - state.crewReservePct / 100)) / Math.max(1, state.crewMembers));
-
-  let itemsList = state.sessionLog.map(x => `• **${x.mineral}** : ${x.scu.toFixed(1)} SCU (~${x.rawVal.toLocaleString(locale)} aUEC)`).join('\n');
-  if (!itemsList) itemsList = `• **${getLocalized(state.selectedMineral, 'name')}** : ${DOM.metricSCU.textContent} (~${DOM.metricRawPrice.textContent})`;
-
-  const report = `\`\`\`asciidoc
-=== ${t.discordReportTitle} ===
-${t.discordShip} ${shipName} ${state.selectedShip.id === 'mole' ? '(' + state.moleActiveTurrets + '/3 turrets)' : ''}
-${t.discordHold} ${holdScu} / ${maxScu} SCU
-${t.discordStation} ${bestStation.name} (${bestStation.bestFor})
-
-${t.discordExtractedMinerals}
-${itemsList}
-
-💰 ${t.discordEstimatedVal} ~${refinedVal.toLocaleString(locale)} aUEC (${refinery.name})
-👥 ${t.discordCrewShare} ~${netCut.toLocaleString(locale)} aUEC / ${t.perMember} (${state.crewMembers} ${state.crewMembers > 1 ? t.playersPlural : t.playersSingular}, -${state.crewReservePct}% reserve)
-\`\`\``;
-
-  navigator.clipboard.writeText(report).then(() => {
-    sfx.playSuccess();
-    triggerHaptic(25);
-    showToast(t.copiedToast);
-  }).catch(() => {
-    alert(report);
-  });
-}
-
-function setLanguage(lang) {
-  state.currentLang = lang;
-  localStorage.setItem('aaron_mfd_lang', lang);
-  const t = I18N[lang] || I18N.fr;
-
-  if (document.documentElement) {
-    document.documentElement.lang = lang;
-  }
-
-  // 1. Translate all static [data-i18n] text
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    if (t[key] !== undefined) {
-      el.textContent = t[key];
-    }
-  });
-
-  // 2. Translate all [data-i18n-title] tooltip titles
-  document.querySelectorAll('[data-i18n-title]').forEach(el => {
-    const key = el.dataset.i18nTitle;
-    if (t[key] !== undefined) {
-      el.title = t[key];
-    }
-  });
-
-  // 3. Update Language button
-  if (DOM.langFlag && DOM.langLabel) {
-    DOM.langFlag.textContent = lang === 'fr' ? '🇬🇧' : '🇫🇷';
-    DOM.langLabel.textContent = lang === 'fr' ? 'EN' : 'FR';
-  }
-
-  // 4. Update WakeLock & Audio titles/labels
-  if (DOM.wakeLockLabel) {
-    DOM.wakeLockLabel.textContent = state.wakeLock ? t.wakeLockOn : t.wakeLockOff;
-  }
-  if (DOM.btnAudioToggle) {
-    DOM.btnAudioToggle.title = state.audioEnabled ? t.audioOn : t.audioOff;
-  }
-
-  // 5. Update Numpad toggle button
-  if (DOM.btnToggleNumpad) {
-    const isOpen = DOM.numpadContainer && DOM.numpadContainer.style.display !== 'none';
-    DOM.btnToggleNumpad.textContent = isOpen ? t.closeKeypad : t.keypad;
-  }
-
-  // 6. Update Ship select options text across all ship selectors
-  [DOM.shipSelect, DOM.mgShipSelect, DOM.loadoutShipSelect].forEach(sel => {
-    if (!sel) return;
-    const shipOpts = sel.querySelectorAll('option');
-      shipOpts.forEach(opt => {
-        if (opt.value === 'prospector') opt.textContent = t.shipProspector;
-        if (opt.value === 'mole') opt.textContent = t.shipMole;
-        if (opt.value === 'arrastra') opt.textContent = t.shipArrastra || 'RSI Arrastra (576 SCU)';
-        if (opt.value === 'orion') opt.textContent = t.shipOrion || 'RSI Orion (2 880 SCU)';
-        if (opt.value === 'roc') opt.textContent = t.shipRoc;
-        if (opt.value === 'roc_ds') opt.textContent = t.shipRocDs;
-      });
-  });
-
-  // 7. Update Theme select options text
-  if (DOM.themeSelect) {
-    const themeOpts = DOM.themeSelect.querySelectorAll('option');
-    themeOpts.forEach(opt => {
-      if (opt.value === 'mobiglas') opt.textContent = t.themeMobiglas;
-      if (opt.value === 'misc') opt.textContent = t.themeMisc;
-      if (opt.value === 'drake') opt.textContent = t.themeDrake;
-      if (opt.value === 'aegis') opt.textContent = t.themeAegis;
-      if (opt.value === 'rsi') opt.textContent = t.themeRsi;
-    });
-  }
-
-  // 8. Re-render dynamic components with new language
-  populateOreGrid();
-  populateArchetypes();
-  populateSecondaryOreSelect();
-  populateRefinerySelect();
-  populateLoadoutSelects();
-  populateHaloAndStations();
-  populateHaloRangefinderSelect();
-  updateHaloRangefinder();
-  populateRefineryModalSelects();
-  renderRefineryJobs();
-  renderGuildStockpile();
-  renderGuildExpenses();
-  updateGuildNetWorthMetrics();
-  updatePushStatusBadge();
-  updateLedgerDisplay();
-  updateLaserOptions();
-  updateLoadoutButtonSummary();
-  updateSaddlebagsUI();
-  updateVoiceTTSUI();
-  calculateAll();
-  updateHoldDisplay();
-  calculateCrewSplit();
-  updateRocCluster();
-  updateToggleAllButtonText();
-  updateFleetNetUI();
-
-  // 9. Update mobiGlas 4.0 layout toggle & dock labels
-  if (DOM.mgLayoutToggleLabel) {
-    DOM.mgLayoutToggleLabel.textContent = state.layoutMode === 'mobiglas' ? t.layoutToggleToClassic : t.layoutToggleToMobiglas;
-  }
-  if (DOM.dockBtnLayout) {
-    const layoutLabel = DOM.dockBtnLayout.querySelector('.dock-label');
-    if (layoutLabel) {
-      layoutLabel.textContent = state.layoutMode === 'mobiglas' ? t.dockLayout : 'MOBIGLAS';
-    }
-  }
-  if (DOM.btnMgLang) {
-    DOM.btnMgLang.textContent = lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR';
-  }
-
-  // 9. Update Guide Modal language buttons
-  if (DOM.btnGuideLangFr && DOM.btnGuideLangEn) {
-    DOM.btnGuideLangFr.classList.toggle('active', lang === 'fr');
-    DOM.btnGuideLangEn.classList.toggle('active', lang === 'en');
-  }
-
-  // 10. Update Changelog entries in current language
-  renderChangelog();
-}
-
-function updateToggleAllButtonText() {
-  if (!DOM.btnToggleAllTurrets) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const cards = Array.from(DOM.turretCardsContainer?.querySelectorAll('.turret-config-card') || []);
-  const allCollapsed = cards.length > 0 && cards.every(c => c.classList.contains('collapsed'));
-  DOM.btnToggleAllTurrets.textContent = allCollapsed ? (t.expandAllTurrets || 'Tout déplier') : (t.collapseAllTurrets || 'Tout replier');
-}
-
-function populateHaloAndStations() {
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  // 1. Aaron Halo Quantum drop routes (Stanton)
-  if (DOM.haloRoutesContainer) {
-    DOM.haloRoutesContainer.innerHTML = '';
-    MINING_DATA.aaronHaloBands.forEach(band => {
-      const dropDistance = getLocalized(band, 'dropDistance');
-      const bandName = getLocalized(band, 'band');
-      const desc = getLocalized(band, 'desc');
-
-      const card = document.createElement('div');
-      card.style.cssText = 'background:rgba(255,255,255,0.03); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:10px; font-size:0.85rem;';
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <strong style="color:#fff; font-family:var(--font-hud);">${band.route}</strong>
-          <span style="font-family:var(--font-mono); color:var(--accent-cyan); font-weight:700;">${bandName}</span>
-        </div>
-        <div style="color:var(--accent-amber); font-family:var(--font-mono); font-size:0.8rem; margin-bottom:2px;">
-          ${t.qtDrop} ${dropDistance}
-        </div>
-        <div style="color:var(--text-muted); font-size:0.75rem;">${desc}</div>
-      `;
-      DOM.haloRoutesContainer.appendChild(card);
-    });
-  }
-
-  // Helper: render a refinery station card
-  const renderStationCard = (st) => {
-    const notes = getLocalized(st, 'notes');
-    const isPyro = st.sector === 'pyro';
-    const isNyx = st.sector === 'nyx';
-    const borderColor = isPyro ? 'rgba(255,68,68,0.35)' : isNyx ? 'rgba(129,140,248,0.35)' : 'rgba(16,185,129,0.25)';
-    const badgeColor = isPyro ? '#ff6b6b' : isNyx ? '#a5b4fc' : 'var(--accent-emerald)';
-    const card = document.createElement('div');
-    card.style.cssText = `background:rgba(255,255,255,0.03); border:1px solid ${borderColor}; border-radius:6px; padding:10px; font-size:0.85rem;`;
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <strong style="color:#fff; font-family:var(--font-hud);">${st.name}</strong>
-        <span style="font-size:0.75rem; color:var(--text-muted);">${st.system}</span>
-      </div>
-      <div style="color:${badgeColor}; font-family:var(--font-mono); font-size:0.8rem; margin-bottom:2px;">
-        ${t.stationSpecialty} ${st.bestFor}
-      </div>
-      <div style="color:var(--text-muted); font-size:0.75rem;">${notes}</div>
-    `;
-    return card;
-  };
-
-  // Helper: render a geological hotspot card
-  const renderHotspotCard = (hotspot) => {
-    const name = getLocalized(hotspot, 'name');
-    const type = getLocalized(hotspot, 'type');
-    const hazards = getLocalized(hotspot, 'hazards');
-    const desc = getLocalized(hotspot, 'desc');
-    const isPyro = hotspot.system === 'pyro';
-    const isNyx = hotspot.system === 'nyx';
-    const borderColor = isPyro ? 'rgba(255,68,68,0.35)' : isNyx ? 'rgba(129,140,248,0.35)' : 'rgba(168,85,247,0.25)';
-    const tagBg = isPyro ? 'rgba(255,68,68,0.15)' : isNyx ? 'rgba(129,140,248,0.15)' : 'rgba(168,85,247,0.15)';
-    const tagColor = isPyro ? '#ff6b6b' : isNyx ? '#a5b4fc' : 'var(--accent-purple)';
-
-    const card = document.createElement('div');
-    card.style.cssText = `background:rgba(255,255,255,0.03); border:1px solid ${borderColor}; border-radius:6px; padding:10px; font-size:0.85rem;`;
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:4px;">
-        <strong style="color:#fff; font-family:var(--font-hud);">${name}</strong>
-        <span style="font-size:0.75rem; background:${tagBg}; color:${tagColor}; padding:2px 6px; border-radius:4px; font-family:var(--font-mono);">${type}</span>
-      </div>
-      <div style="color:var(--accent-cyan); font-family:var(--font-mono); font-size:0.8rem; margin-bottom:2px;">
-        💎 <strong>${t.hotspotsOres}</strong> ${hotspot.primaryOres}
-      </div>
-      <div style="color:var(--accent-amber); font-size:0.75rem; margin-bottom:2px;">
-        ⚠️ <strong>${t.hotspotsHazards}</strong> ${hazards}
-      </div>
-      <div style="color:var(--accent-emerald); font-size:0.75rem; margin-bottom:4px;">
-        🏭 <strong>${t.hotspotsRefinery}</strong> ${hotspot.refineryHub}
-      </div>
-      <div style="color:var(--text-muted); font-size:0.75rem; line-height:1.35;">${desc}</div>
-    `;
-    return card;
-  };
-
-  // 2. Stanton Refinery Stations
-  if (DOM.stationsContainer) {
-    DOM.stationsContainer.innerHTML = '';
-    const stantonStations = MINING_DATA.refineryStations.filter(s => s.sector === 'stanton' || (!s.sector));
-    stantonStations.forEach(st => DOM.stationsContainer.appendChild(renderStationCard(st)));
-  }
-
-  // 3. Stanton Hotspots
-  if (DOM.hotspotsStantonContainer && MINING_DATA.miningHotspots) {
-    DOM.hotspotsStantonContainer.innerHTML = '';
-    const stantonHotspots = MINING_DATA.miningHotspots.filter(h => h.system === 'stanton');
-    stantonHotspots.forEach(h => DOM.hotspotsStantonContainer.appendChild(renderHotspotCard(h)));
-  }
-
-  // 4. Pyro Refinery Stations (Alpha 4.0)
-  if (DOM.stationsPyroContainer) {
-    DOM.stationsPyroContainer.innerHTML = '';
-    const pyroStations = MINING_DATA.refineryStations.filter(s => s.sector === 'pyro');
-    pyroStations.forEach(st => DOM.stationsPyroContainer.appendChild(renderStationCard(st)));
-  }
-
-  // 5. Pyro Hotspots (Alpha 4.0)
-  if (DOM.hotspotsPyroContainer && MINING_DATA.miningHotspots) {
-    DOM.hotspotsPyroContainer.innerHTML = '';
-    const pyroHotspots = MINING_DATA.miningHotspots.filter(h => h.system === 'pyro');
-    pyroHotspots.forEach(h => DOM.hotspotsPyroContainer.appendChild(renderHotspotCard(h)));
-  }
-
-  // 6. Nyx Refinery Stations
-  if (DOM.stationsNyxContainer) {
-    DOM.stationsNyxContainer.innerHTML = '';
-    const nyxStations = MINING_DATA.refineryStations.filter(s => s.sector === 'nyx');
-    nyxStations.forEach(st => DOM.stationsNyxContainer.appendChild(renderStationCard(st)));
-  }
-
-  // 7. Nyx Hotspots
-  if (DOM.hotspotsNyxContainer && MINING_DATA.miningHotspots) {
-    DOM.hotspotsNyxContainer.innerHTML = '';
-    const nyxHotspots = MINING_DATA.miningHotspots.filter(h => h.system === 'nyx');
-    nyxHotspots.forEach(h => DOM.hotspotsNyxContainer.appendChild(renderHotspotCard(h)));
-  }
-}
-
-// ==========================================
-// TACTILE NUMPAD & QUICK CONTROLS
-// ==========================================
-function bindEventListeners() {
-  // Ship selection changes (classic header, mobiGlas header, loadout modal)
-  const onShipChange = (e) => {
-    sfx.playBeep(600, 'sine', 0.05);
-    triggerHaptic(15);
-    setShip(e.target.value);
-  };
-
-  if (DOM.shipSelect) DOM.shipSelect.addEventListener('change', onShipChange);
-  if (DOM.mgShipSelect) DOM.mgShipSelect.addEventListener('change', onShipChange);
-  if (DOM.loadoutShipSelect) DOM.loadoutShipSelect.addEventListener('change', onShipChange);
-
-  document.querySelectorAll('[data-add-mass]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      const add = parseInt(btn.dataset.addMass, 10);
-      setMass(state.rockMass + add);
-    });
-  });
-
-  // Mass Stepper [-] and [+]
-  if (DOM.btnMassMinus) {
-    DOM.btnMassMinus.addEventListener('click', () => {
-      sfx.playBeep(550, 'sine', 0.04);
-      triggerHaptic(12);
-      setMass(state.rockMass - 100);
-    });
-  }
-  if (DOM.btnMassPlus) {
-    DOM.btnMassPlus.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      setMass(state.rockMass + 100);
-    });
-  }
-
-  // Toggle tactile numpad
-  DOM.btnToggleNumpad.addEventListener('click', () => {
-    const t = I18N[state.currentLang] || I18N.fr;
-    sfx.playBeep(550, 'sine', 0.04);
-    triggerHaptic(15);
-    const isOpen = DOM.numpadContainer.style.display !== 'none';
-    DOM.numpadContainer.style.display = isOpen ? 'none' : 'grid';
-    DOM.btnToggleNumpad.textContent = isOpen ? t.keypad : t.closeKeypad;
-  });
-
-  // Numpad button clicks
-  DOM.numpadContainer.querySelectorAll('.num-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(800, 'sine', 0.03);
-      triggerHaptic(10);
-      const key = btn.dataset.key;
-      let currentStr = state.rockMass.toString();
-
-      if (key === 'C') {
-        currentStr = '0';
-      } else if (key === 'BACK') {
-        currentStr = currentStr.slice(0, -1) || '0';
-      } else {
-        if (currentStr === '0') currentStr = '';
-        if (currentStr.length < 6) currentStr += key;
-      }
-      setMass(parseInt(currentStr, 10) || 0);
-    });
-  });
-
-  // Ore percentage slider & chips
-  DOM.pctSlider.addEventListener('input', (e) => {
-    setPct(parseFloat(e.target.value));
-  });
-
-  document.querySelectorAll('[data-set-pct]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      setPct(parseFloat(btn.dataset.setPct));
-    });
-  });
-
-  // Resistance slider
-  DOM.resistanceSlider.addEventListener('input', (e) => {
-    setResistance(parseInt(e.target.value, 10));
-  });
-
-  // Instability slider
-  DOM.instabilitySlider.addEventListener('input', (e) => {
-    setInstability(parseInt(e.target.value, 10));
-  });
-
-  // Add to cargo action
-  DOM.btnAddToCargo.addEventListener('click', () => {
-    addToCargo();
-  });
-
-  // Clear hold
-  DOM.btnClearHold.addEventListener('click', () => {
-    const t = I18N[state.currentLang] || I18N.fr;
-    if (confirm(t.confirmClearHold)) {
-      sfx.playBeep(350, 'square', 0.08);
-      clearHold();
-    }
-  });
-
-  // Reset full session
-  DOM.btnResetSession.addEventListener('click', () => {
-    const t = I18N[state.currentLang] || I18N.fr;
-    if (confirm(t.confirmResetSession)) {
-      clearHold();
-      setMass(5200);
-      setPct(32);
-      setResistance(40);
-      setInstability(50);
-      stopQuantainiumTimer();
-    }
-  });
-
-  // Audio toggle button
-  DOM.btnAudioToggle.addEventListener('click', () => {
-    const t = I18N[state.currentLang] || I18N.fr;
-    state.audioEnabled = !state.audioEnabled;
-    DOM.btnAudioToggle.classList.toggle('active', state.audioEnabled);
-    DOM.btnAudioToggle.title = state.audioEnabled ? t.audioOn : t.audioOff;
-    sfx.playBeep(state.audioEnabled ? 750 : 300, 'sine', 0.06);
-  });
-
-  // Modals management
-  DOM.btnOpenLoadout.addEventListener('click', () => {
-    sfx.playBeep(600, 'sine', 0.04);
-    populateLoadoutSelects();
-    openModal(DOM.loadoutModal);
-  });
-  DOM.btnCloseLoadout.addEventListener('click', () => closeModal(DOM.loadoutModal));
-
-  [DOM.btnOpenDonate, DOM.btnMgDonate, DOM.dockBtnDonate, DOM.btnOpenDonateFooter].forEach(btn => {
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(15);
-      openModal(DOM.donateModal);
-    });
-  });
-  if (DOM.btnCloseDonate) DOM.btnCloseDonate.addEventListener('click', () => closeModal(DOM.donateModal));
-
-  // Crew split modal & Squad Mining Modal
-  if (DOM.btnOpenCrew) DOM.btnOpenCrew.addEventListener('click', openSquadModal);
-  if (DOM.btnMgSquadModal) DOM.btnMgSquadModal.addEventListener('click', openSquadModal);
-  if (DOM.btnQuickOpenSquad) DOM.btnQuickOpenSquad.addEventListener('click', openSquadModal);
-  if (DOM.btnCloseCrew) DOM.btnCloseCrew.addEventListener('click', () => closeModal(DOM.crewModal));
-
-  // Dismiss any open modal by clicking its background overlay
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        closeModal(overlay);
-      }
-    });
-  });
-
-  if (DOM.btnAddSquadMember) {
-    DOM.btnAddSquadMember.addEventListener('click', () => addSquadMember());
-  }
-
-  if (DOM.btnSquadEditLoadout) {
-    DOM.btnSquadEditLoadout.addEventListener('click', () => {
-      closeModal(DOM.crewModal);
-      openModal(DOM.loadoutModal);
-    });
-  }
-
-  // Loadout Profiles management listeners
-  if (DOM.savedLoadoutsSelect) {
-    DOM.savedLoadoutsSelect.addEventListener('change', (e) => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(10);
-      applyProfile(e.target.value);
-    });
-  }
-
-  if (DOM.btnOpenSaveProfileModal) {
-    DOM.btnOpenSaveProfileModal.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(15);
-      if (DOM.saveLoadoutNameInput) {
-        const ship = state.selectedShip;
-        const turrets = getShipTurretConfigs(ship.id);
-        const lObj = MINING_DATA.lasers.find(l => l.id === turrets[0]?.laserId) || state.selectedLaser;
-        DOM.saveLoadoutNameInput.value = `${ship.name} - ${lObj.name}`;
-      }
-      openModal(DOM.saveLoadoutNameModal);
-      setTimeout(() => {
-        if (DOM.saveLoadoutNameInput) {
-          DOM.saveLoadoutNameInput.focus();
-          DOM.saveLoadoutNameInput.select();
-        }
-      }, 50);
-    });
-  }
-
-  if (DOM.btnConfirmSaveLoadoutName) {
-    DOM.btnConfirmSaveLoadoutName.addEventListener('click', () => {
-      const name = DOM.saveLoadoutNameInput ? DOM.saveLoadoutNameInput.value : '';
-      if (name.trim()) {
-        saveCurrentAsProfile(name);
-        closeModal(DOM.saveLoadoutNameModal);
-      }
-    });
-  }
-
-  if (DOM.saveLoadoutNameInput) {
-    DOM.saveLoadoutNameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const name = DOM.saveLoadoutNameInput.value;
-        if (name.trim()) {
-          saveCurrentAsProfile(name);
-          closeModal(DOM.saveLoadoutNameModal);
-        }
-      } else if (e.key === 'Escape') {
-        closeModal(DOM.saveLoadoutNameModal);
-      }
-    });
-  }
-
-  if (DOM.btnCancelSaveLoadoutName) {
-    DOM.btnCancelSaveLoadoutName.addEventListener('click', () => closeModal(DOM.saveLoadoutNameModal));
-  }
-  if (DOM.btnCloseSaveLoadoutName) {
-    DOM.btnCloseSaveLoadoutName.addEventListener('click', () => closeModal(DOM.saveLoadoutNameModal));
-  }
-
-  if (DOM.btnUpdateCurrentProfile) {
-    DOM.btnUpdateCurrentProfile.addEventListener('click', () => {
-      updateCurrentProfile();
-    });
-  }
-
-  if (DOM.btnDeleteSelectedProfile) {
-    DOM.btnDeleteSelectedProfile.addEventListener('click', () => {
-      deleteSelectedProfile();
-    });
-  }
-
-  // Pilot Callsign Editor listeners
-  if (DOM.btnEditMgCallsign) {
-    DOM.btnEditMgCallsign.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(15);
-      if (DOM.callsignModalInput) {
-        DOM.callsignModalInput.value = state.callsign;
-      }
-      openModal(DOM.callsignModal);
-      setTimeout(() => {
-        if (DOM.callsignModalInput) {
-          DOM.callsignModalInput.focus();
-          DOM.callsignModalInput.select();
-        }
-      }, 50);
-    });
-  }
-
-  if (DOM.btnSaveCallsignModal) {
-    DOM.btnSaveCallsignModal.addEventListener('click', () => {
-      sfx.playSuccess();
-      triggerHaptic(20);
-      const val = DOM.callsignModalInput ? DOM.callsignModalInput.value : '';
-      setCallsign(val, true);
-      closeModal(DOM.callsignModal);
-    });
-  }
-
-  if (DOM.callsignModalInput) {
-    DOM.callsignModalInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        sfx.playSuccess();
-        triggerHaptic(20);
-        setCallsign(DOM.callsignModalInput.value, true);
-        closeModal(DOM.callsignModal);
-      } else if (e.key === 'Escape') {
-        closeModal(DOM.callsignModal);
-      }
-    });
-  }
-
-  if (DOM.btnCancelCallsignModal) {
-    DOM.btnCancelCallsignModal.addEventListener('click', () => closeModal(DOM.callsignModal));
-  }
-  if (DOM.btnCloseCallsignModal) {
-    DOM.btnCloseCallsignModal.addEventListener('click', () => closeModal(DOM.callsignModal));
-  }
-
-  if (DOM.squadLeaderNameInput) {
-    DOM.squadLeaderNameInput.addEventListener('change', (e) => {
-      sfx.playBeep(600, 'sine', 0.04);
-      setCallsign(e.target.value, false);
-    });
-    DOM.squadLeaderNameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        sfx.playSuccess();
-        setCallsign(e.target.value, true);
-        e.target.blur();
-      }
-    });
-  }
-
-  document.querySelectorAll('[data-squad-template]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      applySquadTemplate(btn.dataset.squadTemplate);
-    });
-  });
-
-  document.querySelectorAll('[data-crew]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      state.crewMembers = parseInt(btn.dataset.crew, 10);
-      calculateAll();
-      calculateCrewSplit();
-    });
-  });
-
-  if (DOM.crewReserveSlider) {
-    DOM.crewReserveSlider.addEventListener('input', (e) => {
-      state.crewReservePct = parseInt(e.target.value, 10);
-      DOM.crewReserveDisplay.textContent = `${state.crewReservePct} %`;
-      calculateAll();
-      calculateCrewSplit();
-    });
-  }
-
-
-  // Halo, Atlas & Stations modal
-  DOM.btnOpenHalo.addEventListener('click', () => {
-    sfx.playBeep(600, 'sine', 0.04);
-    openModal(DOM.haloModal);
-  });
-  DOM.btnCloseHalo.addEventListener('click', () => closeModal(DOM.haloModal));
-
-  // Atlas tabs (Stanton / Pyro / Nyx)
-  document.querySelectorAll('[data-atlas-tab]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      const target = tab.dataset.atlasTab;
-      document.querySelectorAll('[data-atlas-tab]').forEach(t => {
-        t.classList.toggle('active', t === tab);
-      });
-      if (DOM.atlasPanelStanton) DOM.atlasPanelStanton.style.display = target === 'stanton' ? 'block' : 'none';
-      if (DOM.atlasPanelPyro) DOM.atlasPanelPyro.style.display = target === 'pyro' ? 'block' : 'none';
-      if (DOM.atlasPanelNyx) DOM.atlasPanelNyx.style.display = target === 'nyx' ? 'block' : 'none';
-    });
-  });
-
-  // Mineral System Filter Pills (All / Stanton / Pyro / Nyx)
-  document.querySelectorAll('[data-mineral-system]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      state.mineralSystemFilter = btn.dataset.mineralSystem;
-      document.querySelectorAll('[data-mineral-system]').forEach(b => {
-        b.classList.toggle('active', b === btn);
-      });
-      populateOreGrid();
-    });
-  });
-
-  // Station Rec Box click opens Halo/Stations modal
-  if (DOM.stationRecBox) {
-    DOM.stationRecBox.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(15);
-      openModal(DOM.haloModal);
-    });
-  }
-
-  // Quantainium timer dismiss button
-  if (DOM.btnDismissQtTimer) {
-    DOM.btnDismissQtTimer.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sfx.playSuccess();
-      triggerHaptic(20);
-      stopQuantainiumTimer();
-      const t = I18N[state.currentLang] || I18N.fr;
-      showToast(t.toastQtStopped);
-    });
-  }
-
-  DOM.btnVoiceCommand.addEventListener('click', () => startVoiceRecognition());
-  DOM.btnCloseVoice.addEventListener('click', () => closeModal(DOM.voiceModal));
-
-  // MOLE Active Turrets pill clicks
-  document.querySelectorAll('[data-mole-turret]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(700, 'sine', 0.04);
-      triggerHaptic(15);
-      state.moleActiveTurrets = parseInt(btn.dataset.moleTurret, 10);
-      document.querySelectorAll('[data-mole-turret]').forEach(b => {
-        b.classList.toggle('active', b === btn);
-      });
-      updateLoadoutButtonSummary();
-      calculateAll();
-    });
-  });
-
-  // Toggle all turrets in loadout
-  if (DOM.btnToggleAllTurrets) {
-    DOM.btnToggleAllTurrets.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(15);
-      const cards = Array.from(DOM.turretCardsContainer?.querySelectorAll('.turret-config-card') || []);
-      const allCollapsed = cards.length > 0 && cards.every(c => c.classList.contains('collapsed'));
-      cards.forEach(c => {
-        if (allCollapsed) c.classList.remove('collapsed');
-        else c.classList.add('collapsed');
-      });
-      updateToggleAllButtonText();
-    });
-  }
-
-  // Save Loadout modal
-  DOM.btnSaveLoadout.addEventListener('click', () => {
-    sfx.playSuccess();
-    triggerHaptic(20);
-
-    const ship = state.selectedShip;
-    const turrets = getShipTurretConfigs(ship.id);
-
-    // Read values from dynamically generated cards
-    turrets.forEach((cfg, idx) => {
-      const selLaser = document.getElementById(`turretLaser_${idx}`);
-      if (selLaser) cfg.laserId = selLaser.value;
-      const slotsContainer = document.getElementById(`turretSlots_${idx}`);
-      if (slotsContainer) {
-        slotsContainer.querySelectorAll('select').forEach((sel, i) => {
-          cfg.moduleIds[i] = sel.value;
-        });
-      }
-    });
-
-    // Synchronize primary turret to state.selectedLaser & state.selectedModules
-    if (turrets.length > 0) {
-      const primaryLaser = MINING_DATA.lasers.find(l => l.id === turrets[0].laserId) || state.selectedLaser;
-      state.selectedLaser = primaryLaser;
-      state.selectedModules = [...turrets[0].moduleIds];
-    }
-
-    if (DOM.gadgetSelect) {
-      state.selectedGadget = MINING_DATA.gadgets.find(g => g.id === DOM.gadgetSelect.value) || state.selectedGadget;
-    }
-
-    saveLoadout();
-    updateLoadoutButtonSummary();
-    closeModal(DOM.loadoutModal);
-    calculateAll();
-  });
-
-
-
-  // Language switch
-  if (DOM.btnLangToggle) {
-    DOM.btnLangToggle.addEventListener('click', () => {
-      sfx.playBeep(700, 'sine', 0.04);
-      triggerHaptic(15);
-      const newLang = state.currentLang === 'fr' ? 'en' : 'fr';
-      setLanguage(newLang);
-      const t = I18N[newLang] || I18N.fr;
-      showToast(newLang === 'en' ? t.toastLangEn : t.toastLangFr);
-    });
-  }
-
-  // Theme select
-  if (DOM.themeSelect) {
-    DOM.themeSelect.addEventListener('change', (e) => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(12);
-      setTheme(e.target.value);
-      const t = I18N[state.currentLang] || I18N.fr;
-      showToast(t.toastTheme.replace('{theme}', e.target.selectedOptions[0].text));
-    });
-  }
-
-  // Wake Lock Screen
-  if (DOM.btnWakeLock) {
-    DOM.btnWakeLock.addEventListener('click', () => {
-      toggleWakeLock();
-    });
-  }
-
-  // Fullscreen
-  if (DOM.btnFullscreen) {
-    DOM.btnFullscreen.addEventListener('click', () => {
-      toggleFullscreen();
-    });
-  }
-
-  // Discord Export
-  if (DOM.btnExportDiscord) {
-    DOM.btnExportDiscord.addEventListener('click', () => {
-      exportToDiscord();
-    });
-  }
-
-  // Install PWA button
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    state.deferredPrompt = e;
-    DOM.btnInstallPWA.style.display = 'inline-block';
-  });
-
-  DOM.btnInstallPWA.addEventListener('click', async () => {
-    const t = I18N[state.currentLang] || I18N.fr;
-    if (state.deferredPrompt) {
-      state.deferredPrompt.prompt();
-      const { outcome } = await state.deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        sfx.playSuccess();
-      }
-      state.deferredPrompt = null;
-    } else {
-      alert(t.alertPwaInstructions);
-    }
-  });
-
-  // Break Tree Simulator Modal
-  if (DOM.btnOpenBreakTree) {
-    DOM.btnOpenBreakTree.addEventListener('click', openBreakTreeModal);
-  }
-  if (DOM.btnCloseBreakTree) {
-    DOM.btnCloseBreakTree.addEventListener('click', () => closeModal(DOM.breakTreeModal));
-  }
-  if (DOM.btnFinishBreakTree) {
-    DOM.btnFinishBreakTree.addEventListener('click', () => closeModal(DOM.breakTreeModal));
-  }
-  if (DOM.btnRegenerateChunks) {
-    DOM.btnRegenerateChunks.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(15);
-      generateBreakTree();
-    });
-  }
-
-  // Tactical Advisor button
-  if (DOM.btnApplyAdvice) {
-    DOM.btnApplyAdvice.addEventListener('click', applyRecommendedAdvice);
-  }
-
-  // Refinery Modal & Orders
-  if (DOM.btnOpenRefinery) {
-    DOM.btnOpenRefinery.addEventListener('click', () => {
-      populateRefineryModalSelects();
-      openModal(DOM.refineryModal);
-    });
-  }
-  if (DOM.btnCloseRefinery) {
-    DOM.btnCloseRefinery.addEventListener('click', () => closeModal(DOM.refineryModal));
-  }
-  if (DOM.btnSendToRefinery) {
-    DOM.btnSendToRefinery.addEventListener('click', addRefineryJobFromHold);
-  }
-  if (DOM.btnConfirmRefineryJob) {
-    DOM.btnConfirmRefineryJob.addEventListener('click', confirmCreateRefineryJob);
-  }
-
-  // Flight Ledger Modal & Exports
-  if (DOM.btnOpenLedger) {
-    DOM.btnOpenLedger.addEventListener('click', () => {
-      updateLedgerDisplay();
-      openModal(DOM.ledgerModal);
-    });
-  }
-  if (DOM.btnCloseLedger) {
-    DOM.btnCloseLedger.addEventListener('click', () => closeModal(DOM.ledgerModal));
-  }
-  if (DOM.btnExportJson) {
-    DOM.btnExportJson.addEventListener('click', exportLedgerJson);
-  }
-  if (DOM.btnExportCsv) {
-    DOM.btnExportCsv.addEventListener('click', exportLedgerCsv);
-  }
-  if (DOM.btnClearLedger) {
-    DOM.btnClearLedger.addEventListener('click', clearLedgerHistory);
-  }
-
-  // ROC Cluster Controls
-  document.querySelectorAll('[data-roc-nodes]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      state.rocNodes = parseInt(btn.dataset.rocNodes, 10);
-      document.querySelectorAll('[data-roc-nodes]').forEach(b => b.classList.toggle('active', b === btn));
-      updateRocCluster();
-    });
-  });
-
-  if (DOM.rocGemsSlider) {
-    DOM.rocGemsSlider.addEventListener('input', (e) => {
-      state.rocGemsPerNode = parseInt(e.target.value, 10);
-      updateRocCluster();
-    });
-  }
-
-  if (DOM.btnAddClusterToROC) {
-    DOM.btnAddClusterToROC.addEventListener('click', addRocClusterToHold);
-  }
-
-  // Aaron Halo Rangefinder
-  if (DOM.haloRouteSelect) {
-    DOM.haloRouteSelect.addEventListener('change', updateHaloRangefinder);
-  }
-  if (DOM.haloCurrentDist) {
-    DOM.haloCurrentDist.addEventListener('input', updateHaloRangefinder);
-  }
-
-  // Guide / Welcome Modal
-  function closeGuideModal() {
-    if (DOM.chkGuideDismiss && DOM.chkGuideDismiss.checked) {
-      localStorage.setItem('aaron_mfd_guide_dismissed', '1');
-    }
-    closeModal(DOM.guideModal);
-  }
-
-  if (DOM.btnOpenGuide) {
-    DOM.btnOpenGuide.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      openModal(DOM.guideModal);
-    });
-  }
-  if (DOM.btnOpenGuideFooter) {
-    DOM.btnOpenGuideFooter.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      openModal(DOM.guideModal);
-    });
-  }
-  if (DOM.btnCloseGuide) {
-    DOM.btnCloseGuide.addEventListener('click', closeGuideModal);
-  }
-  if (DOM.btnLaunchFromGuide) {
-    DOM.btnLaunchFromGuide.addEventListener('click', () => {
-      sfx.playSuccess();
-      triggerHaptic(20);
-      closeGuideModal();
-    });
-  }
-
-  // Guide Language Switcher buttons (inside modal)
-  if (DOM.btnGuideLangFr) {
-    DOM.btnGuideLangFr.addEventListener('click', () => {
-      sfx.playBeep(700, 'sine', 0.03);
-      setLanguage('fr');
-      showToast(I18N.fr.toastLangFr);
-    });
-  }
-  if (DOM.btnGuideLangEn) {
-    DOM.btnGuideLangEn.addEventListener('click', () => {
-      sfx.playBeep(700, 'sine', 0.03);
-      setLanguage('en');
-      showToast(I18N.en.toastLangEn);
-    });
-  }
-
-  // Guide Tabs switcher
-  document.querySelectorAll('[data-guide-tab]').forEach(tabBtn => {
-    tabBtn.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.03);
-      const tabId = tabBtn.dataset.guideTab;
-      document.querySelectorAll('[data-guide-tab]').forEach(b => b.classList.toggle('active', b === tabBtn));
-      const panels = {
-        quickstart: document.getElementById('guidePanelQuickstart'),
-        tools: document.getElementById('guidePanelTools'),
-        tips: document.getElementById('guidePanelTips')
-      };
-      Object.keys(panels).forEach(key => {
-        if (panels[key]) panels[key].style.display = key === tabId ? 'block' : 'none';
-      });
-    });
-  });
-
-  // Changelog Modal
-  if (DOM.btnVersionBadge) {
-    DOM.btnVersionBadge.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      renderChangelog();
-      openModal(DOM.changelogModal);
-    });
-  }
-  if (DOM.btnOpenChangelog) {
-    DOM.btnOpenChangelog.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      renderChangelog();
-      openModal(DOM.changelogModal);
-    });
-  }
-  if (DOM.btnCloseChangelog) {
-    DOM.btnCloseChangelog.addEventListener('click', () => closeModal(DOM.changelogModal));
-  }
-
-  // Roadmap Modal
-  const handleOpenRoadmap = () => {
-    sfx.playBeep(650, 'sine', 0.04);
-    triggerHaptic(12);
-    openModal(DOM.roadmapModal);
-  };
-  if (DOM.btnOpenRoadmapFooter) DOM.btnOpenRoadmapFooter.addEventListener('click', handleOpenRoadmap);
-  if (DOM.btnOpenRoadmapFromChangelog) {
-    DOM.btnOpenRoadmapFromChangelog.addEventListener('click', () => {
-      closeModal(DOM.changelogModal);
-      handleOpenRoadmap();
-    });
-  }
-  if (DOM.btnOpenRoadmapFromCrew) {
-    DOM.btnOpenRoadmapFromCrew.addEventListener('click', () => {
-      closeModal(DOM.crewModal);
-      handleOpenRoadmap();
-    });
-  }
-  if (DOM.btnCloseRoadmap) {
-    DOM.btnCloseRoadmap.addEventListener('click', () => closeModal(DOM.roadmapModal));
-  }
-
-  // Session Reset & Cache Flush buttons
-  if (DOM.btnResetSession) {
-    DOM.btnResetSession.addEventListener('click', () => {
-      const t = I18N[state.currentLang] || I18N.fr;
-      if (confirm(t.confirmResetSession)) {
-        sfx.playWarning();
-        triggerHaptic(20);
-        clearHold();
-        localStorage.clear();
-        window.location.reload();
-      }
-    });
-  }
-
-  if (DOM.btnForceRefresh) {
-    DOM.btnForceRefresh.addEventListener('click', () => {
-      forceRefreshCache();
-    });
-  }
-
-  // Alpha 4.10: Archetype Dropdown Change Listener
-  if (DOM.archetypeSelect) {
-    DOM.archetypeSelect.addEventListener('change', (e) => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(10);
-      const chosen = MINING_DATA.rockArchetypes.find(a => a.id === e.target.value);
-      if (chosen) selectArchetype(chosen);
-    });
-  }
-
-  // Alpha 4.10: Secondary Ore & Composition controls
-  if (DOM.secondaryOreSelect) {
-    DOM.secondaryOreSelect.addEventListener('change', (e) => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(10);
-      const val = e.target.value;
-      state.secondaryMineral = val === 'none' ? null : MINING_DATA.minerals.find(m => m.id === val);
-      updateSecondaryOreUI();
-      applyDynamicRockProperties();
-      calculateAll();
-    });
-  }
-
-  if (DOM.btnClearSecondaryOre) {
-    DOM.btnClearSecondaryOre.addEventListener('click', () => {
-      sfx.playBeep(450, 'sine', 0.04);
-      triggerHaptic(10);
-      state.secondaryMineral = null;
-      if (DOM.secondaryOreSelect) DOM.secondaryOreSelect.value = 'none';
-      updateSecondaryOreUI();
-      applyDynamicRockProperties();
-      calculateAll();
-    });
-  }
-
-  if (DOM.secondaryPctSlider) {
-    DOM.secondaryPctSlider.addEventListener('input', (e) => {
-      state.secondaryPercentage = parseFloat(e.target.value);
-      if (DOM.secondaryPctLabel) DOM.secondaryPctLabel.textContent = `${state.secondaryPercentage.toFixed(1)} %`;
-      if (DOM.secondaryPctDisplay) DOM.secondaryPctDisplay.textContent = `${state.secondaryPercentage.toFixed(0)}%`;
-      document.querySelectorAll('[data-set-sec-pct]').forEach(b => {
-        b.classList.toggle('active', parseFloat(b.dataset.setSecPct) === state.secondaryPercentage);
-      });
-      updateSecondaryOreUI();
-      applyDynamicRockProperties();
-      calculateAll();
-    });
-  }
-
-  // Quick chips for secondary ore percentage
-  document.querySelectorAll('[data-set-sec-pct]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      const secVal = parseFloat(btn.dataset.setSecPct);
-      state.secondaryPercentage = secVal;
-      if (DOM.secondaryPctSlider) DOM.secondaryPctSlider.value = secVal;
-      if (DOM.secondaryPctLabel) DOM.secondaryPctLabel.textContent = `${secVal.toFixed(1)} %`;
-      if (DOM.secondaryPctDisplay) DOM.secondaryPctDisplay.textContent = `${secVal.toFixed(0)}%`;
-      document.querySelectorAll('[data-set-sec-pct]').forEach(b => {
-        b.classList.toggle('active', parseFloat(b.dataset.setSecPct) === secVal);
-      });
-      updateSecondaryOreUI();
-      applyDynamicRockProperties();
-      calculateAll();
-    });
-  });
-
-  // Alpha 4.10: Saddlebags Detach & Tractor beam manager
-  if (DOM.btnDetachOneBag) {
-    DOM.btnDetachOneBag.addEventListener('click', () => {
-      detachSaddlebag();
-    });
-  }
-  if (DOM.btnDropAllBags) {
-    DOM.btnDropAllBags.addEventListener('click', () => {
-      dropAllSaddlebags();
-    });
-  }
-
-  // Alpha 4.10: Long-range Radar Ping RS 2.0 Signature Decoder Modal
-  if (DOM.btnOpenRadarDecoder) {
-    DOM.btnOpenRadarDecoder.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(15);
-      openModal(DOM.radarDecoderModal);
-      if (DOM.radarRsInput) {
-        DOM.radarRsInput.focus();
-        if (DOM.radarRsInput.value) {
-          decodeRadarRS(parseFloat(DOM.radarRsInput.value));
-        }
-      }
-    });
-  }
-
-  if (DOM.btnCloseRadarDecoder) {
-    DOM.btnCloseRadarDecoder.addEventListener('click', () => closeModal(DOM.radarDecoderModal));
-  }
-
-  if (DOM.btnExecRadarDecode) {
-    DOM.btnExecRadarDecode.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      const val = parseFloat(DOM.radarRsInput ? DOM.radarRsInput.value : 0);
-      decodeRadarRS(val);
-    });
-  }
-
-  if (DOM.radarRsInput) {
-    DOM.radarRsInput.addEventListener('input', () => {
-      const val = parseFloat(DOM.radarRsInput.value);
-      decodeRadarRS(val);
-    });
-    DOM.radarRsInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const val = parseFloat(DOM.radarRsInput.value);
-        decodeRadarRS(val);
-      }
-    });
-  }
-
-
-  // Alpha 4.10: Cockpit Voice Assistant (TTS)
-  if (DOM.btnVoiceTTS) {
-    DOM.btnVoiceTTS.addEventListener('click', () => {
-      triggerHaptic(20);
-      state.voiceTTSEnabled = !state.voiceTTSEnabled;
-      updateVoiceTTSUI();
-      const t = I18N[state.currentLang] || I18N.fr;
-      if (state.voiceTTSEnabled) {
-        sfx.playSuccess();
-        cockpitVoice.speak(state.currentLang === 'en' ? 'Cockpit audio synthesis active. System online.' : 'Synthèse vocale de cockpit activée. Systèmes en ligne.');
-        showToast(t.cockpitVoiceOn || 'Voix cockpit activée');
-      } else {
-        sfx.playBeep(350, 'square', 0.06);
-        cockpitVoice.stop();
-        showToast(t.cockpitVoiceOff || 'Voix cockpit désactivée');
-      }
-    });
-  }
-
-  // mobiGlas 4.0: Layout mode toggles
-  if (DOM.btnLayoutToggle) {
-    DOM.btnLayoutToggle.addEventListener('click', () => {
-      setLayoutMode(state.layoutMode === 'mobiglas' ? 'classic' : 'mobiglas', true);
-    });
-  }
-  if (DOM.btnClassicLayoutToggle) {
-    DOM.btnClassicLayoutToggle.addEventListener('click', () => {
-      setLayoutMode('mobiglas', true);
-    });
-  }
-  if (DOM.dockBtnLayout) {
-    DOM.dockBtnLayout.addEventListener('click', () => {
-      setLayoutMode(state.layoutMode === 'mobiglas' ? 'classic' : 'mobiglas', true);
-    });
-  }
-
-  // mobiGlas 4.0: System Header Quick Actions
-  if (DOM.btnMgLang) {
-    DOM.btnMgLang.addEventListener('click', () => {
-      if (DOM.btnLangToggle) DOM.btnLangToggle.click();
-    });
-  }
-  if (DOM.btnMgAudio) {
-    DOM.btnMgAudio.addEventListener('click', () => {
-      if (DOM.btnAudioToggle) DOM.btnAudioToggle.click();
-      if (DOM.btnMgAudio) DOM.btnMgAudio.textContent = state.audioEnabled ? '🔊' : '🔇';
-    });
-  }
-  if (DOM.btnMgVoiceTTS) {
-    DOM.btnMgVoiceTTS.addEventListener('click', () => {
-      if (DOM.btnVoiceTTS) DOM.btnVoiceTTS.click();
-    });
-  }
-
-  // Mobile & Tablet View Tabs and Live Mini-HUD
-  if (DOM.tabBtnScanner) {
-    DOM.tabBtnScanner.addEventListener('click', () => setMobileView('scanner'));
-  }
-  if (DOM.tabBtnAnalysis) {
-    DOM.tabBtnAnalysis.addEventListener('click', () => setMobileView('analysis'));
-  }
-  if (DOM.tabBtnMarket) {
-    DOM.tabBtnMarket.addEventListener('click', () => setMobileView('market'));
-  }
-  if (DOM.mobileLiveSummaryBar) {
-    DOM.mobileLiveSummaryBar.addEventListener('click', () => setMobileView('analysis'));
-  }
-
-  // Scan Panel Internal Sub-tabs (Ergonomic Compact Navigation)
-  if (DOM.btnScanSubtabQuick) {
-    DOM.btnScanSubtabQuick.addEventListener('click', () => setScanSubtab('quick'));
-  }
-  if (DOM.btnScanSubtabAdvanced) {
-    DOM.btnScanSubtabAdvanced.addEventListener('click', () => setScanSubtab('advanced'));
-  }
-  if (DOM.btnScanSubtabHotspots) {
-    DOM.btnScanSubtabHotspots.addEventListener('click', () => setScanSubtab('hotspots'));
-  }
-
-  // mobiGlas 4.0: Bottom App Launcher Dock Handlers
-  if (DOM.dockBtnScanner) {
-    DOM.dockBtnScanner.addEventListener('click', () => {
-      if (window.innerWidth <= 980) {
-        setMobileView('scanner');
-      } else {
-        sfx.playBeep(700, 'sine', 0.03);
-        triggerHaptic(10);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    });
-  }
-  if (DOM.dockBtnAnalysis) {
-    DOM.dockBtnAnalysis.addEventListener('click', () => {
-      if (window.innerWidth <= 980) {
-        setMobileView('analysis');
-      } else {
-        sfx.playBeep(700, 'sine', 0.03);
-        triggerHaptic(10);
-        if (DOM.panelTacticalAnalysis) {
-          DOM.panelTacticalAnalysis.scrollIntoView({ behavior: 'smooth' });
-        }
-      }
-    });
-  }
-  if (DOM.dockBtnLoadout) {
-    DOM.dockBtnLoadout.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(10);
-      populateLoadoutSelects();
-      openModal(DOM.loadoutModal);
-    });
-  }
-  if (DOM.dockBtnRefinery) {
-    DOM.dockBtnRefinery.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(10);
-      populateRefineryModalSelects();
-      openModal(DOM.refineryModal);
-    });
-  }
-  if (DOM.dockBtnStarmap) {
-    DOM.dockBtnStarmap.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(10);
-      openModal(DOM.haloModal);
-    });
-  }
-  if (DOM.dockBtnRadar) {
-    DOM.dockBtnRadar.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(12);
-      openModal(DOM.radarDecoderModal);
-      if (DOM.radarRsInput) {
-        DOM.radarRsInput.focus();
-        if (DOM.radarRsInput.value) {
-          decodeRadarRS(parseFloat(DOM.radarRsInput.value));
-        }
-      }
-    });
-  }
-  if (DOM.dockBtnLedger) {
-    DOM.dockBtnLedger.addEventListener('click', () => {
-      sfx.playBeep(600, 'sine', 0.04);
-      triggerHaptic(10);
-      updateLedgerDisplay();
-      openModal(DOM.ledgerModal);
-    });
-  }
-  if (DOM.dockBtnCrew) {
-    DOM.dockBtnCrew.addEventListener('click', () => {
-      openSquadModal();
-    });
-  }
-  if (DOM.dockBtnGuide) {
-    DOM.dockBtnGuide.addEventListener('click', () => {
-      sfx.playBeep(650, 'sine', 0.04);
-      triggerHaptic(10);
-      openModal(DOM.guideModal);
-    });
-  }
-}
-
-function renderChangelog() {
-  if (!DOM.changelogScroller) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const isEn = state.currentLang === 'en';
-
-  DOM.changelogScroller.innerHTML = '';
-
-  CHANGELOG_DATA.forEach(entry => {
-    const card = document.createElement('div');
-    card.className = `changelog-card ${entry.isCurrent ? 'current-version' : ''}`;
-
-    const title = isEn ? entry.title_en : entry.title_fr;
-    const date = isEn ? entry.date_en : entry.date_fr;
-
-    const listHtml = entry.items.map(item => {
-      let tagClass = 'new';
-      let tagText = t.tagNew;
-      if (item.tag === 'improved') {
-        tagClass = 'improved';
-        tagText = t.tagImproved;
-      } else if (item.tag === 'fix') {
-        tagClass = 'fix';
-        tagText = t.tagFix;
-      }
-
-      const text = isEn ? item.text_en : item.text_fr;
-      return `
-        <li>
-          <span class="badge-tag ${tagClass}">${tagText}</span>
-          <span>${text}</span>
-        </li>
-      `;
-    }).join('');
-
-    card.innerHTML = `
-      <div class="changelog-card-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="version-tag-pill ${entry.isCurrent ? 'current' : ''}">${entry.version}</span>
-          <strong style="color:#fff; font-family:var(--font-hud); font-size:0.95rem;">${title}</strong>
-        </div>
-        <span class="changelog-date">${date}</span>
-      </div>
-      <ul class="changelog-list">
-        ${listHtml}
-      </ul>
-    `;
-
-    DOM.changelogScroller.appendChild(card);
-  });
-}
-
-function setMass(val) {
-  const locale = getLocale();
-  state.rockMass = Math.max(100, Math.min(99999, val));
-  DOM.massLabel.textContent = `${state.rockMass.toLocaleString(locale)} kg`;
-  DOM.massDigitalDisplay.textContent = state.rockMass;
-  calculateAll();
-}
-
-function setPct(val) {
-  state.orePercentage = Math.max(1, Math.min(100, val));
-  DOM.pctSlider.value = state.orePercentage;
-  DOM.pctLabel.textContent = `${state.orePercentage.toFixed(1)} %`;
-  DOM.pctDisplay.textContent = `${state.orePercentage.toFixed(0)}%`;
-  calculateAll();
-}
-
-function setResistance(val) {
-  state.resistance = Math.max(0, Math.min(95, val));
-  DOM.resistanceSlider.value = state.resistance;
-  DOM.resistanceLabel.textContent = `${state.resistance} %`;
-  if (state.resistance >= 60) {
-    DOM.resistanceLabel.style.color = 'var(--accent-rose)';
-  } else if (state.resistance >= 40) {
-    DOM.resistanceLabel.style.color = 'var(--accent-amber)';
-  } else {
-    DOM.resistanceLabel.style.color = '#fff';
-  }
-  calculateAll();
-}
-
-function setInstability(val) {
-  state.instability = Math.max(0, Math.min(100, val));
-  DOM.instabilitySlider.value = state.instability;
-  DOM.instabilityLabel.textContent = `${state.instability} %`;
-  if (state.instability >= 60) {
-    DOM.instabilityLabel.style.color = 'var(--accent-rose)';
-  } else if (state.instability >= 40) {
-    DOM.instabilityLabel.style.color = 'var(--accent-amber)';
-  } else {
-    DOM.instabilityLabel.style.color = '#fff';
-  }
-  calculateAll();
-}
-
-function openModal(modal) {
-  if (!modal) return;
-  modal.classList.add('open');
-  modal.style.display = 'flex';
-  modal.style.opacity = '1';
-  modal.style.pointerEvents = 'auto';
-}
-
-function closeModal(modal) {
-  if (!modal) return;
-  modal.classList.remove('open');
-  modal.style.display = 'none';
-  modal.style.opacity = '0';
-  modal.style.pointerEvents = 'none';
-}
-
-// ==========================================
-// CARGO HOLD & RUN LOG
-// ==========================================
-function addToCargo() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const mineral = state.selectedMineral;
-  const oreMass = state.rockMass * (state.orePercentage / 100);
-  const densityDivisor = (mineral.density || 15) * 85;
-  const scu = Math.round(((oreMass / densityDivisor)) * 10) / 10;
-
-  if (state.holdSCU + scu > state.selectedShip.scu) {
-    sfx.playWarning();
-    alert(t.alertCapacityExceeded.replace('{max}', state.selectedShip.scu).replace('{cur}', state.holdSCU.toFixed(1)));
-    return;
-  }
-
-  sfx.playSuccess();
-  triggerHaptic(25);
-  state.holdSCU = Math.round((state.holdSCU + scu) * 10) / 10;
-
-  const logEntry = {
-    id: Date.now(),
-    mineralId: mineral.id,
-    mineral: getLocalized(mineral, 'name'),
-    color: mineral.color,
-    scu: scu,
-    isVolatile: mineral.isVolatile,
-    rawVal: Math.round(scu * 100 * mineral.rawPrice),
-    time: new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-  };
-
-  state.sessionLog.unshift(logEntry);
-  addLedgerEntry('run', logEntry.mineral, logEntry.scu, logEntry.rawVal);
-  saveSession();
-  updateHoldDisplay();
-
-  // Trigger Quantainium countdown if volatile
-  if (mineral.isVolatile && !state.qtTimerActive) {
-    startQuantainiumTimer();
-  }
-}
-
-function updateHoldDisplay() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const max = state.selectedShip.scu;
-  const current = state.holdSCU;
-  const pct = Math.min(100, Math.round((current / max) * 100));
-
-  DOM.holdProgressLabel.textContent = `${current.toFixed(1)} / ${max.toFixed(1)} SCU (${pct}%)`;
-  DOM.cargoBarFill.style.width = `${pct}%`;
-
-  if (pct >= 90) {
-    DOM.cargoBarFill.style.background = 'var(--accent-rose)';
-  } else if (pct >= 70) {
-    DOM.cargoBarFill.style.background = 'var(--accent-amber)';
-  } else {
-    DOM.cargoBarFill.style.background = 'var(--accent-cyan)';
-  }
-
-  // Render log
-  DOM.sessionLogList.innerHTML = '';
-  state.sessionLog.forEach(item => {
-    const minObj = MINING_DATA.minerals.find(m => m.id === item.mineralId);
-    const minDisplayName = minObj ? getLocalized(minObj, 'name') : item.mineral;
-    const el = document.createElement('div');
-    el.className = 'log-item';
-    el.innerHTML = `
-      <div class="log-left">
-        <span class="log-item-tag" style="background:${item.color}25; color:${item.color}; border:1px solid ${item.color}80;">
-          ${minDisplayName}
-        </span>
-        <span style="font-family:var(--font-mono); font-weight:700;">${item.scu.toFixed(1)} SCU</span>
-        <span style="color:var(--text-muted); font-size:0.75rem;">(${item.time})</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="color:var(--accent-emerald); font-family:var(--font-mono); font-size:0.8rem; font-weight:600;">
-          +${item.rawVal.toLocaleString(locale)} aUEC
-        </span>
-        <button class="btn-remove-log" data-id="${item.id}" title="${t.titleRemoveLog}">&times;</button>
-      </div>
-    `;
-
-    el.querySelector('.btn-remove-log').addEventListener('click', () => {
-      sfx.playBeep(400, 'sine', 0.03);
-      triggerHaptic(10);
-      removeLogEntry(item.id);
-    });
-
-    DOM.sessionLogList.appendChild(el);
-  });
-
-  // Keep saddlebags physicalized status in sync (Alpha 4.10)
-  updateSaddlebagsUI();
-}
-
-function removeLogEntry(id) {
-  const idx = state.sessionLog.findIndex(x => x.id === id);
-  if (idx !== -1) {
-    const item = state.sessionLog[idx];
-    state.holdSCU = Math.max(0, Math.round((state.holdSCU - item.scu) * 10) / 10);
-    state.sessionLog.splice(idx, 1);
-    saveSession();
-    updateHoldDisplay();
-  }
-}
-
-function clearHold() {
-  state.holdSCU = 0.0;
-  state.sessionLog = [];
-  saveSession();
-  updateHoldDisplay();
-  updateSaddlebagsUI();
-  stopQuantainiumTimer();
-}
-
-function saveSession() {
-  try {
-    localStorage.setItem('sc_regolith_session', JSON.stringify({
-      holdSCU: state.holdSCU,
-      sessionLog: state.sessionLog,
-      shipId: state.selectedShip.id
-    }));
-  } catch (e) {
-    console.warn('Storage error:', e);
-  }
-}
-
-function loadSavedSession() {
-  try {
-    const raw = localStorage.getItem('sc_regolith_session');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      state.holdSCU = parsed.holdSCU || 0.0;
-      state.sessionLog = parsed.sessionLog || [];
-      if (parsed.shipId) {
-        setShip(parsed.shipId);
-      }
-      updateHoldDisplay();
-    }
-  } catch (e) {
-    console.warn('Load storage error:', e);
-  }
-}
-
-// ==========================================
-// LOADOUT PROFILES & FACTORY PRESETS
-// ==========================================
-const FACTORY_LOADOUT_PRESETS = [
-  {
-    id: 'preset_prospector_balanced',
-    name: 'Prospector : Polyvalent Équilibré',
-    name_en: 'Prospector: Balanced All-Rounder',
-    shipId: 'prospector',
-    turrets: [
-      { laserId: 'lancet_s1', moduleIds: ['surge', 'focus_3'] }
-    ],
-    gadgetId: 'boremax',
-    isPreset: true
-  },
-  {
-    id: 'preset_prospector_power',
-    name: 'Prospector : Puissance Brute (Grosses Roches)',
-    name_en: 'Prospector: Raw Power (Heavy Rocks)',
-    shipId: 'prospector',
-    turrets: [
-      { laserId: 'helix_s1', moduleIds: ['rieger_c3', 'torrent'] }
-    ],
-    gadgetId: 'sabir',
-    isPreset: true
-  },
-  {
-    id: 'preset_mole_trio',
-    name: 'Argo MOLE : Trio Équilibré (1 Lancet + 2 Helix)',
-    name_en: 'Argo MOLE: Balanced Trio (1 Lancet + 2 Helix)',
-    shipId: 'mole',
-    turrets: [
-      { laserId: 'lancet_s2', moduleIds: ['surge', 'surge', 'none'] },
-      { laserId: 'helix_s2', moduleIds: ['focus_3', 'focus_3', 'none'] },
-      { laserId: 'helix_s2', moduleIds: ['focus_3', 'focus_3', 'none'] }
-    ],
-    gadgetId: 'boremax',
-    isPreset: true
-  },
-  {
-    id: 'preset_arrastra_heavy',
-    name: 'RSI Arrastra : Escadre Lourde S3',
-    name_en: 'RSI Arrastra: Heavy Mining S3',
-    shipId: 'arrastra',
-    turrets: [
-      { laserId: 'lancet_s3', moduleIds: ['surge', 'focus_3', 'none'] },
-      { laserId: 'helix_s3', moduleIds: ['focus_3', 'focus_3', 'none'] },
-      { laserId: 'helix_s3', moduleIds: ['focus_3', 'focus_3', 'none'] }
-    ],
-    gadgetId: 'optimax',
-    isPreset: true
-  },
-  {
-    id: 'preset_roc_gems',
-    name: 'Greycat ROC : Collecte Gemmes Sol',
-    name_en: 'Greycat ROC: Surface Gem Harvester',
-    shipId: 'roc',
-    turrets: [
-      { laserId: 'arbor_mh0', moduleIds: [] }
-    ],
-    gadgetId: 'none',
-    isPreset: true
-  }
-];
-
-function getUserProfiles() {
-  try {
-    const raw = localStorage.getItem('aaron_mfd_saved_profiles');
-    if (!raw) return [];
-    const list = JSON.parse(raw);
-    return Array.isArray(list) ? list : [];
-  } catch (e) {
-    console.warn('User profiles load error:', e);
+    console.error('Error loading FleetYards catalog cache:', err);
     return [];
   }
 }
 
-function saveUserProfiles(list) {
-  try {
-    localStorage.setItem('aaron_mfd_saved_profiles', JSON.stringify(list));
-  } catch (e) {
-    console.warn('User profiles save error:', e);
-  }
-}
+let inventoryFilterState = {
+  locationId: 'all',
+  origin: 'all',
+  forSaleOnly: false,
+  purpose: 'all'
+};
 
-function populateProfilesDropdown() {
-  if (!DOM.savedLoadoutsSelect) return;
-  const isEn = state.currentLang === 'en';
-  const t = I18N[state.currentLang] || I18N.fr;
-  const userProfiles = getUserProfiles();
-
-  DOM.savedLoadoutsSelect.innerHTML = '';
-
-  // 1. Current unsaved option
-  const optCustom = document.createElement('option');
-  optCustom.value = 'custom';
-  optCustom.textContent = t.loadoutProfileCustom;
-  DOM.savedLoadoutsSelect.appendChild(optCustom);
-
-  // 2. User Profiles Optgroup
-  if (userProfiles.length > 0) {
-    const userGroup = document.createElement('optgroup');
-    userGroup.label = t.groupUserProfiles;
-    userProfiles.forEach(p => {
-      const shipObj = MINING_DATA.ships.find(s => s.id === p.shipId);
-      const shipLabel = shipObj ? shipObj.name : p.shipId;
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = `${p.name} (${shipLabel})`;
-      userGroup.appendChild(opt);
-    });
-    DOM.savedLoadoutsSelect.appendChild(userGroup);
-  }
-
-  // 3. Factory Presets Optgroup
-  const presetGroup = document.createElement('optgroup');
-  presetGroup.label = t.groupFactoryPresets;
-  FACTORY_LOADOUT_PRESETS.forEach(p => {
-    const name = (isEn && p.name_en) ? p.name_en : p.name;
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = name;
-    presetGroup.appendChild(opt);
-  });
-  DOM.savedLoadoutsSelect.appendChild(presetGroup);
-
-  // Set current selected value
-  const curId = state.activeProfileId || 'custom';
-  const exists = Array.from(DOM.savedLoadoutsSelect.options).some(o => o.value === curId);
-  DOM.savedLoadoutsSelect.value = exists ? curId : 'custom';
-
-  // Update tag and action buttons
-  const isUserCustom = userProfiles.some(p => p.id === curId);
-  const activeProfile = [...userProfiles, ...FACTORY_LOADOUT_PRESETS].find(p => p.id === curId);
-
-  if (DOM.activeProfileTag) {
-    if (activeProfile) {
-      const name = (isEn && activeProfile.name_en) ? activeProfile.name_en : activeProfile.name;
-      DOM.activeProfileTag.textContent = `● Profil : ${name}`;
-      DOM.activeProfileTag.style.color = isUserCustom ? 'var(--accent-cyan)' : 'var(--accent-amber)';
-    } else {
-      DOM.activeProfileTag.textContent = isEn ? '● Custom' : '● Personnalisé';
-      DOM.activeProfileTag.style.color = 'var(--accent-emerald)';
-    }
-  }
-
-  if (DOM.btnUpdateCurrentProfile) {
-    DOM.btnUpdateCurrentProfile.style.display = isUserCustom ? 'inline-block' : 'none';
-  }
-  if (DOM.btnDeleteSelectedProfile) {
-    DOM.btnDeleteSelectedProfile.style.display = isUserCustom ? 'inline-block' : 'none';
-  }
-}
-
-function applyProfile(profileId) {
-  const isEn = state.currentLang === 'en';
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (profileId === 'custom') {
-    state.activeProfileId = 'custom';
-    localStorage.setItem('aaron_mfd_active_profile', 'custom');
-    populateProfilesDropdown();
-    return;
-  }
-
-  const userProfiles = getUserProfiles();
-  const allProfiles = [...FACTORY_LOADOUT_PRESETS, ...userProfiles];
-  const profile = allProfiles.find(p => p.id === profileId);
-  if (!profile) return;
-
-  state.activeProfileId = profileId;
-  localStorage.setItem('aaron_mfd_active_profile', profileId);
-
-  // 1. Set Ship
-  if (profile.shipId) {
-    setShip(profile.shipId);
-  }
-
-  // 2. Set Turrets configuration
-  if (Array.isArray(profile.turrets)) {
-    state.turretsByShip[profile.shipId] = JSON.parse(JSON.stringify(profile.turrets));
-
-    // Synchronize primary laser and modules
-    const primaryTurret = profile.turrets[0];
-    if (primaryTurret && primaryTurret.laserId) {
-      const l = MINING_DATA.lasers.find(x => x.id === primaryTurret.laserId);
-      if (l) state.selectedLaser = l;
-      state.selectedModules = [...(primaryTurret.moduleIds || ['none', 'none', 'none'])];
-    }
-  }
-
-  // 3. Set Gadget
-  if (profile.gadgetId) {
-    const g = MINING_DATA.gadgets.find(x => x.id === profile.gadgetId);
-    if (g) state.selectedGadget = g;
-  }
-
-  // 4. Update UI
-  populateLoadoutSelects();
-  updateLoadoutButtonSummary();
-  saveLoadout();
-  calculateAll();
-  populateProfilesDropdown();
-
-  const name = (isEn && profile.name_en) ? profile.name_en : profile.name;
-  showToast(t.toastProfileLoaded.replace('{name}', name));
-}
-
-function saveCurrentAsProfile(name) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const cleanName = (name || '').trim();
-  if (!cleanName) {
-    showToast(state.currentLang === 'en' ? 'Please provide a valid configuration name!' : 'Veuillez saisir un nom pour cette configuration !');
-    return;
-  }
-
-  const ship = state.selectedShip;
-  const turrets = getShipTurretConfigs(ship.id);
-
-  // Read current inputs in the modal if open
-  turrets.forEach((cfg, idx) => {
-    const selLaser = document.getElementById(`turretLaser_${idx}`);
-    if (selLaser) cfg.laserId = selLaser.value;
-    const slotsContainer = document.getElementById(`turretSlots_${idx}`);
-    if (slotsContainer) {
-      slotsContainer.querySelectorAll('select').forEach((sel, i) => {
-        cfg.moduleIds[i] = sel.value;
-      });
-    }
+function renderInventoryTable() {
+  let items = inventoryService.getItems({
+    locationId: inventoryFilterState.locationId,
+    origin: inventoryFilterState.origin,
+    forSaleOnly: inventoryFilterState.forSaleOnly
   });
 
-  const gadgetId = DOM.gadgetSelect ? DOM.gadgetSelect.value : state.selectedGadget.id;
-
-  const newProfile = {
-    id: `cfg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-    name: cleanName,
-    shipId: ship.id,
-    turrets: JSON.parse(JSON.stringify(turrets)),
-    gadgetId: gadgetId,
-    isPreset: false,
-    timestamp: Date.now()
-  };
-
-  const userProfiles = getUserProfiles();
-  userProfiles.unshift(newProfile);
-  saveUserProfiles(userProfiles);
-
-  state.activeProfileId = newProfile.id;
-  localStorage.setItem('aaron_mfd_active_profile', newProfile.id);
-
-  saveLoadout();
-  populateProfilesDropdown();
-  showToast(t.toastProfileSaved.replace('{name}', cleanName));
-  sfx.playSuccess();
-}
-
-function updateCurrentProfile() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (!state.activeProfileId || state.activeProfileId === 'custom' || state.activeProfileId.startsWith('preset_')) {
-    return;
+  if (inventoryFilterState.purpose === 'craft') {
+    items = items.filter(i => Boolean(i.reservedForCraft || i.intendedUse === 'craft'));
+  } else if (inventoryFilterState.purpose === 'sell_raw') {
+    items = items.filter(i => i.category === 'raw_ore' && !i.reservedForCraft);
+  } else if (inventoryFilterState.purpose === 'sell_refined') {
+    items = items.filter(i => i.category === 'refined_ore' && !i.reservedForCraft);
+  } else if (inventoryFilterState.purpose === 'high_quality') {
+    items = items.filter(i => (typeof i.materialQuality === 'number' && i.materialQuality >= 750) || (typeof i.metadata?.materialQuality === 'number' && i.metadata.materialQuality >= 750));
   }
 
-  const userProfiles = getUserProfiles();
-  const idx = userProfiles.findIndex(p => p.id === state.activeProfileId);
-  if (idx === -1) return;
+  const allItems = inventoryService.getItems();
+  const forSaleCount = allItems.filter(i => Boolean(i.forSale)).length;
+  const totalValUEC = allItems.reduce((acc, i) => acc + inventoryService.getItemEstimatedValue(i), 0);
+  const totalSCU = allItems.reduce((acc, i) => acc + (Number(i.quantitySCU) || 0), 0);
 
-  const ship = state.selectedShip;
-  const turrets = getShipTurretConfigs(ship.id);
-
-  // Read current modal inputs
-  turrets.forEach((cfg, idx) => {
-    const selLaser = document.getElementById(`turretLaser_${idx}`);
-    if (selLaser) cfg.laserId = selLaser.value;
-    const slotsContainer = document.getElementById(`turretSlots_${idx}`);
-    if (slotsContainer) {
-      slotsContainer.querySelectorAll('select').forEach((sel, i) => {
-        cfg.moduleIds[i] = sel.value;
-      });
-    }
-  });
-
-  const gadgetId = DOM.gadgetSelect ? DOM.gadgetSelect.value : state.selectedGadget.id;
-
-  userProfiles[idx].shipId = ship.id;
-  userProfiles[idx].turrets = JSON.parse(JSON.stringify(turrets));
-  userProfiles[idx].gadgetId = gadgetId;
-  userProfiles[idx].timestamp = Date.now();
-
-  saveUserProfiles(userProfiles);
-  saveLoadout();
-  populateProfilesDropdown();
-  showToast(t.toastProfileUpdated.replace('{name}', userProfiles[idx].name));
-  sfx.playSuccess();
-}
-
-function deleteSelectedProfile() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (!state.activeProfileId || state.activeProfileId === 'custom' || state.activeProfileId.startsWith('preset_')) {
-    return;
+  const subTitleEl = document.getElementById('inventorySubtitle');
+  if (subTitleEl) {
+    subTitleEl.textContent = `${totalSCU} SCU · Valeur estimée ${totalValUEC.toLocaleString('fr-FR')} aUEC · ${allItems.length} référence(s) en stock`;
   }
 
-  const userProfiles = getUserProfiles();
-  const profile = userProfiles.find(p => p.id === state.activeProfileId);
-  if (!profile) return;
-
-  const confirmMsg = t.confirmDeleteProfile.replace('{name}', profile.name);
-  if (!confirm(confirmMsg)) return;
-
-  const filtered = userProfiles.filter(p => p.id !== state.activeProfileId);
-  saveUserProfiles(filtered);
-
-  state.activeProfileId = 'custom';
-  localStorage.setItem('aaron_mfd_active_profile', 'custom');
-
-  populateProfilesDropdown();
-  showToast(t.toastProfileDeleted);
-  sfx.playBeep(400, 'sine', 0.05);
-}
-
-function saveLoadout() {
-  try {
-    const data = {
-      shipId: state.selectedShip.id,
-      laserId: state.selectedLaser.id,
-      selectedModules: state.selectedModules,
-      gadgetId: state.selectedGadget.id,
-      turretsByShip: state.turretsByShip,
-      moleTurrets: {
-        turret1: state.turretsByShip.mole?.[0] || { laserId: 'lancet_s2', moduleIds: [] },
-        turret2: state.turretsByShip.mole?.[1] || { laserId: 'helix_s2', moduleIds: [] },
-        turret3: state.turretsByShip.mole?.[2] || { laserId: 'helix_s2', moduleIds: [] }
-      }
-    };
-    localStorage.setItem('aaron_mfd_loadout', JSON.stringify(data));
-  } catch (e) {
-    console.warn('Loadout storage error:', e);
-  }
-  broadcastLocalLoadout();
-}
-
-function loadSavedLoadout() {
-  try {
-    state.activeProfileId = localStorage.getItem('aaron_mfd_active_profile') || 'custom';
-    const raw = localStorage.getItem('aaron_mfd_loadout');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    if (data.laserId) {
-      const l = MINING_DATA.lasers.find(x => x.id === data.laserId);
-      if (l) state.selectedLaser = l;
-    }
-    if (Array.isArray(data.selectedModules)) {
-      state.selectedModules = data.selectedModules;
-    }
-    if (data.gadgetId) {
-      const g = MINING_DATA.gadgets.find(x => x.id === data.gadgetId);
-      if (g) state.selectedGadget = g;
-    }
-    if (data.turretsByShip && typeof data.turretsByShip === 'object') {
-      Object.keys(data.turretsByShip).forEach(sId => {
-        if (Array.isArray(data.turretsByShip[sId])) {
-          state.turretsByShip[sId] = data.turretsByShip[sId];
-        }
-      });
-    } else if (data.moleTurrets) {
-      if (data.moleTurrets.turret1) state.turretsByShip.mole[0] = data.moleTurrets.turret1;
-      if (data.moleTurrets.turret2) state.turretsByShip.mole[1] = data.moleTurrets.turret2;
-      if (data.moleTurrets.turret3) state.turretsByShip.mole[2] = data.moleTurrets.turret3;
-    }
-  } catch (e) {
-    console.warn('Loadout load error:', e);
-  }
-}
-
-// ==========================================
-// QUANTAINIUM VOLATILITY TIMER (15 MIN)
-// ==========================================
-function startQuantainiumTimer() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (state.qtIntervalId) clearInterval(state.qtIntervalId);
-  state.qtTimerActive = true;
-  state.qtTimeRemaining = 900; // 15 mins
-  DOM.qtTimerPill.classList.add('active');
-  sfx.playCritical();
-
-  state.qtIntervalId = setInterval(() => {
-    state.qtTimeRemaining--;
-    if (state.qtTimeRemaining <= 0) {
-      clearInterval(state.qtIntervalId);
-      state.qtCountdownText.textContent = 'EXPLOSION !';
-      sfx.playCritical();
-      alert(t.alertQtExplosion);
-    } else {
-      const min = Math.floor(state.qtTimeRemaining / 60);
-      const sec = state.qtTimeRemaining % 60;
-      DOM.qtCountdownText.textContent = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-
-      // Warning at 5 minutes
-      if (state.qtTimeRemaining === 300) {
-        sfx.playWarning();
-      }
-      // Critical at 2 minutes
-      if (state.qtTimeRemaining === 120) {
-        sfx.playCritical();
-      }
-    }
-  }, 1000);
-}
-
-function stopQuantainiumTimer() {
-  if (state.qtIntervalId) clearInterval(state.qtIntervalId);
-  state.qtTimerActive = false;
-  DOM.qtTimerPill.classList.remove('active');
-}
-
-// ==========================================
-// VOICE INPUT (Web Speech API)
-// ==========================================
-function startVoiceRecognition() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert(t.alertVoiceUnsupported);
-    return;
-  }
-
-  const recognition = new SpeechRecognition();
-  recognition.lang = state.currentLang === 'en' ? 'en-US' : 'fr-FR';
-  recognition.interimResults = true;
-  recognition.continuous = false;
-
-  openModal(DOM.voiceModal);
-  DOM.voiceTranscript.textContent = t.voiceListening;
-
-  recognition.onresult = (event) => {
-    const text = event.results[0][0].transcript.toLowerCase();
-    DOM.voiceTranscript.textContent = `"${text}"`;
-
-    if (event.results[0].isFinal) {
-      parseVoiceInput(text);
-      setTimeout(() => closeModal(DOM.voiceModal), 1200);
-    }
-  };
-
-  recognition.onerror = (err) => {
-    DOM.voiceTranscript.textContent = state.currentLang === 'en' ? 'Voice error or mic muted.' : 'Erreur d\'écoute ou micro coupé.';
-    console.warn('Speech error:', err);
-  };
-
-  try {
-    recognition.start();
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-function parseVoiceInput(text) {
-  // Regex parsing for mass: "5400", "rock 6000", "roche 6000"
-  const massMatch = text.match(/(\d{3,5})/);
-  if (massMatch) {
-    setMass(parseInt(massMatch[1], 10));
-  }
-
-  // Percentage match: "30 pourcent", "30%", "30 percent"
-  const pctMatch = text.match(/(\d{1,2})\s*(%|pourcent|pour cent|percent)/);
-  if (pctMatch) {
-    setPct(parseInt(pctMatch[1], 10));
-  }
-
-  // Mineral recognition
-  for (const min of MINING_DATA.minerals) {
-    const nameFr = (min.name_fr || min.name || '').toLowerCase().split(' ')[0];
-    const nameEn = (min.name_en || min.name || '').toLowerCase().split(' ')[0];
-    if (text.includes(nameFr) || text.includes(nameEn)) {
-      selectMineral(min);
-      break;
-    }
-  }
-
-  // Resistance match: "résistance 35" / "resistance 35"
-  const resMatch = text.match(/(?:r[ée]sistance|resistance)\s*(\d{1,2})/i);
-  if (resMatch) {
-    setResistance(parseInt(resMatch[1], 10));
-  }
-
-  sfx.playSuccess();
-}
-
-// ==========================================
-// FEATURE 1: BREAK TREE / SUB-CHUNKS SIMULATOR
-// ==========================================
-function openBreakTreeModal() {
-  generateBreakTree();
-  openModal(DOM.breakTreeModal);
-  sfx.playBeep(650, 'sine', 0.04);
-  triggerHaptic(15);
-}
-
-function generateBreakTree() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const parentMass = state.rockMass;
-  const parentPct = state.orePercentage;
-  const mineral = state.selectedMineral;
-  const minName = getLocalized(mineral, 'name');
-
-  if (DOM.breakTreeParentInfo) {
-    DOM.breakTreeParentInfo.textContent = `${parentMass.toLocaleString(locale)} kg • ${parentPct.toFixed(1)}% ${minName}`;
-  }
-  if (DOM.breakTreeDescText) {
-    DOM.breakTreeDescText.textContent = t.breakTreeDesc.replace('{mass}', parentMass.toLocaleString(locale));
-  }
-
-  // Fracture splits rock into 3 chunks with mass conservation
-  const mass1 = Math.round(parentMass * 0.45);
-  const mass2 = Math.round(parentMass * 0.35);
-  const mass3 = parentMass - mass1 - mass2;
-
-  // Mineral content distribution (enriched chunk vs medium vs inert waste)
-  const pct1 = Math.min(100, Math.round(parentPct * 2.2));
-  const pct2 = Math.min(90, Math.round(parentPct * 0.85));
-  const pct3 = Math.max(0, Math.round(parentPct * 0.1));
-
-  const densityDivisor = (mineral.density || 15) * 85;
-
-  const chunks = [
-    {
-      id: 1,
-      mass: mass1,
-      pct: pct1,
-      status: pct1 >= 60 ? 'purple' : 'orange',
-      pureSCU: Math.round(((mass1 * (pct1 / 100)) / (mineral.id === 'hadanite' ? 1000 : densityDivisor)) * 10) / 10,
-      extracted: false
-    },
-    {
-      id: 2,
-      mass: mass2,
-      pct: pct2,
-      status: 'orange',
-      pureSCU: Math.round(((mass2 * (pct2 / 100)) / (mineral.id === 'hadanite' ? 1000 : densityDivisor)) * 10) / 10,
-      extracted: false
-    },
-    {
-      id: 3,
-      mass: mass3,
-      pct: pct3,
-      status: 'gray',
-      pureSCU: Math.round(((mass3 * (pct3 / 100)) / (mineral.id === 'hadanite' ? 1000 : densityDivisor)) * 10) / 10,
-      extracted: false
-    }
-  ];
-
-  state.subchunks = chunks;
-  state.breakTreeExtractedSCU = 0.0;
-  if (DOM.breakTreeExtractedTotal) DOM.breakTreeExtractedTotal.textContent = '0.0 SCU';
-
-  renderBreakTreeChunks();
-}
-
-function renderBreakTreeChunks() {
-  if (!DOM.subchunksContainer) return;
-  DOM.subchunksContainer.innerHTML = '';
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const mineral = state.selectedMineral;
-  const minName = getLocalized(mineral, 'name');
-
-  state.subchunks.forEach(chunk => {
-    const rawVal = Math.round(chunk.pureSCU * 100 * mineral.rawPrice);
-    const card = document.createElement('div');
-    card.className = `subchunk-card chunk-${chunk.status}`;
-
-    let badgeLabel = t.chunkExtractable;
-    let badgeClass = 'badge-purple';
-    if (chunk.status === 'orange') {
-      badgeLabel = t.chunkNeedBreak;
-      badgeClass = 'badge-orange';
-    } else if (chunk.status === 'gray') {
-      badgeLabel = t.chunkInert;
-      badgeClass = 'badge-gray';
-    }
-
-    let actionBtnHtml = '';
-    if (chunk.status === 'purple') {
-      actionBtnHtml = `<button class="btn-extract-chunk ${chunk.extracted ? 'extracted' : ''}" data-chunk-id="${chunk.id}">${chunk.extracted ? t.chunkActionExtracted : t.btnExtractChunk}</button>`;
-    } else if (chunk.status === 'orange') {
-      actionBtnHtml = `<button class="btn-refracture-chunk" data-refracture-id="${chunk.id}">${t.chunkActionRefracture.replace('{mass}', chunk.mass.toLocaleString(locale))}</button>`;
-    } else {
-      actionBtnHtml = `<div style="font-size:0.75rem; color:var(--text-muted); text-align:center; padding:8px;">${t.chunkInert} ${t.chunkActionIgnore}</div>`;
-    }
-
-    card.innerHTML = `
-      <div class="subchunk-header">
-        <span style="font-family:var(--font-mono); font-weight:700; color:#fff;">#0${chunk.id} • ${chunk.mass.toLocaleString(locale)} kg</span>
-        <span class="subchunk-badge ${badgeClass}">${badgeLabel}</span>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-        <span style="color:${mineral.color}; font-weight:700;">${chunk.pct}% ${minName}</span>
-        <span style="font-family:var(--font-mono); color:var(--accent-cyan); font-weight:700;">${chunk.pureSCU.toFixed(1)} SCU</span>
-      </div>
-      <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent-emerald);">
-        ~${rawVal.toLocaleString(locale)} ${t.rawAuecUnit}
-      </div>
-      ${actionBtnHtml}
-    `;
-
-    const extractBtn = card.querySelector('.btn-extract-chunk');
-    if (extractBtn && !chunk.extracted) {
-      extractBtn.addEventListener('click', () => {
-        extractSubchunk(chunk);
-      });
-    }
-
-    const refractureBtn = card.querySelector('.btn-refracture-chunk');
-    if (refractureBtn) {
-      refractureBtn.addEventListener('click', () => {
-        refractureSubchunk(chunk);
-      });
-    }
-
-    DOM.subchunksContainer.appendChild(card);
-  });
-}
-
-function extractSubchunk(chunk) {
-  if (chunk.extracted) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const mineral = state.selectedMineral;
-
-  if (state.holdSCU + chunk.pureSCU > state.selectedShip.scu) {
-    sfx.playWarning();
-    alert(t.alertCapacityExceeded.replace('{max}', state.selectedShip.scu).replace('{cur}', state.holdSCU.toFixed(1)));
-    return;
-  }
-
-  chunk.extracted = true;
-  state.holdSCU = Math.round((state.holdSCU + chunk.pureSCU) * 10) / 10;
-  state.breakTreeExtractedSCU = Math.round((state.breakTreeExtractedSCU + chunk.pureSCU) * 10) / 10;
-  if (DOM.breakTreeExtractedTotal) {
-    DOM.breakTreeExtractedTotal.textContent = `${state.breakTreeExtractedSCU.toFixed(1)} SCU`;
-  }
-
-  const logEntry = {
-    id: Date.now(),
-    mineralId: mineral.id,
-    mineral: getLocalized(mineral, 'name'),
-    color: mineral.color,
-    scu: chunk.pureSCU,
-    isVolatile: mineral.isVolatile,
-    rawVal: Math.round(chunk.pureSCU * 100 * mineral.rawPrice),
-    time: new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-  };
-
-  state.sessionLog.unshift(logEntry);
-  addLedgerEntry('run', logEntry.mineral, logEntry.scu, logEntry.rawVal);
-
-  saveSession();
-  updateHoldDisplay();
-  renderBreakTreeChunks();
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  if (mineral.isVolatile && !state.qtTimerActive) {
-    startQuantainiumTimer();
-  }
-}
-
-function refractureSubchunk(chunk) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  setMass(chunk.mass);
-  setPct(chunk.pct);
-  closeModal(DOM.breakTreeModal);
-  sfx.playBeep(700, 'sine', 0.05);
-  triggerHaptic(15);
-  showToast(t.toastChunkRefractured.replace('{mass}', chunk.mass.toLocaleString(locale)));
-}
-
-// ==========================================
-// FEATURE 2: GUILD STOCKPILE, REFINING STATUSES & EXPENSE LEDGER (JALON 7)
-// ==========================================
-
-const DEFAULT_GUILD_STOCKPILE = [
-  {
-    id: 'lot_seed_1',
-    stationId: 'arc_l1',
-    stationName: 'ARC-L1 Wide Forest',
-    mineralId: 'quantainium',
-    mineralName: 'Quantainium',
-    scu: 64.0,
-    status: 'refined_ready',
-    rawVal: 384000,
-    refinedVal: 1718400,
-    depositedBy: 'VORTEX-1',
-    timestamp: Date.now() - 3600000
-  },
-  {
-    id: 'lot_seed_2',
-    stationId: 'hur_l1',
-    stationName: 'HUR-L1 Green Glade',
-    mineralId: 'bexalite',
-    mineralName: 'Bexalite',
-    scu: 32.0,
-    status: 'refining',
-    rawVal: 180000,
-    refinedVal: 384000,
-    methodName: 'Dinyx Solventation',
-    depositedBy: 'MINER-PROSPECTOR',
-    timestamp: Date.now() - 1800000
-  },
-  {
-    id: 'lot_seed_3',
-    stationId: 'mic_l1',
-    stationName: 'MIC-L1 Shallow Frontier',
-    mineralId: 'laranite',
-    mineralName: 'Laranite',
-    scu: 48.0,
-    status: 'raw',
-    rawVal: 144000,
-    refinedVal: 288000,
-    depositedBy: 'SCOUT-MERCHANT',
-    timestamp: Date.now() - 7200000
-  }
-];
-
-const DEFAULT_GUILD_EXPENSES = [
-  {
-    id: 'exp_seed_1',
-    category: 'refining',
-    amount: 18500,
-    author: 'VORTEX-1',
-    location: 'ARC-L1 Wide Forest',
-    note: 'Frais de raffinage procédé Dinyx pour 64 SCU Quantainium',
-    timestamp: Date.now() - 3600000
-  },
-  {
-    id: 'exp_seed_2',
-    category: 'fuel',
-    amount: 12000,
-    author: 'HAULER-9',
-    location: 'HUR-L1 Green Glade',
-    note: 'Plein de Quantum Fuel pour convoi C2 Hercules',
-    timestamp: Date.now() - 1800000
-  }
-];
-
-function initGuildStockpileAndExpenses() {
-  // 1. Sub-tabs switching
-  if (DOM.btnStockpileTabOverview) {
-    DOM.btnStockpileTabOverview.addEventListener('click', () => switchStockpileTab('overview'));
-  }
-  if (DOM.btnStockpileTabRefining) {
-    DOM.btnStockpileTabRefining.addEventListener('click', () => switchStockpileTab('refining'));
-  }
-  if (DOM.btnStockpileTabExpenses) {
-    DOM.btnStockpileTabExpenses.addEventListener('click', () => switchStockpileTab('expenses'));
-  }
-  if (DOM.btnStockpileTabTreasury) {
-    DOM.btnStockpileTabTreasury.addEventListener('click', () => switchStockpileTab('treasury'));
-  }
-  if (DOM.btnStockpileTabTrading) {
-    DOM.btnStockpileTabTrading.addEventListener('click', () => switchStockpileTab('trading'));
-  }
-
-  // 2. Populate filters & dropdowns
-  populateRefineryModalSelects();
-
-  // 3. Status filter pills
-  const statusPills = document.querySelectorAll('.stock-pill-btn');
-  statusPills.forEach(btn => {
-    btn.addEventListener('click', () => {
-      statusPills.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.stockpileFilterStatus = btn.getAttribute('data-stock-filter') || 'all';
-      renderGuildStockpile();
-    });
-  });
-
-  // 4. Station & mineral filter dropdowns
-  if (DOM.stockpileStationFilter) {
-    DOM.stockpileStationFilter.addEventListener('change', (e) => {
-      state.stockpileFilterStation = e.target.value;
-      renderGuildStockpile();
-    });
-  }
-  if (DOM.stockpileMineralFilter) {
-    DOM.stockpileMineralFilter.addEventListener('change', (e) => {
-      state.stockpileFilterMineral = e.target.value;
-      renderGuildStockpile();
-    });
-  }
-
-  // 5. Quick deposit from ship hold
-  if (DOM.btnQuickDepositHold) {
-    DOM.btnQuickDepositHold.addEventListener('click', depositHoldToStockpile);
-  }
-
-  // 6. Toggle manual deposit form
-  if (DOM.btnToggleManualLotForm) {
-    DOM.btnToggleManualLotForm.addEventListener('click', () => {
-      if (!DOM.manualLotCard) return;
-      const isVisible = DOM.manualLotCard.style.display !== 'none';
-      DOM.manualLotCard.style.display = isVisible ? 'none' : 'block';
-      if (!isVisible && DOM.manualLotScuInput) {
-        DOM.manualLotScuInput.focus();
-      }
-    });
-  }
-
-  // 7. Submit manual stock lot
-  if (DOM.btnSubmitManualStockLot) {
-    DOM.btnSubmitManualStockLot.addEventListener('click', submitManualStockLot);
-  }
-
-  // 8. Fleet sync stockpile
-  if (DOM.btnSyncStockpileFleet) {
-    DOM.btnSyncStockpileFleet.addEventListener('click', () => {
-      broadcastStockpileToFleet(false);
-    });
-  }
-
-  // 9. Push Notifications setup
-  initPushNotifications();
-
-  // 10. Expenses logging & controls
-  if (DOM.btnAddExpenseSubmit) {
-    DOM.btnAddExpenseSubmit.addEventListener('click', addGuildExpense);
-  }
-  if (DOM.btnCopyExpensesDiscord) {
-    DOM.btnCopyExpensesDiscord.addEventListener('click', copyGuildExpensesToDiscord);
-  }
-  if (DOM.btnSyncExpensesFleet) {
-    DOM.btnSyncExpensesFleet.addEventListener('click', () => {
-      broadcastExpensesToFleet(false);
-    });
-  }
-  if (DOM.btnClearExpensesAll) {
-    DOM.btnClearExpensesAll.addEventListener('click', clearGuildExpenses);
-  }
-
-  // 11. Treasury & mo.Trader Controls
-  if (DOM.treasuryTaxSelect) {
-    DOM.treasuryTaxSelect.value = state.guildCorpoTaxPct.toString();
-    DOM.treasuryTaxSelect.addEventListener('change', (e) => {
-      state.guildCorpoTaxPct = parseInt(e.target.value, 10) || 0;
-      saveGuildTreasury();
-      renderMoTraderSheet();
-    });
-  }
-  if (DOM.btnDepositTreasury) {
-    DOM.btnDepositTreasury.addEventListener('click', depositGuildTreasury);
-  }
-  if (DOM.btnWithdrawTreasury) {
-    DOM.btnWithdrawTreasury.addEventListener('click', withdrawGuildTreasury);
-  }
-  if (DOM.btnCopyMoTrader) {
-    DOM.btnCopyMoTrader.addEventListener('click', copyMoTraderSheetToClipboard);
-  }
-
-  // 12. Crafting 4.0 Goals Controls
-  if (DOM.btnToggleAddGoalForm) {
-    DOM.btnToggleAddGoalForm.addEventListener('click', () => {
-      if (!DOM.addCraftingGoalForm) return;
-      const isVis = DOM.addCraftingGoalForm.style.display !== 'none';
-      DOM.addCraftingGoalForm.style.display = isVis ? 'none' : 'block';
-    });
-  }
-  if (DOM.btnSubmitCraftingGoal) {
-    DOM.btnSubmitCraftingGoal.addEventListener('click', submitCraftingGoal);
-  }
-  if (DOM.btnSyncTreasuryFleet) {
-    DOM.btnSyncTreasuryFleet.addEventListener('click', () => {
-      broadcastTreasuryToFleet(false);
-    });
-  }
-
-  // 13. Load persisted data & render
-  loadGuildStockpile();
-  loadGuildExpenses();
-  renderGuildTreasury();
-  initCommodityTrading();
-}
-
-function switchStockpileTab(tabName) {
-  state.activeStockpileTab = tabName;
-  const tabs = [
-    { id: 'overview', btn: DOM.btnStockpileTabOverview, pane: DOM.paneStockpileOverview },
-    { id: 'refining', btn: DOM.btnStockpileTabRefining, pane: DOM.paneStockpileRefining },
-    { id: 'expenses', btn: DOM.btnStockpileTabExpenses, pane: DOM.paneStockpileExpenses },
-    { id: 'treasury', btn: DOM.btnStockpileTabTreasury, pane: DOM.paneStockpileTreasury },
-    { id: 'trading', btn: DOM.btnStockpileTabTrading, pane: DOM.paneStockpileTrading }
-  ];
-
-  tabs.forEach(t => {
-    const isActive = t.id === tabName;
-    if (t.btn) t.btn.classList.toggle('active', isActive);
-    if (t.pane) t.pane.classList.toggle('active', isActive);
-  });
-}
-
-function populateRefineryModalSelects() {
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  // Station dropdowns (Order station, Filter station, Manual lot station)
-  const populateStations = (selectEl, includeAllOption = false) => {
-    if (!selectEl) return;
-    const currentVal = selectEl.value;
-    selectEl.innerHTML = '';
-
-    if (includeAllOption) {
-      const optAll = document.createElement('option');
-      optAll.value = 'all';
-      optAll.textContent = t.filterAllStations || 'Toutes les stations';
-      selectEl.appendChild(optAll);
-    }
-
-    const stantonGroup = document.createElement('optgroup');
-    stantonGroup.label = t.optgroupStanton || '🌌 SYSTÈME STANTON';
-
-    const pyroGroup = document.createElement('optgroup');
-    pyroGroup.label = t.optgroupPyro || '🔥 SYSTÈME PYRO';
-
-    const nyxGroup = document.createElement('optgroup');
-    nyxGroup.label = t.optgroupNyx || '🚀 SYSTÈME NYX';
-
-    MINING_DATA.refineryStations.forEach(st => {
-      const opt = document.createElement('option');
-      opt.value = st.id;
-      opt.textContent = `${st.name} (${st.system})`;
-      if (st.sector === 'pyro') {
-        pyroGroup.appendChild(opt);
-      } else if (st.sector === 'nyx') {
-        nyxGroup.appendChild(opt);
-      } else {
-        stantonGroup.appendChild(opt);
-      }
-    });
-
-    selectEl.appendChild(stantonGroup);
-    selectEl.appendChild(pyroGroup);
-    selectEl.appendChild(nyxGroup);
-
-    if (currentVal) selectEl.value = currentVal;
-  };
-
-  populateStations(DOM.refineryOrderStationSelect, false);
-  populateStations(DOM.stockpileStationFilter, true);
-  populateStations(DOM.manualLotStationSelect, false);
-
-  // Refining methods select
-  if (DOM.refineryOrderMethodSelect) {
-    DOM.refineryOrderMethodSelect.innerHTML = '';
-    MINING_DATA.refiningMethods.forEach(rm => {
-      const opt = document.createElement('option');
-      opt.value = rm.id;
-      opt.textContent = `${rm.name} (${Math.round(rm.yieldRate * 100)}% ${t.refineryYield || 'Rendement'})`;
-      DOM.refineryOrderMethodSelect.appendChild(opt);
-    });
-  }
-
-  // Minerals select (Filter mineral, Manual lot mineral)
-  const populateMinerals = (selectEl, includeAllOption = false) => {
-    if (!selectEl) return;
-    const currentVal = selectEl.value;
-    selectEl.innerHTML = '';
-
-    if (includeAllOption) {
-      const optAll = document.createElement('option');
-      optAll.value = 'all';
-      optAll.textContent = t.filterAllMinerals || 'Tous les minerais';
-      selectEl.appendChild(optAll);
-    }
-
-    MINING_DATA.minerals.forEach(min => {
-      const opt = document.createElement('option');
-      opt.value = min.id;
-      opt.textContent = getLocalized(min, 'name');
-      selectEl.appendChild(opt);
-    });
-
-    if (currentVal) selectEl.value = currentVal;
-  };
-
-  populateMinerals(DOM.stockpileMineralFilter, true);
-  populateMinerals(DOM.manualLotMineralSelect, false);
-}
-
-// ----------------------------------------------------
-// PUSH NOTIFICATION SYSTEM (ALPHA 4.10 NATIVE)
-// ----------------------------------------------------
-function initPushNotifications() {
-  updatePushStatusBadge();
-
-  if (DOM.btnRequestPushPerm) {
-    DOM.btnRequestPushPerm.addEventListener('click', requestPushPermission);
-  }
-  if (DOM.btnTestPushAlert) {
-    DOM.btnTestPushAlert.addEventListener('click', () => {
-      const t = I18N[state.currentLang] || I18N.fr;
-      sendDesktopPushNotification(
-        '🔔 AARON MFD : TEST ALERTE LOGISTIQUE',
-        'Test d\'alerte push réussi ! Vos ordres de raffinage vous notifieront ici.'
-      );
-      showToast(t.toastPushTestSent || '🔔 Notification de test envoyée !');
-    });
-  }
-}
-
-function updatePushStatusBadge() {
-  if (!DOM.pushStatusBadge) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (!('Notification' in window)) {
-    DOM.pushStatusBadge.className = 'push-status-badge denied';
-    DOM.pushStatusBadge.textContent = 'Non supporté sur ce navigateur';
-    return;
-  }
-
-  const perm = Notification.permission;
-  if (perm === 'granted') {
-    DOM.pushStatusBadge.className = 'push-status-badge granted';
-    DOM.pushStatusBadge.textContent = `🟢 ${t.pushPermissionGranted || 'Notifications actives'}`;
-    state.pushNotificationEnabled = true;
-  } else if (perm === 'denied') {
-    DOM.pushStatusBadge.className = 'push-status-badge denied';
-    DOM.pushStatusBadge.textContent = `🔴 ${t.pushPermissionDenied || 'Bloqué'}`;
-    state.pushNotificationEnabled = false;
-  } else {
-    DOM.pushStatusBadge.className = 'push-status-badge prompt';
-    DOM.pushStatusBadge.textContent = '🟡 Autorisation requise';
-    state.pushNotificationEnabled = false;
-  }
-}
-
-function requestPushPermission() {
-  if (!('Notification' in window)) {
-    showToast('Notifications de bureau non supportées par ce navigateur.');
-    return;
-  }
-
-  Notification.requestPermission().then(permission => {
-    updatePushStatusBadge();
-    const t = I18N[state.currentLang] || I18N.fr;
-    if (permission === 'granted') {
-      sfx.playSuccess();
-      triggerHaptic(20);
-      showToast('🟢 Notifications push autorisées pour AARON MFD !');
-      sendDesktopPushNotification(
-        '🔔 AARON MFD INITIALISÉ',
-        'Vous recevrez les alertes de fin de raffinage même en arrière-plan.'
-      );
-    } else {
-      sfx.playWarning();
-      showToast('Notifications désactivées.');
-    }
-  });
-}
-
-function sendDesktopPushNotification(title, body) {
-  // 1. Audio and voice chime
-  sfx.playSuccess();
-  triggerHaptic([30, 50, 30]);
-
-  if (state.voiceTTSEnabled && typeof speakVoice === 'function') {
-    speakVoice(body);
-  }
-
-  // 2. Native Desktop Notification if allowed
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification(title, {
-        body: body,
-        icon: './assets/icon-192.png',
-        badge: './assets/icon-192.png',
-        tag: 'aaron-refinery-status',
-        renotify: true
-      });
-    } catch (e) {
-      console.warn('Native notification failed:', e);
-    }
-  }
-}
-
-// ----------------------------------------------------
-// GUILD STOCKPILE LOGISTICS & DISPATCH
-// ----------------------------------------------------
-function depositHoldToStockpile() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (state.holdSCU <= 0 && state.sessionLog.length === 0) {
-    sfx.playWarning();
-    showToast(t.toastHoldEmpty || 'Votre soute est actuellement vide.');
-    return;
-  }
-
-  const station = MINING_DATA.refineryStations[0];
-  const mineral = state.selectedMineral || MINING_DATA.minerals[0];
-  const scu = state.holdSCU > 0 ? parseFloat(state.holdSCU.toFixed(1)) : 32.0;
-
-  const rawPrice = (mineral.rawPrice || 80);
-  const rawVal = Math.round(scu * 100 * rawPrice);
-  const refinedVal = Math.round(scu * 100 * (mineral.refinedPrice || rawPrice * 1.9));
-
-  const newLot = {
-    id: 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    stationId: station.id,
-    stationName: station.name,
-    mineralId: mineral.id,
-    mineralName: getLocalized(mineral, 'name'),
-    scu: scu,
-    status: 'raw',
-    rawVal: rawVal,
-    refinedVal: refinedVal,
-    depositedBy: state.callsign || 'CITIZEN-1',
-    timestamp: Date.now()
-  };
-
-  state.guildStockpile.unshift(newLot);
-  saveGuildStockpile();
-
-  // Empty ship hold
-  clearHold();
-
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-  sfx.playSuccess();
-  triggerHaptic(25);
-
-  const msg = (t.lotDepositedToast || '📦 Lot de {scu} SCU ({mineral}) déposé dans le stockpile à {station} !')
-    .replace('{scu}', newLot.scu)
-    .replace('{mineral}', newLot.mineralName)
-    .replace('{station}', newLot.stationName);
-  showToast(msg);
-
-  // Auto-sync with fleet
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'deposit',
-      lot: newLot,
-      allLots: state.guildStockpile
-    });
-  }
-}
-
-function submitManualStockLot() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const category = DOM.manualLotCategorySelect ? DOM.manualLotCategorySelect.value : 'mineral';
-  const unitBuyCost = DOM.manualLotBuyCostInput ? (parseFloat(DOM.manualLotBuyCostInput.value) || 0) : 0;
-  const stationId = DOM.manualLotStationSelect ? DOM.manualLotStationSelect.value : 'arc_l1';
-  const itemId = DOM.manualLotMineralSelect ? DOM.manualLotMineralSelect.value : 'quantainium';
-  const scu = DOM.manualLotScuInput ? parseFloat(DOM.manualLotScuInput.value) : 32.0;
-  const status = DOM.manualLotStatusSelect ? DOM.manualLotStatusSelect.value : 'refined_ready';
-
-  if (!scu || scu <= 0) {
-    showToast('Volume SCU invalide.');
-    return;
-  }
-
-  const station = MINING_DATA.refineryStations.find(s => s.id === stationId) || MINING_DATA.refineryStations[0];
-  let itemName = itemId;
-  let rawVal = 0;
-  let refinedVal = 0;
-
-  if (category === 'commodity') {
-    const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === itemId) || MINING_DATA.generalCommodities[0];
-    itemName = getLocalized(comm, 'name') || comm.name_fr;
-    rawVal = Math.round(scu * (unitBuyCost > 0 ? unitBuyCost : comm.baseBuy) * 100);
-    refinedVal = Math.round(scu * comm.baseSell * 100);
-  } else {
-    const mineral = MINING_DATA.minerals.find(m => m.id === itemId) || MINING_DATA.minerals[0];
-    itemName = getLocalized(mineral, 'name');
-    rawVal = Math.round(scu * 100 * (mineral.rawPrice || 80));
-    refinedVal = Math.round(scu * 100 * (mineral.refinedPrice || (mineral.rawPrice * 1.9)));
-  }
-
-  const newLot = {
-    id: 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    category: category,
-    stationId: station.id,
-    stationName: station.name,
-    mineralId: itemId,
-    mineralName: itemName,
-    scu: parseFloat(scu.toFixed(1)),
-    unitBuyCost: unitBuyCost,
-    status: status,
-    rawVal: rawVal,
-    refinedVal: refinedVal,
-    depositedBy: state.callsign || 'CITIZEN-1',
-    timestamp: Date.now()
-  };
-
-  state.guildStockpile.unshift(newLot);
-  saveGuildStockpile();
-
-  // Hide form
-  if (DOM.manualLotCard) DOM.manualLotCard.style.display = 'none';
-
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  const msg = (t.lotDepositedToast || '📦 Lot de {scu} SCU ({mineral}) déposé dans le stockpile à {station} !')
-    .replace('{scu}', newLot.scu)
-    .replace('{mineral}', newLot.mineralName)
-    .replace('{station}', newLot.stationName);
-  showToast(msg);
-
-  // Fleet sync
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'deposit',
-      lot: newLot,
-      allLots: state.guildStockpile
-    });
-  }
-}
-
-function assignStockLotToHauler(lotId) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const lot = state.guildStockpile.find(l => l.id === lotId);
-  if (!lot) return;
-
-  const ships = MINING_DATA.supportShips || [];
-  const hauler = ships.find(s => s.id === state.activeHaulerId) || ships[0];
-
-  // Check hauler capacity
-  const currentSCU = (state.haulerHoldBags || []).reduce((sum, b) => sum + (b.scu || 0), 0);
-  if (currentSCU + lot.scu > hauler.scu) {
-    sfx.playWarning();
-    showToast(`Capacité du transporteur ${hauler.name} dépassée (${currentSCU}/${hauler.scu} SCU) !`);
-    return;
-  }
-
-  // Add to hauler cargo hold
-  state.haulerHoldBags.push({
-    id: 'bag_' + Date.now(),
-    mineral: lot.mineralName,
-    scu: lot.scu,
-    rawVal: lot.rawVal,
-    refinedVal: lot.refinedVal,
-    source: lot.stationName
-  });
-
-  saveHaulerHoldBags();
-  updateHaulerCargoUI();
-
-  // Remove lot from stockpile
-  state.guildStockpile = state.guildStockpile.filter(l => l.id !== lotId);
-  saveGuildStockpile();
-
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-  sfx.playSuccess();
-  triggerHaptic(25);
-
-  const msg = (t.assignedToHaulerToast || '🚜 Lot de {scu} SCU assigné à la soute du transporteur {hauler} !')
-    .replace('{scu}', lot.scu)
-    .replace('{hauler}', hauler.name);
-  showToast(msg);
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'assign_hauler',
-      lotId: lotId,
-      allLots: state.guildStockpile
-    });
-  }
-}
-
-function markStockLotSold(lotId) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const lot = state.guildStockpile.find(l => l.id === lotId);
-  if (!lot) return;
-
-  const finalProfit = lot.status === 'raw' ? lot.rawVal : lot.refinedVal;
-  addLedgerEntry('sale', lot.mineralName, lot.scu, finalProfit, lot.stationName);
-  updateLedgerDisplay();
-
-  state.guildStockpile = state.guildStockpile.filter(l => l.id !== lotId);
-  saveGuildStockpile();
-
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  const locale = getLocale();
-  const msg = (t.lotSoldToast || '💰 Lot vendu avec succès ! Bénéfice de {auec} aUEC enregistré.')
-    .replace('{auec}', finalProfit.toLocaleString(locale));
-  showToast(msg);
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'sold',
-      lotId: lotId,
-      allLots: state.guildStockpile
-    });
-  }
-}
-
-function deleteStockLot(lotId) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  state.guildStockpile = state.guildStockpile.filter(l => l.id !== lotId);
-  saveGuildStockpile();
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-  showToast(t.lotDeletedToast || '🗑️ Lot retiré du stockpile.');
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'delete',
-      lotId: lotId,
-      allLots: state.guildStockpile
-    });
-  }
-}
-
-function passStockLotToRefining(lotId) {
-  const lot = state.guildStockpile.find(l => l.id === lotId);
-  if (!lot) return;
-
-  lot.status = 'refining';
-  lot.methodName = 'Dinyx Solventation';
-  saveGuildStockpile();
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-  sfx.playSuccess();
-  showToast(`🏭 Lot de ${lot.scu} SCU (${lot.mineralName}) basculé en statut raffinage !`);
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'update_status',
-      lotId: lotId,
-      allLots: state.guildStockpile
-    });
-  }
-}
-
-function broadcastStockpileToFleet(silent = false) {
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'sync_all',
-      allLots: state.guildStockpile
-    });
-    if (!silent) {
-      const t = I18N[state.currentLang] || I18N.fr;
-      const msg = (t.stockpileSyncToast || '📡 Stockpile de guilde synchronisé avec la flotte ({count} lots) !')
-        .replace('{count}', state.guildStockpile.length);
-      showToast(msg);
-      sfx.playSuccess();
-    }
-  } else if (!silent) {
-    showToast('FLEET-NET non connecté. Rejoignez une escadre pour synchroniser le stockpile.');
-  }
-}
-
-function handleIncomingCorpoStockSync(stockSync, senderCallsign) {
-  if (!stockSync) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (Array.isArray(stockSync.allLots)) {
-    state.guildStockpile = stockSync.allLots;
-    saveGuildStockpile();
-    renderGuildStockpile();
-    updateGuildNetWorthMetrics();
-  }
-
-  sfx.playBeep(680, 'sine', 0.05);
-  const msg = (t.stockpileReceivedToast || '📡 Stockpile actualisé par {callsign} !')
-    .replace('{callsign}', senderCallsign || 'Pilote');
-  showToast(msg);
-}
-
-function renderGuildStockpile() {
-  if (!DOM.guildStockpileList) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-
-  let lots = [...state.guildStockpile];
-
-  // Apply station filter
-  if (state.stockpileFilterStation && state.stockpileFilterStation !== 'all') {
-    lots = lots.filter(l => l.stationId === state.stockpileFilterStation);
-  }
-
-  // Apply mineral filter
-  if (state.stockpileFilterMineral && state.stockpileFilterMineral !== 'all') {
-    lots = lots.filter(l => l.mineralId === state.stockpileFilterMineral);
-  }
-
-  // Apply status filter
-  if (state.stockpileFilterStatus && state.stockpileFilterStatus !== 'all') {
-    lots = lots.filter(l => l.status === state.stockpileFilterStatus);
-  }
-
-  DOM.guildStockpileList.innerHTML = '';
-  if (lots.length === 0) {
-    DOM.guildStockpileList.innerHTML = `
-      <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:24px; background:rgba(255,255,255,0.02); border-radius:6px;">
-        ${t.emptyStockpile || 'Aucun minerai enregistré dans le stockpile de guilde.'}
-      </div>
-    `;
-    return;
-  }
-
-  lots.forEach(lot => {
-    const card = document.createElement('div');
-    card.className = `stockpile-lot-card status-${lot.status}`;
-
-    let statusPillHtml = '';
-    if (lot.status === 'refined_ready') {
-      statusPillHtml = `<span class="lot-status-pill ready">${t.statusBadgeReady || '🟢 PRÊT AU TRANSPORT'}</span>`;
-    } else if (lot.status === 'refining') {
-      statusPillHtml = `<span class="lot-status-pill refining">${t.statusBadgeRefining || '🟡 EN RAFFINAGE'}</span>`;
-    } else {
-      statusPillHtml = `<span class="lot-status-pill raw">${t.statusBadgeRaw || '⚪ BRUT STOCKÉ'}</span>`;
-    }
-
-    const valueDisplay = lot.status === 'raw' ? lot.rawVal : lot.refinedVal;
-    const valueLabel = lot.status === 'raw' ? 'Valeur brute :' : 'Valeur raffinée :';
-
-    const isComm = lot.category === 'commodity';
-    const categoryBadge = isComm ? `<span class="commodity-badge">📦 COMMODITY</span>` : `<span class="commodity-badge" style="border-color:rgba(16,185,129,0.3); color:var(--accent-emerald); background:rgba(16,185,129,0.1);">⛏️ MINERAI</span>`;
-    const costTotal = (lot.unitBuyCost || 0) * lot.scu * 100;
-    const marginTotal = (valueDisplay || 0) - costTotal;
-    const marginInfo = lot.unitBuyCost > 0
-      ? `<div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Coût: ${costTotal.toLocaleString(locale)} aUEC | Marge: <strong style="color:${marginTotal >= 0 ? 'var(--accent-emerald)' : '#f87171'}">${marginTotal >= 0 ? '+' : ''}${marginTotal.toLocaleString(locale)} aUEC</strong></div>`
-      : '';
-
-    card.innerHTML = `
-      <div class="lot-header-row">
-        <div class="lot-station-badge">
-          <span>📍</span>
-          <span>${lot.stationName}</span>
-          ${categoryBadge}
-        </div>
-        ${statusPillHtml}
-      </div>
-      <div class="lot-details-row">
-        <div>
-          <strong style="color:var(--accent-cyan); font-family:var(--font-hud); font-size:0.92rem;">${lot.mineralName}</strong>
-          <span style="font-family:var(--font-mono); font-weight:700; color:#fff; margin-left:6px;">${lot.scu.toFixed(1)} SCU</span>
-          ${marginInfo}
-        </div>
-        <div style="text-align:right;">
-          <span style="font-size:0.75rem; color:var(--text-muted);">${valueLabel}</span>
-          <strong style="font-family:var(--font-mono); color:var(--accent-emerald); font-size:0.95rem; margin-left:4px;">
-            ${(valueDisplay || 0).toLocaleString(locale)} aUEC
-          </strong>
-        </div>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-        <span class="lot-depositor-tag">
-          ${(t.depositedBy || 'Déposé par {callsign}').replace('{callsign}', lot.depositedBy || 'Pilote')}
-        </span>
-        <div class="lot-actions-row">
-          ${lot.status === 'refined_ready' ? `
-            <button type="button" class="chip-btn btn-assign-hauler" data-lot-id="${lot.id}" style="border-color:var(--accent-emerald); color:var(--accent-emerald); padding:3px 8px; font-size:0.72rem;">
-              🚜 Assigner C2/MAX
-            </button>
-            <button type="button" class="chip-btn btn-sell-lot" data-lot-id="${lot.id}" style="border-color:var(--accent-cyan); color:var(--accent-cyan); padding:3px 8px; font-size:0.72rem;">
-              💰 Vendre
-            </button>
-          ` : ''}
-          ${lot.status === 'raw' ? `
-            <button type="button" class="chip-btn btn-pass-refining" data-lot-id="${lot.id}" style="border-color:var(--accent-amber); color:var(--accent-amber); padding:3px 8px; font-size:0.72rem;">
-              🏭 Raffiner
-            </button>
-          ` : ''}
-          <button type="button" class="chip-btn btn-delete-lot" data-lot-id="${lot.id}" style="border-color:rgba(239,68,68,0.3); color:#fca5a5; padding:3px 6px; font-size:0.72rem;">
-            &times;
+  const countBadge = document.getElementById('inventoryTotalCountBadge');
+  if (countBadge) countBadge.textContent = `${allItems.length} articles`;
+
+  const forSaleBadge = document.getElementById('inventoryForSaleCountBadge');
+  if (forSaleBadge) forSaleBadge.textContent = `${forSaleCount} en vente`;
+
+  const tbody = document.getElementById('inventoryStockTableBody');
+  if (!tbody) return;
+
+  if (items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center; padding:32px 16px; color:var(--text-dim);">
+          Aucun article correspondant aux critères actifs.<br>
+          <button type="button" class="vo-btn primary" id="btnEmptyAddEquipment" style="margin-top:12px; font-size:0.75rem;">
+            ＋ Inventorier un équipement
           </button>
-        </div>
-      </div>
+        </td>
+      </tr>
     `;
-
-    // Action listeners
-    const assignBtn = card.querySelector('.btn-assign-hauler');
-    if (assignBtn) {
-      assignBtn.addEventListener('click', () => assignStockLotToHauler(lot.id));
-    }
-    const sellBtn = card.querySelector('.btn-sell-lot');
-    if (sellBtn) {
-      sellBtn.addEventListener('click', () => markStockLotSold(lot.id));
-    }
-    const passRefBtn = card.querySelector('.btn-pass-refining');
-    if (passRefBtn) {
-      passRefBtn.addEventListener('click', () => passStockLotToRefining(lot.id));
-    }
-    const delBtn = card.querySelector('.btn-delete-lot');
-    if (delBtn) {
-      delBtn.addEventListener('click', () => deleteStockLot(lot.id));
-    }
-
-    DOM.guildStockpileList.appendChild(card);
-  });
-}
-
-function saveGuildStockpile() {
-  try {
-    localStorage.setItem('aaron_mfd_guild_stockpile', JSON.stringify(state.guildStockpile));
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-function loadGuildStockpile() {
-  try {
-    const raw = localStorage.getItem('aaron_mfd_guild_stockpile');
-    if (raw) {
-      state.guildStockpile = JSON.parse(raw) || [];
-    } else {
-      state.guildStockpile = [...DEFAULT_GUILD_STOCKPILE];
-      saveGuildStockpile();
-    }
-  } catch (e) {
-    state.guildStockpile = [...DEFAULT_GUILD_STOCKPILE];
-  }
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-}
-
-// ----------------------------------------------------
-// CORPO EXPENSE LEDGER
-// ----------------------------------------------------
-function addGuildExpense() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const category = DOM.expenseCategorySelect ? DOM.expenseCategorySelect.value : 'refining';
-  const amount = DOM.expenseAmountInput ? parseFloat(DOM.expenseAmountInput.value) : 0;
-  const author = DOM.expenseAuthorInput ? (DOM.expenseAuthorInput.value.trim() || state.callsign || 'CITIZEN-1') : (state.callsign || 'CITIZEN-1');
-  const location = DOM.expenseLocationInput ? (DOM.expenseLocationInput.value.trim() || 'Stanton') : 'Stanton';
-  const note = DOM.expenseNoteInput ? DOM.expenseNoteInput.value.trim() : '';
-
-  if (!amount || amount <= 0) {
-    showToast('Montant de dépense invalide.');
+    document.getElementById('btnEmptyAddEquipment')?.addEventListener('click', openAddEquipmentModal);
     return;
   }
 
-  const categoryLabels = {
-    refining: t.expenseCatRefining || '🏭 Frais de Raffinage',
-    fuel: t.expenseCatFuel || '⛽ Carburant',
-    repairs: t.expenseCatRepairs || '🛠️ Réparations',
-    gear: t.expenseCatGear || '🚀 Modules & Consommables',
-    escort: t.expenseCatEscort || '🛡️ Prime Escorte',
-    other: t.expenseCatOther || '💼 Autre logistique'
-  };
+  tbody.innerHTML = items.map(item => {
+    // 1. Origine badge & Qualité
+    let originHtml = '<span class="origin-badge purchased">🛒 Acheté</span>';
+    const isMined = item.origin === 'mined' || item.category === 'raw_ore' || item.category === 'refined_ore';
 
-  const newExp = {
-    id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    category: category,
-    categoryName: categoryLabels[category] || category,
-    amount: Math.round(amount),
-    author: author,
-    location: location,
-    note: note,
-    timestamp: Date.now()
-  };
+    if (item.origin === 'looted') {
+      originHtml = '<span class="origin-badge looted">🏴‍☠️ Looté</span>';
+    } else if (isMined) {
+      const qVal = typeof item.materialQuality === 'number'
+        ? item.materialQuality
+        : (typeof item.metadata?.materialQuality === 'number' ? item.metadata.materialQuality : null);
 
-  state.guildExpenses.unshift(newExp);
-  saveGuildExpenses();
-
-  // Reset inputs
-  if (DOM.expenseAmountInput) DOM.expenseAmountInput.value = '';
-  if (DOM.expenseNoteInput) DOM.expenseNoteInput.value = '';
-
-  renderGuildExpenses();
-  updateGuildNetWorthMetrics();
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  const locale = getLocale();
-  const msg = (t.expenseAddedToast || '🧾 Dépense de {amount} aUEC ({category}) enregistrée !')
-    .replace('{amount}', newExp.amount.toLocaleString(locale))
-    .replace('{category}', newExp.categoryName);
-  showToast(msg);
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoExpenseSync({
-      action: 'add',
-      expense: newExp,
-      allExpenses: state.guildExpenses
-    });
-  }
-}
-
-function deleteGuildExpense(expId) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  state.guildExpenses = state.guildExpenses.filter(e => e.id !== expId);
-  saveGuildExpenses();
-  renderGuildExpenses();
-  updateGuildNetWorthMetrics();
-  showToast(t.expenseDeletedToast || '🗑️ Dépense supprimée du Grand Livre.');
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoExpenseSync({
-      action: 'delete',
-      expenseId: expId,
-      allExpenses: state.guildExpenses
-    });
-  }
-}
-
-function clearGuildExpenses() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (!confirm('Réinitialiser toutes les dépenses de guilde de la session ?')) return;
-
-  state.guildExpenses = [];
-  saveGuildExpenses();
-  renderGuildExpenses();
-  updateGuildNetWorthMetrics();
-  showToast('Grand Livre des dépenses réinitialisé.');
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoExpenseSync({
-      action: 'clear',
-      allExpenses: []
-    });
-  }
-}
-
-function broadcastExpensesToFleet(silent = false) {
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoExpenseSync({
-      action: 'sync_all',
-      allExpenses: state.guildExpenses
-    });
-    if (!silent) {
-      const t = I18N[state.currentLang] || I18N.fr;
-      showToast(t.expenseSyncToast || '🧾 Grand Livre des dépenses synchronisé avec l\'escadre !');
-      sfx.playSuccess();
-    }
-  } else if (!silent) {
-    showToast('FLEET-NET non connecté.');
-  }
-}
-
-function handleIncomingCorpoExpenseSync(expenseSync, senderCallsign) {
-  if (!expenseSync) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (Array.isArray(expenseSync.allExpenses)) {
-    state.guildExpenses = expenseSync.allExpenses;
-    saveGuildExpenses();
-    renderGuildExpenses();
-    updateGuildNetWorthMetrics();
-  }
-
-  sfx.playBeep(650, 'sine', 0.05);
-  const msg = (t.expenseReceivedToast || '🧾 Dépense enregistrée par {callsign} !')
-    .replace('{callsign}', senderCallsign || 'Trésorier');
-  showToast(msg);
-}
-
-function copyGuildExpensesToDiscord() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-
-  const totalExp = state.guildExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  const grossVal = state.guildStockpile.reduce((sum, l) => sum + (l.status === 'raw' ? l.rawVal : l.refinedVal), 0);
-  const netVal = grossVal - totalExp;
-
-  let text = `╔══════════════════════════════════════════════════╗\n`;
-  text += `   AARON MFD — GRAND LIVRE DE CORPORATION (4.10)\n`;
-  text += `   ESCADRE : ${fleetNet ? fleetNet.roomCode || 'SOLO' : 'SOLO'} • DATE : ${new Date().toLocaleDateString(locale)}\n`;
-  text += `╚══════════════════════════════════════════════════╝\n\n`;
-
-  text += `📊 BILAN FINANCIER GLOBAL :\n`;
-  text += `  • Recettes Brutes de Stocks : ${grossVal.toLocaleString(locale)} aUEC\n`;
-  text += `  • Total Dépenses Engagées   : -${totalExp.toLocaleString(locale)} aUEC\n`;
-  text += `  • BÉNÉFICE NET CORPORATIF   : ${netVal.toLocaleString(locale)} aUEC\n\n`;
-
-  text += `🧾 DÉTAIL DES FRAIS ENGAGÉS :\n`;
-  if (state.guildExpenses.length === 0) {
-    text += `  (Aucune dépense enregistrée)\n`;
-  } else {
-    state.guildExpenses.forEach((exp, idx) => {
-      text += `  ${idx + 1}. [${exp.categoryName}] ${exp.amount.toLocaleString(locale)} aUEC — ${exp.author} (${exp.location})${exp.note ? ' : ' + exp.note : ''}\n`;
-    });
-  }
-
-  navigator.clipboard.writeText(text).then(() => {
-    sfx.playSuccess();
-    triggerHaptic(20);
-    showToast(t.expenseDiscordCopiedToast || '📋 Rapport financier de guilde copié dans le presse-papier !');
-  }).catch(() => {
-    showToast('Erreur copie presse-papier.');
-  });
-}
-
-function renderGuildExpenses() {
-  if (!DOM.guildExpensesList) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-
-  DOM.guildExpensesList.innerHTML = '';
-  if (state.guildExpenses.length === 0) {
-    DOM.guildExpensesList.innerHTML = `
-      <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px; background:rgba(255,255,255,0.02); border-radius:6px;">
-        ${t.noExpensesRecorded || 'Aucune dépense corporative enregistrée pour le moment.'}
-      </div>
-    `;
-    return;
-  }
-
-  state.guildExpenses.forEach(exp => {
-    const item = document.createElement('div');
-    item.className = 'expense-row-item';
-
-    item.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:2px;">
-        <div style="display:flex; align-items:center; gap:6px;">
-          <strong style="color:#fff; font-family:var(--font-hud); font-size:0.84rem;">${exp.categoryName}</strong>
-          <span style="font-size:0.72rem; color:var(--text-muted);">• ${exp.author} (${exp.location})</span>
-        </div>
-        ${exp.note ? `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic;">${exp.note}</div>` : ''}
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="expense-amount-tag">-${(exp.amount || 0).toLocaleString(locale)} aUEC</span>
-        <button type="button" class="chip-btn btn-del-exp" data-exp-id="${exp.id}" style="border-color:rgba(239,68,68,0.3); color:#fca5a5; padding:2px 6px; font-size:0.72rem;">
-          &times;
-        </button>
-      </div>
-    `;
-
-    const delBtn = item.querySelector('.btn-del-exp');
-    if (delBtn) {
-      delBtn.addEventListener('click', () => deleteGuildExpense(exp.id));
-    }
-
-    DOM.guildExpensesList.appendChild(item);
-  });
-}
-
-function saveGuildExpenses() {
-  try {
-    localStorage.setItem('aaron_mfd_guild_expenses', JSON.stringify(state.guildExpenses));
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-function loadGuildExpenses() {
-  try {
-    const raw = localStorage.getItem('aaron_mfd_guild_expenses');
-    if (raw) {
-      state.guildExpenses = JSON.parse(raw) || [];
-    } else {
-      state.guildExpenses = [...DEFAULT_GUILD_EXPENSES];
-      saveGuildExpenses();
-    }
-  } catch (e) {
-    state.guildExpenses = [...DEFAULT_GUILD_EXPENSES];
-  }
-  renderGuildExpenses();
-  updateGuildNetWorthMetrics();
-}
-
-function updateGuildNetWorthMetrics() {
-  const locale = getLocale();
-
-  const totalSCU = state.guildStockpile.reduce((sum, l) => sum + (l.scu || 0), 0);
-  const readyLots = state.guildStockpile.filter(l => l.status === 'refined_ready').length;
-
-  const grossVal = state.guildStockpile.reduce((sum, l) => sum + (l.status === 'raw' ? l.rawVal : l.refinedVal), 0);
-  const totalExp = state.guildExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  const netWorth = grossVal - totalExp;
-
-  if (DOM.guildNetWorthDisplay) {
-    DOM.guildNetWorthDisplay.textContent = `${netWorth.toLocaleString(locale)} aUEC`;
-    DOM.guildNetWorthDisplay.style.color = netWorth >= 0 ? 'var(--accent-emerald)' : '#f87171';
-  }
-  if (DOM.guildTotalScuDisplay) {
-    DOM.guildTotalScuDisplay.textContent = `${totalSCU.toFixed(1)} SCU`;
-  }
-  if (DOM.guildReadyLotsDisplay) {
-    DOM.guildReadyLotsDisplay.textContent = `${readyLots} Lot(s)`;
-  }
-  if (DOM.guildExpenseTotalDisplay) {
-    DOM.guildExpenseTotalDisplay.textContent = `-${totalExp.toLocaleString(locale)} aUEC`;
-  }
-
-  // Expense ledger summary pane
-  if (DOM.expenseLedgerNetVal) {
-    DOM.expenseLedgerNetVal.textContent = `${netWorth.toLocaleString(locale)} aUEC`;
-    DOM.expenseLedgerNetVal.style.color = netWorth >= 0 ? 'var(--accent-emerald)' : '#f87171';
-  }
-  if (DOM.expenseLedgerTotalVal) {
-    DOM.expenseLedgerTotalVal.textContent = `-${totalExp.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.expenseLedgerGrossVal) {
-    DOM.expenseLedgerGrossVal.textContent = `${grossVal.toLocaleString(locale)} aUEC`;
-  }
-}
-
-// ========================================================
-// JALON 7 MODULE: GUILD TREASURY & MO.TRADER TRANSFER SHEET
-// ========================================================
-function renderGuildTreasury() {
-  const locale = getLocale();
-  if (DOM.treasuryBalanceVal) {
-    DOM.treasuryBalanceVal.textContent = `${state.guildTreasuryBalance.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.treasuryTaxSelect) {
-    DOM.treasuryTaxSelect.value = (state.guildCorpoTaxPct ?? 10).toString();
-  }
-  renderMoTraderSheet();
-  renderCraftingGoals();
-}
-
-function saveGuildTreasury() {
-  try {
-    localStorage.setItem('aaron_mfd_guild_treasury', state.guildTreasuryBalance.toString());
-    localStorage.setItem('aaron_mfd_guild_tax_pct', state.guildCorpoTaxPct.toString());
-    localStorage.setItem('aaron_mfd_guild_payout_statuses', JSON.stringify(state.guildPayoutStatuses));
-    localStorage.setItem('aaron_mfd_guild_crafting_goals', JSON.stringify(state.guildCraftingGoals));
-  } catch (e) {
-    console.warn('[Guild Treasury] Erreur lors de la sauvegarde locale:', e);
-  }
-}
-
-function depositGuildTreasury() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const promptText = t.btnDepositTreasury || 'Montant à verser dans la caisse de guilde (aUEC) :';
-  const input = prompt(promptText, '50000');
-  if (!input) return;
-  const amount = parseInt(input.trim().replace(/\s/g, ''), 10);
-  if (isNaN(amount) || amount <= 0) {
-    showToast('Montant invalide.');
-    sfx.playWarning();
-    return;
-  }
-  state.guildTreasuryBalance += amount;
-  saveGuildTreasury();
-  renderGuildTreasury();
-  sfx.playSuccess();
-  triggerHaptic(20);
-  showToast(t.toastTreasuryUpdated || '💰 Trésorerie de guilde actualisée !');
-  broadcastTreasuryToFleet(true);
-}
-
-function withdrawGuildTreasury() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const promptText = t.btnWithdrawTreasury || 'Montant à décaisser de la caisse de guilde (aUEC) :';
-  const input = prompt(promptText, '25000');
-  if (!input) return;
-  const amount = parseInt(input.trim().replace(/\s/g, ''), 10);
-  if (isNaN(amount) || amount <= 0) {
-    showToast('Montant invalide.');
-    sfx.playWarning();
-    return;
-  }
-  if (amount > state.guildTreasuryBalance) {
-    showToast('Fonds insuffisants dans la trésorerie.');
-    sfx.playWarning();
-    return;
-  }
-  state.guildTreasuryBalance -= amount;
-  saveGuildTreasury();
-  renderGuildTreasury();
-  sfx.playBeep(450, 'sine', 0.08);
-  triggerHaptic(15);
-  showToast(t.toastTreasuryUpdated || '💰 Trésorerie de guilde actualisée !');
-  broadcastTreasuryToFleet(true);
-}
-
-function calculateMoTraderSplit() {
-  // 1. Gather active participants
-  let pilots = [];
-  if (fleetNet && fleetNet.status === 'connected' && fleetNet.peers && fleetNet.peers.size > 0) {
-    pilots.push({
-      id: 'local',
-      callsign: state.callsign || 'CITIZEN-1',
-      role: 'Commandant / MOLE',
-      weight: 1.0
-    });
-    fleetNet.getPeersList().forEach(p => {
-      const shipDesc = (p.shipId || 'vessel').toUpperCase();
-      let role = 'Opérateur / ' + shipDesc;
-      let weight = 1.0;
-      if (shipDesc.includes('C2') || shipDesc.includes('RAFT') || shipDesc.includes('HULL')) {
-        role = 'Transporteur Cargo';
-        weight = 0.9;
-      } else if (shipDesc.includes('HORNET') || shipDesc.includes('GLADIUS') || shipDesc.includes('SABRE')) {
-        role = 'Escorte Combat';
-        weight = 0.85;
-      }
-      pilots.push({
-        id: p.peerId,
-        callsign: p.callsign || 'CITIZEN',
-        role: role,
-        weight: weight
-      });
-    });
-  } else {
-    // Default simulated crew for standalone demo / offline squad
-    pilots = [
-      { id: 'p_cmd', callsign: state.callsign || 'VORTEX-1', role: 'Commandant (MOLE Pilot)', weight: 1.0 },
-      { id: 'p_w1', callsign: 'TITAN-4', role: 'Transporteur (C2 Hercules)', weight: 0.9 },
-      { id: 'p_w2', callsign: 'ORION-2', role: 'Opérateur Tourelle 1 (Lancet)', weight: 1.0 },
-      { id: 'p_w3', callsign: 'SABRE-5', role: 'Escorte Tactique (Gladius)', weight: 0.85 }
-    ];
-  }
-
-  // 2. Gross pool = total stockpile value or baseline 1,200,000 aUEC
-  const grossVal = state.guildStockpile.reduce((sum, l) => sum + (l.status === 'raw' ? l.rawVal : l.refinedVal), 0);
-  const totalPool = grossVal > 0 ? grossVal : 1200000;
-
-  // 3. Guild tax calculation
-  const taxPct = state.guildCorpoTaxPct ?? 10;
-  const totalTax = Math.round(totalPool * (taxPct / 100));
-  const distributablePool = totalPool - totalTax;
-
-  const totalWeight = pilots.reduce((sum, p) => sum + p.weight, 0);
-
-  return pilots.map(p => {
-    const grossShare = Math.round(totalPool * (p.weight / totalWeight));
-    const corpoTax = Math.round(grossShare * (taxPct / 100));
-    const netPayout = grossShare - corpoTax;
-    const status = state.guildPayoutStatuses[p.id] || 'pending';
-    return {
-      id: p.id,
-      callsign: p.callsign,
-      role: p.role,
-      grossShare: grossShare,
-      corpoTax: corpoTax,
-      netPayout: netPayout,
-      status: status
-    };
-  });
-}
-
-function renderMoTraderSheet() {
-  if (!DOM.moTraderTableBody) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  DOM.moTraderTableBody.innerHTML = '';
-
-  const splitData = calculateMoTraderSplit();
-
-  splitData.forEach(p => {
-    const tr = document.createElement('tr');
-
-    const isPaid = p.status === 'paid';
-    const statusText = isPaid ? (t.statusPaid || 'Virement Fait') : (t.statusPending || 'En attente');
-    const statusClass = isPaid ? 'paid' : 'pending';
-
-    tr.innerHTML = `
-      <td>
-        <strong style="color:#fff; font-family:var(--font-hud);">${escapeHtml(p.callsign)}</strong>
-        <div style="font-size:0.7rem; color:var(--text-muted);">${escapeHtml(p.role)}</div>
-      </td>
-      <td style="font-family:var(--font-mono); color:var(--text-muted); font-size:0.8rem;">
-        ${p.grossShare.toLocaleString(locale)} aUEC
-      </td>
-      <td style="font-family:var(--font-mono); color:#f87171; font-size:0.8rem;">
-        -${p.corpoTax.toLocaleString(locale)} aUEC
-      </td>
-      <td style="font-family:var(--font-mono); font-weight:700; color:var(--accent-cyan); font-size:0.85rem;">
-        ${p.netPayout.toLocaleString(locale)} aUEC
-      </td>
-      <td>
-        <span class="motrader-status-pill ${statusClass}" data-pilot-id="${escapeHtml(p.id)}">
-          ${isPaid ? '🟢' : '🟡'} ${escapeHtml(statusText)}
-        </span>
-      </td>
-    `;
-
-    const pill = tr.querySelector('.motrader-status-pill');
-    if (pill) {
-      pill.addEventListener('click', () => {
-        toggleMoTraderStatus(p.id);
-      });
-    }
-
-    DOM.moTraderTableBody.appendChild(tr);
-  });
-}
-
-function toggleMoTraderStatus(pilotId) {
-  const current = state.guildPayoutStatuses[pilotId] || 'pending';
-  state.guildPayoutStatuses[pilotId] = current === 'paid' ? 'pending' : 'paid';
-  saveGuildTreasury();
-  renderMoTraderSheet();
-  sfx.playBeep(620, 'sine', 0.04);
-  triggerHaptic(10);
-  broadcastTreasuryToFleet(true);
-}
-
-function copyMoTraderSheetToClipboard() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const splitData = calculateMoTraderSplit();
-  const taxPct = state.guildCorpoTaxPct ?? 10;
-
-  let lines = [];
-  lines.push('════════════════════════════════════════');
-  lines.push('💰 AARON MFD • FEUILLE DE VIREMENT MO.TRADER');
-  lines.push(`🏛️ Retenue Corporation : ${taxPct}% (Caisse de Réserve)`);
-  lines.push('════════════════════════════════════════');
-
-  let totalPaidOut = 0;
-  let totalWithheld = 0;
-
-  splitData.forEach(p => {
-    totalPaidOut += p.netPayout;
-    totalWithheld += p.corpoTax;
-    const badge = p.status === 'paid' ? '[VIREMENT FAIT]' : '[EN ATTENTE]';
-    lines.push(`• ${p.callsign} (${p.role}) ➔ ${p.netPayout.toLocaleString(locale)} aUEC ${badge}`);
-  });
-
-  lines.push('────────────────────────────────────────');
-  lines.push(`Total distribué : ${totalPaidOut.toLocaleString(locale)} aUEC`);
-  lines.push(`Retenue caisse guilde : ${totalWithheld.toLocaleString(locale)} aUEC`);
-  lines.push('════════════════════════════════════════');
-
-  const textToCopy = lines.join('\n');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      showToast(t.toastMoTraderCopied || '📋 Feuille de virements mo.Trader copiée dans le presse-papier !');
-      sfx.playSuccess();
-      triggerHaptic(20);
-    }).catch(() => {
-      prompt('Copiez manuellement :', textToCopy);
-    });
-  } else {
-    prompt('Copiez manuellement :', textToCopy);
-  }
-}
-
-// ========================================================
-// JALON 7 MODULE: CRAFTING 4.0 COLLECTIVE GOALS
-// ========================================================
-function renderCraftingGoals() {
-  if (!DOM.craftingGoalsList) return;
-  const locale = getLocale();
-  DOM.craftingGoalsList.innerHTML = '';
-
-  if (!state.guildCraftingGoals || state.guildCraftingGoals.length === 0) {
-    DOM.craftingGoalsList.innerHTML = `
-      <div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:6px 0;">
-        Aucun objectif d'artisanat actif. Cliquez sur "Nouvel Objectif" pour en définir un.
-      </div>
-    `;
-    return;
-  }
-
-  state.guildCraftingGoals.forEach(goal => {
-    // Calculate fulfillment for each mineral
-    let totalRatios = 0;
-    const mineralPillsHtml = goal.requiredMinerals.map(req => {
-      // Find matching SCU in stockpile
-      const currentScu = state.guildStockpile
-        .filter(l => l.mineralId === req.mineralId)
-        .reduce((sum, l) => sum + (l.scu || 0), 0);
-      const isFulfilled = currentScu >= req.neededScu;
-      const ratio = Math.min(1.0, currentScu / (req.neededScu || 1));
-      totalRatios += ratio;
-      const minName = req.mineralId.toUpperCase();
-      return `
-        <span class="crafting-req-pill ${isFulfilled ? 'fulfilled' : ''}">
-          ${isFulfilled ? '✓' : '○'} ${minName} : ${currentScu.toFixed(1)} / ${req.neededScu} SCU
-        </span>
-      `;
-    }).join('');
-
-    const progressPct = Math.round((totalRatios / (goal.requiredMinerals.length || 1)) * 100);
-
-    const card = document.createElement('div');
-    card.className = 'crafting-goal-card';
-    card.innerHTML = `
-      <div class="crafting-goal-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:1.1rem;">🛠️</span>
-          <div>
-            <strong style="color:#fff; font-family:var(--font-hud); font-size:0.85rem;">
-              ${escapeHtml(goal.name)}
-            </strong>
-            <span style="font-size:0.72rem; color:var(--text-muted); margin-left:6px;">
-              (Cible: ${goal.targetCount}x)
+      if (qVal !== null && craftingService.getQualityTier) {
+        const tier = craftingService.getQualityTier(qVal);
+        originHtml = `
+          <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+            <span class="origin-badge mined">⛏️ Miné</span>
+            <span class="quality-badge ${tier.badgeClass}" title="${tier.name} · Pureté Q${qVal}/1000 (${tier.statBonusRange[0] >= 0 ? '+' : ''}${tier.statBonusRange[0]}% à +${tier.statBonusRange[1]}% stats craft)">
+              ⭐ Q${qVal} ${tier.shortName}
             </span>
           </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-family:var(--font-mono); font-size:0.82rem; font-weight:700; color:${progressPct >= 100 ? 'var(--accent-emerald)' : 'var(--accent-cyan)'};">
-            ${progressPct}%
+        `;
+      } else {
+        originHtml = '<span class="origin-badge mined">⛏️ Miné</span>';
+      }
+    } else if (item.origin === 'crafted') {
+      const qVal = typeof item.materialQuality === 'number'
+        ? item.materialQuality
+        : (typeof item.metadata?.materialQuality === 'number' ? item.metadata.materialQuality : null);
+
+      if (qVal !== null && craftingService.getQualityTier) {
+        const tier = craftingService.getQualityTier(qVal);
+        originHtml = `
+          <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+            <span class="origin-badge crafted">🛠 Crafté</span>
+            <span class="quality-badge ${tier.badgeClass}" title="${tier.name} · Score Q${qVal}/1000">
+              ⭐ Q${qVal} ${tier.shortName}
+            </span>
+          </div>
+        `;
+      } else {
+        originHtml = '<span class="origin-badge crafted">🛠 Crafté</span>';
+      }
+    }
+
+    // 2. Format Qté
+    const qtyStr = item.quantitySCU > 0 ? `${item.quantitySCU} SCU` : `${item.quantityUnits || 1} ex.`;
+
+    // 3. Catégorie badge
+    let catBadgeClass = 'cyan';
+    let catLabel = item.category;
+    if (item.category === 'raw_ore') { catLabel = 'Minerai Brut'; catBadgeClass = 'amber'; }
+    else if (item.category === 'refined_ore') { catLabel = 'Minerai Raffiné'; catBadgeClass = 'cyan'; }
+    else if (item.category === 'salvage_rmc') { catLabel = 'RMC Salvage'; catBadgeClass = 'green'; }
+    else if (item.category === 'commodity_cargo') { catLabel = 'Marchandise'; catBadgeClass = 'purple'; }
+    else if (item.category === 'crafted_laser') { catLabel = 'Laser Minage'; catBadgeClass = 'cyan'; }
+    else if (item.category === 'crafted_module') { catLabel = 'Module Passif'; catBadgeClass = 'cyan'; }
+    else if (item.category === 'component') { catLabel = 'Composant'; catBadgeClass = 'blue'; }
+    else if (item.category === 'weapon') { catLabel = 'Arme'; catBadgeClass = 'red'; }
+    else if (item.category === 'equipment') { catLabel = 'Équipement'; catBadgeClass = 'green'; }
+
+    // 4. Format Cotation & Usage & Prix
+    let saleHtml = '';
+    const isOre = item.category === 'raw_ore' || item.category === 'refined_ore';
+    if (isOre) {
+      const isReservedCraft = Boolean(item.reservedForCraft || item.intendedUse === 'craft');
+      const estVal = inventoryService.getItemEstimatedValue(item);
+
+      let usageBadge = '';
+      if (isReservedCraft) {
+        usageBadge = `<span class="intended-use-badge craft btn-toggle-ore-craft" data-item-id="${item.id}" title="Réservé pour le Craft. Cliquer pour libérer vers la vente.">🛠️ Réservé Craft</span>`;
+      } else if (item.category === 'raw_ore') {
+        usageBadge = `<span class="intended-use-badge sell_raw btn-toggle-ore-craft" data-item-id="${item.id}" title="À vendre brut. Cliquer pour réserver au craft.">💰 Vente Brute</span>`;
+      } else {
+        usageBadge = `<span class="intended-use-badge sell_refined btn-toggle-ore-craft" data-item-id="${item.id}" title="À vendre raffiné. Cliquer pour réserver au craft.">💎 Vente Raffinée</span>`;
+      }
+
+      saleHtml = `
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          ${usageBadge}
+          <span style="font-size:0.7rem; color:var(--text-dim); font-family:var(--font-mono);">
+            ${isReservedCraft ? 'Stock atelier protégé' : `Valeur : +${estVal.toLocaleString('fr-FR')} aUEC`}
           </span>
-          <button type="button" class="btn-del-goal" data-goal-id="${escapeHtml(goal.id)}" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.85rem;" title="Supprimer">
+        </div>
+      `;
+    } else if (item.forSale) {
+      const isReserved = item.saleStatus === 'reserved';
+      const priceText = item.salePriceUEC > 0 ? `${item.salePriceUEC.toLocaleString('fr-FR')} aUEC` : 'Sur devis';
+      const barterIndicator = item.barterOffer ? `<span class="barter-pill" title="Troc : ${item.barterOffer}">🔄 Troc</span>` : '';
+      const scopeIcon = item.saleScope === 'inter_guild' ? '🌐' : '🏛';
+      saleHtml = `
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="sale-badge ${isReserved ? 'reserved' : 'for-sale'}" data-item-id="${item.id}" title="Cliquer pour modifier l'offre">
+              🏷️ ${priceText}
+            </span>
+            ${barterIndicator}
+          </div>
+          <span style="font-size:0.7rem; color:var(--text-dim);">${scopeIcon} ${item.saleScope === 'inter_guild' ? 'Inter-guilde' : 'Interne'} ${isReserved ? '· (RÉSERVÉ)' : ''}</span>
+        </div>
+      `;
+    } else {
+      const estVal = inventoryService.getItemEstimatedValue(item);
+      saleHtml = `
+        <span class="sale-badge not-sale" data-item-id="${item.id}" title="Mettre en vente cet article">
+          — En stock (${estVal > 0 ? `${estVal.toLocaleString('fr-FR')} aUEC` : 'Non coté'})
+        </span>
+      `;
+    }
+
+    // Subtitle meta: size/grade/SN/craftStats/notes
+    const metaParts = [];
+    if (item.size) metaParts.push(`Taille ${item.size}`);
+    if (item.grade) metaParts.push(`Grade ${item.grade}`);
+    if (item.conditionPct && item.conditionPct < 100) metaParts.push(`Santé ${item.conditionPct}%`);
+    if (item.metadata?.craftStats) metaParts.push(`<span class="val-green" title="Performances ajustées">${item.metadata.craftStats}</span>`);
+    if (item.metadata?.notes) metaParts.push(item.metadata.notes);
+    const metaStr = metaParts.length > 0 ? `<div style="font-size:0.72rem; color:var(--text-dim); margin-top:2px;">${metaParts.join(' · ')}</div>` : '';
+
+    // Action buttons column
+    let actionsHtml = '';
+    if (item.category === 'raw_ore') {
+      actionsHtml = `
+        <div style="display:inline-flex; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
+          <button type="button" class="vo-btn outline btn-toggle-ore-craft" data-item-id="${item.id}" style="font-size:0.7rem; padding:3px 7px;" title="${item.reservedForCraft ? 'Débloquer du craft' : 'Garder pour le craft'}">
+            ${item.reservedForCraft ? '🔓 Vente' : '🛠️ Craft'}
+          </button>
+          <button type="button" class="vo-btn outline btn-sell-raw-action" data-item-id="${item.id}" style="font-size:0.7rem; padding:3px 7px; color:var(--accent-amber);" title="Vendre brut immédiatement sans raffinage">
+            💰 Vendre
+          </button>
+          <button type="button" class="vo-btn outline btn-refine-ore-action" data-item-id="${item.id}" style="font-size:0.7rem; padding:3px 7px; color:var(--accent-cyan);" title="Envoyer en raffinerie (Dinyx)">
+            🏭 Raffiner
+          </button>
+          <button type="button" class="vo-btn outline btn-delete-item-action" data-item-id="${item.id}" style="font-size:0.7rem; padding:3px 7px; color:var(--accent-red);" title="Supprimer de l'inventaire">
             ✕
           </button>
         </div>
-      </div>
+      `;
+    } else if (item.category === 'refined_ore') {
+      actionsHtml = `
+        <div style="display:inline-flex; gap:4px; flex-wrap:wrap; justify-content:flex-end;">
+          <button type="button" class="vo-btn outline btn-toggle-ore-craft" data-item-id="${item.id}" style="font-size:0.7rem; padding:3px 7px;" title="${item.reservedForCraft ? 'Débloquer du craft' : 'Garder pour le craft'}">
+            ${item.reservedForCraft ? '🔓 Vente' : '🛠️ Craft'}
+          </button>
+          <button type="button" class="vo-btn outline btn-sell-refined-action" data-item-id="${item.id}" style="font-size:0.7rem; padding:3px 7px; color:var(--accent-green);" title="Vendre au comptoir au cours raffiné">
+            💎 Vendre
+          </button>
+          <button type="button" class="vo-btn outline btn-delete-item-action" data-item-id="${item.id}" style="font-size:0.7rem; padding:3px 7px; color:var(--accent-red);" title="Supprimer de l'inventaire">
+            ✕
+          </button>
+        </div>
+      `;
+    } else {
+      actionsHtml = `
+        <div style="display:inline-flex; gap:6px;">
+          <button type="button" class="vo-btn outline btn-edit-sale-action" data-item-id="${item.id}" style="font-size:0.72rem; padding:3px 8px;" title="Configurer le prix, le troc et la vente">
+            ✏️ Vente
+          </button>
+          <button type="button" class="vo-btn outline btn-delete-item-action" data-item-id="${item.id}" style="font-size:0.72rem; padding:3px 8px; color:var(--accent-red);" title="Supprimer de l'inventaire">
+            ✕
+          </button>
+        </div>
+      `;
+    }
 
-      <div class="crafting-gauge-container">
-        <div class="crafting-gauge-fill" style="width:${progressPct}%;"></div>
-      </div>
-
-      <div class="crafting-minerals-pills">
-        ${mineralPillsHtml}
-      </div>
+    return `
+      <tr>
+        <td>
+          <div class="val-bold">${item.name}</div>
+          ${metaStr}
+        </td>
+        <td>${originHtml}</td>
+        <td><span class="vo-badge ${catBadgeClass}">${catLabel}</span></td>
+        <td class="val-bold">${qtyStr}</td>
+        <td style="color:var(--text-muted); font-size:0.78rem;">${item.locationId}</td>
+        <td>${saleHtml}</td>
+        <td style="text-align:right;">${actionsHtml}</td>
+      </tr>
     `;
+  }).join('');
 
-    const delBtn = card.querySelector('.btn-del-goal');
-    if (delBtn) {
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteCraftingGoal(goal.id);
-      });
-    }
-
-    DOM.craftingGoalsList.appendChild(card);
-  });
-}
-
-function submitCraftingGoal() {
-  if (!DOM.craftingGoalItemSelect || !DOM.craftingGoalCountInput) return;
-  const itemId = DOM.craftingGoalItemSelect.value;
-  const count = Math.max(1, parseInt(DOM.craftingGoalCountInput.value, 10) || 1);
-
-  const presets = {
-    lancet_mk2: {
-      name: 'Lancet MH2 Custom (Tête S2)',
-      minerals: [
-        { mineralId: 'quantainium', neededScu: 16 * count },
-        { mineralId: 'bexalite', neededScu: 8 * count },
-        { mineralId: 'taranite', neededScu: 4 * count }
-      ]
-    },
-    helix_s2: {
-      name: 'Helix II Custom (Tête S2)',
-      minerals: [
-        { mineralId: 'bexalite', neededScu: 12 * count },
-        { mineralId: 'laranite', neededScu: 16 * count },
-        { mineralId: 'borase', neededScu: 8 * count }
-      ]
-    },
-    sabir_mod: {
-      name: 'Module Actif Sabir 21',
-      minerals: [
-        { mineralId: 'borase', neededScu: 3 * count },
-        { mineralId: 'laranite', neededScu: 2 * count }
-      ]
-    },
-    surge_mod: {
-      name: 'Module Actif Surge',
-      minerals: [
-        { mineralId: 'quantainium', neededScu: 4 * count },
-        { mineralId: 'agricium', neededScu: 4 * count }
-      ]
-    },
-    custom_saddlebags: {
-      name: 'Sacoches Amovibles Renforcées 32 SCU',
-      minerals: [
-        { mineralId: 'titanium', neededScu: 20 * count },
-        { mineralId: 'copper', neededScu: 10 * count }
-      ]
-    }
-  };
-
-  const preset = presets[itemId] || presets.lancet_mk2;
-
-  const newGoal = {
-    id: 'goal_' + Date.now(),
-    itemId: itemId,
-    name: `${preset.name} (x${count})`,
-    targetCount: count,
-    requiredMinerals: preset.minerals
-  };
-
-  state.guildCraftingGoals.unshift(newGoal);
-  saveGuildTreasury();
-  renderCraftingGoals();
-
-  if (DOM.addCraftingGoalForm) {
-    DOM.addCraftingGoalForm.style.display = 'none';
-  }
-
-  sfx.playSuccess();
-  triggerHaptic(15);
-  showToast('🛠️ Objectif d\'artisanat ajouté au carnet de guilde !');
-  broadcastTreasuryToFleet(true);
-}
-
-function deleteCraftingGoal(goalId) {
-  state.guildCraftingGoals = state.guildCraftingGoals.filter(g => g.id !== goalId);
-  saveGuildTreasury();
-  renderCraftingGoals();
-  sfx.playBeep(400, 'square', 0.05);
-  showToast('🗑️ Objectif retiré du carnet.');
-  broadcastTreasuryToFleet(true);
-}
-
-// ========================================================
-// JALON 7: FLEETNET TREASURY & MO.TRADER SYNC
-// ========================================================
-function broadcastTreasuryToFleet(silent = false) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (fleetNet && fleetNet.status === 'connected') {
-    const payload = {
-      treasuryBalance: state.guildTreasuryBalance,
-      taxPct: state.guildCorpoTaxPct,
-      goals: state.guildCraftingGoals,
-      payoutStatuses: state.guildPayoutStatuses
-    };
-    const sent = fleetNet.broadcastCorpoTreasurySync(payload);
-    if (sent && !silent) {
-      showToast(t.toastTreasurySync || '💰 Trésorerie et virements synchronisés avec l\'escadre !');
-      sfx.playSuccess();
-    }
-  } else if (!silent) {
-    showToast('FLEET-NET non connecté. Rejoignez une escadre pour synchroniser la trésorerie.');
-  }
-}
-
-function handleIncomingCorpoTreasurySync(treasurySync, senderCallsign) {
-  if (!treasurySync) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (typeof treasurySync.treasuryBalance === 'number') {
-    state.guildTreasuryBalance = treasurySync.treasuryBalance;
-  }
-  if (typeof treasurySync.taxPct === 'number') {
-    state.guildCorpoTaxPct = treasurySync.taxPct;
-  }
-  if (Array.isArray(treasurySync.goals)) {
-    state.guildCraftingGoals = treasurySync.goals;
-  }
-  if (treasurySync.payoutStatuses && typeof treasurySync.payoutStatuses === 'object') {
-    state.guildPayoutStatuses = { ...state.guildPayoutStatuses, ...treasurySync.payoutStatuses };
-  }
-
-  saveGuildTreasury();
-  renderGuildTreasury();
-  sfx.playBeep(720, 'sine', 0.05);
-
-  const msg = (t.toastTreasurySync || '💰 Trésorerie et virements synchronisés avec l\'escadre !')
-    + ` (${senderCallsign || 'Trésorier'})`;
-  showToast(msg);
-}
-
-// ========================================================
-// JALON 7 MODULE: COMMODITY TRADING & CARGO ROUTES SOLVER
-// ========================================================
-function initCommodityTrading() {
-  populateTradeSimulatorSelects();
-
-  if (DOM.tradePresetRouteSelect) {
-    DOM.tradePresetRouteSelect.addEventListener('change', (e) => {
-      loadTradePresetRoute(e.target.value);
+  // Bind clicks
+  tbody.querySelectorAll('.sale-badge, .btn-edit-sale-action').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-item-id');
+      if (id) openEditSaleModal(id);
     });
-  }
+  });
 
-  if (DOM.tradeCommoditySelect) {
-    DOM.tradeCommoditySelect.addEventListener('change', (e) => {
-      const commId = e.target.value;
-      const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === commId);
-      if (comm) {
-        if (DOM.tradeBuyPriceInput) DOM.tradeBuyPriceInput.value = comm.baseBuy.toString();
-        if (DOM.tradeSellPriceInput) DOM.tradeSellPriceInput.value = comm.baseSell.toString();
-        calculateTradeMetrics();
+  // Bind ore strategic toggle (Garder pour Craft vs Vendre)
+  tbody.querySelectorAll('.btn-toggle-ore-craft').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.getAttribute('data-item-id');
+      const res = inventoryService.toggleOreCraftReservation(id);
+      if (res) {
+        triggerHaptic(8);
+        showToast(res.reservedForCraft
+          ? `🛠️ Lot "${res.name}" réservé pour le Craft (protégé contre la vente).`
+          : `🏷️ Lot "${res.name}" libéré et prêt pour la vente.`);
+        renderInventoryTable();
       }
     });
-  }
-
-  const recalcInputs = [DOM.tradeCargoScuInput, DOM.tradeBuyPriceInput, DOM.tradeSellPriceInput];
-  recalcInputs.forEach(input => {
-    if (input) {
-      input.addEventListener('input', calculateTradeMetrics);
-    }
   });
 
-  // Capacity buttons presets
-  const capButtons = document.querySelectorAll('.trade-cap-btn');
-  capButtons.forEach(btn => {
+  // Bind direct raw ore sale
+  tbody.querySelectorAll('.btn-sell-raw-action').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.getAttribute('data-item-id');
+      const item = inventoryService.getItemById(id);
+      if (!item) return;
+      if (confirm(`Vendre immédiatement ${item.quantitySCU} SCU de "${item.name}" au cours brut ?`)) {
+        const res = inventoryService.sellRawOreBatch(id);
+        if (res.success) {
+          triggerHaptic(12);
+          showToast(`💰 ${res.message}`);
+          renderTopBarCitizen();
+          renderInventoryTable();
+        }
+      }
+    });
+  });
+
+  // Bind direct refined ore sale
+  tbody.querySelectorAll('.btn-sell-refined-action').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.getAttribute('data-item-id');
+      const item = inventoryService.getItemById(id);
+      if (!item) return;
+      if (confirm(`Vendre immédiatement ${item.quantitySCU} SCU de "${item.name}" au cours raffiné ?`)) {
+        const res = inventoryService.sellRefinedOreBatch(id);
+        if (res.success) {
+          triggerHaptic(14);
+          showToast(`💎 ${res.message}`);
+          renderTopBarCitizen();
+          renderInventoryTable();
+        }
+      }
+    });
+  });
+
+  // Bind direct ore refining
+  tbody.querySelectorAll('.btn-refine-ore-action').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.getAttribute('data-item-id');
+      const item = inventoryService.getItemById(id);
+      if (!item) return;
+      if (confirm(`Envoyer ${item.quantitySCU} SCU de "${item.name}" en raffinage (Méthode Dinyx Solvent à CRU-L1) ?`)) {
+        const res = inventoryService.refineRawOreBatch(id, 'dinyx', 'CRU-L1 Ambitious Dream');
+        if (res.success) {
+          triggerHaptic(15);
+          showToast(`✨ ${res.message}`);
+          renderTopBarCitizen();
+          renderInventoryTable();
+          // Mettre à jour le compteur de raffinage sur le tableau de bord
+          const dashRefiningCount = document.querySelector('#viewDashboard .vo-grid-4 .vo-card:nth-child(2) .kpi-main-val');
+          if (dashRefiningCount) {
+            const cur = parseInt(dashRefiningCount.textContent, 10) || 3;
+            dashRefiningCount.textContent = cur + 1;
+          }
+        }
+      }
+    });
+  });
+
+  tbody.querySelectorAll('.btn-delete-item-action').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-item-id');
+      const item = inventoryService.getItemById(id);
+      if (item && confirm(`Retirer définitivement "${item.name}" de l'inventaire ?`)) {
+        inventoryService.removeItem(id);
+        showToast(`Article "${item.name}" retiré de l'inventaire.`);
+        renderInventoryTable();
+        if (currentActiveApp === 'guild') renderGuildMarket();
+      }
+    });
+  });
+}
+
+function openAddEquipmentModal() {
+  const modal = document.getElementById('equipmentInventoryModal');
+  if (!modal) return;
+
+  const form = document.getElementById('formAddEquipment');
+  if (form) form.reset();
+
+  const searchInput = document.getElementById('eqSearchInput');
+  if (searchInput) searchInput.value = '';
+
+  const dropdown = document.getElementById('eqSearchDropdown');
+  if (dropdown) dropdown.classList.remove('open');
+
+  const titleEl = document.getElementById('eqDisplayTitle');
+  if (titleEl) titleEl.textContent = 'Aucun article sélectionné';
+
+  const metaEl = document.getElementById('eqDisplayMeta');
+  if (metaEl) metaEl.textContent = 'Sélectionnez une pièce ci-dessus ou saisissez manuellement';
+
+  const priceEl = document.getElementById('eqDisplayCatalogPrice');
+  if (priceEl) priceEl.textContent = '— aUEC';
+
+  document.getElementById('eqSelectedCode').value = '';
+  document.getElementById('eqSelectedName').value = '';
+  document.getElementById('eqSelectedCatalogPrice').value = '0';
+  document.getElementById('eqSelectedCategory').value = 'component';
+  document.getElementById('eqSelectedSubCategory').value = '';
+  document.getElementById('eqSelectedSize').value = '';
+  document.getElementById('eqSelectedGrade').value = '';
+
+  const toggle = document.getElementById('eqForSaleToggle');
+  if (toggle) toggle.checked = false;
+
+  const saleGroup = document.getElementById('eqSaleFieldsContainer');
+  if (saleGroup) saleGroup.style.display = 'none';
+
+  document.querySelectorAll('#originSelectorGrid .origin-card').forEach(card => {
+    card.classList.toggle('selected', card.getAttribute('data-origin') === 'purchased');
+  });
+  document.getElementById('eqOriginInput').value = 'purchased';
+  const craftQContainer = document.getElementById('eqCraftQualityContainer');
+  if (craftQContainer) craftQContainer.style.display = 'none';
+  const qualityInput = document.getElementById('eqMaterialQualityInput');
+  if (qualityInput) qualityInput.value = 500;
+  const qualityVal = document.getElementById('eqMaterialQualityVal');
+  if (qualityVal) qualityVal.textContent = 'Q500';
+  const qualityBadge = document.getElementById('eqQualityBadgePreview');
+  if (qualityBadge) {
+    qualityBadge.className = 'quality-badge quality-standard';
+    qualityBadge.textContent = 'Standard Usine · Q500';
+  }
+
+  modal.classList.add('active');
+  modal.setAttribute('aria-hidden', 'false');
+  triggerHaptic(12);
+
+  // Pre-load catalog in background
+  loadFleetyardsCatalog();
+
+  setTimeout(() => {
+    document.getElementById('eqSearchInput')?.focus();
+  }, 120);
+}
+
+function closeAddEquipmentModal() {
+  const modal = document.getElementById('equipmentInventoryModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  modal.setAttribute('aria-hidden', 'true');
+  document.getElementById('eqSearchDropdown')?.classList.remove('open');
+}
+
+function openEditSaleModal(itemId) {
+  const item = inventoryService.getItemById(itemId);
+  if (!item) return;
+
+  const modal = document.getElementById('editSaleModal');
+  if (!modal) return;
+
+  document.getElementById('editSaleItemId').value = item.id;
+  document.getElementById('editSaleItemTitle').textContent = item.name;
+  document.getElementById('editSaleItemSubtitle').textContent = `${item.locationId} · ${item.quantityUnits || 1} unité(s)`;
+
+  const toggle = document.getElementById('editSaleForSaleToggle');
+  if (toggle) toggle.checked = Boolean(item.forSale);
+
+  const priceInput = document.getElementById('editSalePriceInput');
+  if (priceInput) priceInput.value = item.salePriceUEC || item.catalogReferencePriceUEC || '';
+
+  const barterInput = document.getElementById('editSaleBarterInput');
+  if (barterInput) barterInput.value = item.barterOffer || '';
+
+  const scopeSelect = document.getElementById('editSaleScopeSelect');
+  if (scopeSelect) scopeSelect.value = item.saleScope || 'inter_guild';
+
+  modal.classList.add('active');
+  modal.setAttribute('aria-hidden', 'false');
+  triggerHaptic(12);
+}
+
+function closeEditSaleModal() {
+  const modal = document.getElementById('editSaleModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function openExportManifestModal() {
+  const modal = document.getElementById('manifestExportModal');
+  const textarea = document.getElementById('manifestExportTextarea');
+  const badge = document.getElementById('manifestCountBadge');
+  if (!modal || !textarea) return;
+
+  const manifest = guildService.generateInterGuildManifest();
+  textarea.value = manifest;
+
+  const activeSales = guildService.getGuildMarketListings({ scope: 'all' })
+    .filter(i => i.saleScope === 'inter_guild' || i.saleScope === 'public');
+  if (badge) badge.textContent = `${activeSales.length} lot(s) exportable(s)`;
+
+  modal.classList.add('active');
+  modal.setAttribute('aria-hidden', 'false');
+  triggerHaptic(12);
+}
+
+function closeExportManifestModal() {
+  const modal = document.getElementById('manifestExportModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+let guildMarketFilters = {
+  category: 'all',
+  scope: 'all',
+  status: 'all',
+  barterOnly: false,
+  search: ''
+};
+
+function renderGuildMarket() {
+  const allListings = guildService.getGuildMarketListings();
+  const filteredListings = guildService.getGuildMarketListings(guildMarketFilters);
+
+  const totalValue = allListings.reduce((sum, item) => sum + (item.salePriceUEC || 0), 0);
+  const interGuildCount = allListings.filter(i => i.saleScope === 'inter_guild' || i.saleScope === 'public').length;
+  const barterCount = allListings.filter(i => Boolean(i.barterOffer && i.barterOffer.trim().length > 0)).length;
+
+  const countEl = document.getElementById('gMarketKpiCount');
+  if (countEl) countEl.textContent = allListings.length;
+
+  const valEl = document.getElementById('gMarketKpiTotalValue');
+  if (valEl) valEl.textContent = `${totalValue.toLocaleString('fr-FR')} aUEC`;
+
+  const interEl = document.getElementById('gMarketKpiInterGuild');
+  if (interEl) interEl.textContent = interGuildCount;
+
+  const barterEl = document.getElementById('gMarketKpiBarter');
+  if (barterEl) barterEl.textContent = barterCount;
+
+  const grid = document.getElementById('guildMarketGrid');
+  if (!grid) return;
+
+  if (filteredListings.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; padding:40px; text-align:center; background:var(--bg-card); border-radius:8px; border:1px dashed var(--border-medium); color:var(--text-dim);">
+        <div style="font-size:2rem; margin-bottom:8px;">🏪</div>
+        <div style="font-weight:700; color:#fff; font-size:1rem;">Aucune offre correspondant aux critères</div>
+        <div style="font-size:0.8rem; margin-top:4px;">Modifiez les filtres ou inventoriez des équipements pour les proposer à la guilde.</div>
+        <button type="button" class="vo-btn primary" id="btnMarketAddEquip" style="margin-top:14px; font-size:0.8rem;">
+          ＋ Mettre un équipement en vente
+        </button>
+      </div>
+    `;
+    document.getElementById('btnMarketAddEquip')?.addEventListener('click', openAddEquipmentModal);
+    return;
+  }
+
+  const currentUser = store.get('profile') || {};
+  const currentCallsign = (currentUser.callsign || 'VORTEX-1').toUpperCase();
+
+  grid.innerHTML = filteredListings.map(item => {
+    const isReserved = item.saleStatus === 'reserved';
+    const isOwner = (item.ownerCallsign || '').toUpperCase() === currentCallsign;
+    const originLabel = item.origin === 'crafted' ? '🛠 Crafté' : (item.origin === 'looted' ? '🏴‍☠️ Looté' : '🛒 Acheté');
+    const originClass = item.origin || 'purchased';
+
+    const priceText = item.salePriceUEC > 0 ? `${item.salePriceUEC.toLocaleString('fr-FR')} aUEC` : 'Devis';
+    const catalogComparison = item.catalogReferencePriceUEC > 0
+      ? `Neuf FleetYards : ${item.catalogReferencePriceUEC.toLocaleString('fr-FR')} aUEC`
+      : 'Pièce spéciale';
+
+    const scopeBadge = item.saleScope === 'inter_guild'
+      ? '<span class="vo-badge cyan" style="font-size:0.68rem;">🌐 Inter-Guilde</span>'
+      : '<span class="vo-badge amber" style="font-size:0.68rem;">🏛 Interne NMC</span>';
+
+    const statusBadge = isReserved
+      ? `<span class="sale-badge reserved" style="font-size:0.7rem;">RÉSERVÉ ${item.reservedByCallsign ? `par @${item.reservedByCallsign}` : ''}</span>`
+      : `<span class="sale-badge for-sale" style="font-size:0.7rem;">DISPONIBLE</span>`;
+
+    const barterBlock = item.barterOffer ? `
+      <div class="market-card-barter">
+        <strong>🔄 Troc proposé :</strong> « ${item.barterOffer} »
+      </div>
+    ` : '';
+
+    let actionBtnHtml = '';
+    if (isOwner) {
+      actionBtnHtml = `
+        <button type="button" class="vo-btn outline btn-card-edit-sale" data-item-id="${item.id}" style="font-size:0.72rem; padding:4px 10px;">
+          ✏️ Mon offre
+        </button>
+      `;
+    } else if (isReserved) {
+      actionBtnHtml = `
+        <button type="button" class="vo-btn outline btn-card-cancel-reserve" data-item-id="${item.id}" style="font-size:0.72rem; padding:4px 10px; color:var(--accent-amber);">
+          Annuler réservation
+        </button>
+      `;
+    } else {
+      actionBtnHtml = `
+        <button type="button" class="vo-btn primary btn-card-reserve" data-item-id="${item.id}" style="font-size:0.72rem; padding:4px 12px;">
+          🤝 Réserver
+        </button>
+      `;
+    }
+
+    const sizeGrade = [item.size ? `S${item.size}` : null, item.grade ? `Grade ${item.grade}` : null].filter(Boolean).join(' · ');
+
+    let qualityBadgeHtml = '';
+    const qVal = typeof item.materialQuality === 'number'
+      ? item.materialQuality
+      : (typeof item.metadata?.materialQuality === 'number' ? item.metadata.materialQuality : null);
+    if (qVal !== null && craftingService.getQualityTier) {
+      const qTier = craftingService.getQualityTier(qVal);
+      qualityBadgeHtml = `<span class="quality-badge ${qTier.badgeClass}" title="${qTier.name} · Score Q${qVal}/1000">⭐ Q${qVal} ${qTier.shortName}</span>`;
+    }
+
+    return `
+      <div class="guild-market-card ${isReserved ? 'is-reserved' : ''}">
+        <div>
+          <div class="market-card-top">
+            <div>
+              <div class="market-card-title">${item.name}</div>
+              <div class="market-card-meta">
+                <span class="origin-badge ${originClass}">${originLabel}</span>
+                ${qualityBadgeHtml}
+                ${sizeGrade ? `<span class="vo-badge" style="font-size:0.68rem; color:var(--text-muted);">${sizeGrade}</span>` : ''}
+                ${scopeBadge}
+              </div>
+            </div>
+            <div>${statusBadge}</div>
+          </div>
+
+          ${item.metadata?.craftStats ? `<div style="font-size:0.72rem; color:var(--accent-green); margin-top:6px; font-family:var(--font-mono); background:rgba(34,197,94,0.08); padding:4px 8px; border-radius:4px; border:1px solid rgba(34,197,94,0.2);">${item.metadata.craftStats}</div>` : ''}
+
+          <div style="margin-top:10px;" class="market-card-price-box">
+            <div>
+              <div style="font-size:0.68rem; color:var(--text-dim); text-transform:uppercase;">Prix demandé</div>
+              <div class="market-card-price-val">${priceText}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="market-card-catalog-ref">${catalogComparison}</div>
+              <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">📍 ${item.locationId}</div>
+            </div>
+          </div>
+
+          ${barterBlock}
+        </div>
+
+        <div class="market-card-bottom">
+          <div class="market-card-seller">
+            <span style="font-size:0.9rem;">👤</span>
+            <span>Vendeur : <strong>@${item.ownerCallsign || 'PILOTE'}</strong></span>
+          </div>
+          <div>
+            ${actionBtnHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Bind actions
+  grid.querySelectorAll('.btn-card-reserve').forEach(btn => {
     btn.addEventListener('click', () => {
-      capButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const scu = btn.getAttribute('data-scu');
-      if (DOM.tradeCargoScuInput && scu) {
-        DOM.tradeCargoScuInput.value = scu;
-        calculateTradeMetrics();
+      const id = btn.getAttribute('data-item-id');
+      const item = inventoryService.getItemById(id);
+      if (item) {
+        guildService.reserveItem(id, currentCallsign);
+        showToast(`✓ Option posée sur "${item.name}" auprès de @${item.ownerCallsign || 'Vendeur'} !`);
+        renderGuildMarket();
       }
     });
   });
 
-  if (DOM.btnFinanceTradeTreasury) {
-    DOM.btnFinanceTradeTreasury.addEventListener('click', financeTradeFromTreasury);
-  }
-  if (DOM.btnAddTradeToStockpile) {
-    DOM.btnAddTradeToStockpile.addEventListener('click', addTradeRunToStockpile);
-  }
-  if (DOM.btnSyncTradeFleet) {
-    DOM.btnSyncTradeFleet.addEventListener('click', () => {
-      broadcastTradeToFleet(false);
+  grid.querySelectorAll('.btn-card-cancel-reserve').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-item-id');
+      guildService.cancelReservation(id);
+      showToast('Réservation annulée. Lot remis en vente.');
+      renderGuildMarket();
     });
-  }
+  });
 
-  if (DOM.manualLotCategorySelect) {
-    DOM.manualLotCategorySelect.addEventListener('change', updateManualLotCommodityOrMineralDropdown);
-  }
-
-  loadTradePresetRoute('route_med_hurston');
-  renderPopularTradeRoutes();
+  grid.querySelectorAll('.btn-card-edit-sale').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-item-id');
+      if (id) openEditSaleModal(id);
+    });
+  });
 }
 
-function updateManualLotCommodityOrMineralDropdown() {
-  if (!DOM.manualLotCategorySelect || !DOM.manualLotMineralSelect) return;
-  const isCommodity = DOM.manualLotCategorySelect.value === 'commodity';
-  DOM.manualLotMineralSelect.innerHTML = '';
+function switchGuildSubTab(gtab) {
+  const overview = document.getElementById('guildOverviewSubView');
+  const market = document.getElementById('guildMarketSubView');
 
-  if (isCommodity) {
-    (MINING_DATA.generalCommodities || []).forEach(comm => {
-      const opt = document.createElement('option');
-      opt.value = comm.id;
-      opt.textContent = `${comm.name_fr} (Base: ${comm.baseBuy} aUEC)`;
-      DOM.manualLotMineralSelect.appendChild(opt);
-    });
-    if (DOM.manualLotBuyCostInput) {
-      DOM.manualLotBuyCostInput.value = (MINING_DATA.generalCommodities[0]?.baseBuy || 17.4).toString();
-    }
+  document.querySelectorAll('#viewGuild [data-gtab]').forEach(btn => {
+    const isTarget = btn.getAttribute('data-gtab') === gtab;
+    btn.classList.toggle('primary', isTarget);
+    btn.classList.toggle('outline', !isTarget);
+  });
+
+  if (gtab === 'market') {
+    if (overview) overview.style.display = 'none';
+    if (market) market.style.display = 'block';
+    renderGuildMarket();
   } else {
-    (MINING_DATA.minerals || []).forEach(mineral => {
-      const opt = document.createElement('option');
-      opt.value = mineral.id;
-      opt.textContent = `${getLocalized(mineral, 'name')} (${mineral.rawPrice} aUEC)`;
-      DOM.manualLotMineralSelect.appendChild(opt);
-    });
-    if (DOM.manualLotBuyCostInput) {
-      DOM.manualLotBuyCostInput.value = '0';
-    }
+    if (overview) overview.style.display = 'block';
+    if (market) market.style.display = 'none';
   }
 }
 
-function populateTradeSimulatorSelects() {
-  if (DOM.tradePresetRouteSelect) {
-    DOM.tradePresetRouteSelect.innerHTML = '';
-    (MINING_DATA.popularTradeRoutes || []).forEach(route => {
-      const opt = document.createElement('option');
-      opt.value = route.id;
-      opt.textContent = `${route.name} (+${route.marginPerScu} aUEC/SCU)`;
-      DOM.tradePresetRouteSelect.appendChild(opt);
-    });
-  }
-
-  if (DOM.tradeCommoditySelect) {
-    DOM.tradeCommoditySelect.innerHTML = '';
-    (MINING_DATA.generalCommodities || []).forEach(comm => {
-      const opt = document.createElement('option');
-      opt.value = comm.id;
-      opt.textContent = `${comm.name_fr} (${comm.baseBuy} ➔ ${comm.baseSell} aUEC)`;
-      DOM.tradeCommoditySelect.appendChild(opt);
-    });
-  }
-}
-
-function loadTradePresetRoute(routeId) {
-  const route = (MINING_DATA.popularTradeRoutes || []).find(r => r.id === routeId) || MINING_DATA.popularTradeRoutes[0];
-  if (!route) return;
-
-  if (DOM.tradePresetRouteSelect) DOM.tradePresetRouteSelect.value = route.id;
-  if (DOM.tradeCommoditySelect) DOM.tradeCommoditySelect.value = route.commodityId;
-  if (DOM.tradeOriginInput) DOM.tradeOriginInput.value = route.origin;
-  if (DOM.tradeDestinationInput) DOM.tradeDestinationInput.value = route.destination;
-  if (DOM.tradeBuyPriceInput) DOM.tradeBuyPriceInput.value = route.buyPrice.toString();
-  if (DOM.tradeSellPriceInput) DOM.tradeSellPriceInput.value = route.sellPrice.toString();
-
-  updateTradeRiskBadge(route.risk);
-  calculateTradeMetrics();
-}
-
-function updateTradeRiskBadge(riskLevel) {
-  if (!DOM.tradeRiskBadge) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  DOM.tradeRiskBadge.className = `trade-risk-badge ${riskLevel || 'safe'}`;
-  if (riskLevel === 'extreme') {
-    DOM.tradeRiskBadge.textContent = t.riskExtreme || '🔴 Extrême (Hors-la-loi / Pyro)';
-  } else if (riskLevel === 'moderate') {
-    DOM.tradeRiskBadge.textContent = t.riskModerate || '🟡 Modéré (Risque Mantis)';
-  } else {
-    DOM.tradeRiskBadge.textContent = t.riskSafe || '🟢 Sécurisé (Zone Armistice)';
-  }
-}
-
-function calculateTradeMetrics() {
-  const locale = getLocale();
-  const scu = parseFloat(DOM.tradeCargoScuInput?.value) || 0;
-  const buyPrice = parseFloat(DOM.tradeBuyPriceInput?.value) || 0;
-  const sellPrice = parseFloat(DOM.tradeSellPriceInput?.value) || 0;
-
-  const capitalRequired = Math.round(scu * buyPrice * 100);
-  const grossReturn = Math.round(scu * sellPrice * 100);
-  const netProfit = grossReturn - capitalRequired;
-  const marginPerScu = Math.round((sellPrice - buyPrice) * 100);
-  const roi = buyPrice > 0 ? (((sellPrice - buyPrice) / buyPrice) * 100).toFixed(1) : '0.0';
-
-  if (DOM.tradeCapitalRequiredVal) {
-    DOM.tradeCapitalRequiredVal.textContent = `${capitalRequired.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.tradeGrossReturnVal) {
-    DOM.tradeGrossReturnVal.textContent = `${grossReturn.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.tradeNetProfitVal) {
-    DOM.tradeNetProfitVal.textContent = `${netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString(locale)} aUEC`;
-    DOM.tradeNetProfitVal.style.color = netProfit >= 0 ? 'var(--accent-cyan)' : '#f87171';
-  }
-  if (DOM.tradeMarginPerScuVal) {
-    DOM.tradeMarginPerScuVal.textContent = `${marginPerScu >= 0 ? '+' : ''}${marginPerScu.toLocaleString(locale)} aUEC`;
-  }
-  if (DOM.tradeRoiPercentVal) {
-    DOM.tradeRoiPercentVal.textContent = `${roi >= 0 ? '+' : ''}${roi}%`;
-  }
-}
-
-function financeTradeFromTreasury() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const scu = parseFloat(DOM.tradeCargoScuInput?.value) || 0;
-  const buyPrice = parseFloat(DOM.tradeBuyPriceInput?.value) || 0;
-  const capitalRequired = Math.round(scu * buyPrice * 100);
-
-  if (capitalRequired <= 0) {
-    showToast('Montant du capital requis invalide.');
-    sfx.playWarning();
-    return;
-  }
-
-  if (capitalRequired > state.guildTreasuryBalance) {
-    sfx.playWarning();
-    showToast(`Trésorerie insuffisante ! Requis : ${capitalRequired.toLocaleString(locale)} aUEC (Solde : ${state.guildTreasuryBalance.toLocaleString(locale)} aUEC)`);
-    return;
-  }
-
-  state.guildTreasuryBalance -= capitalRequired;
-  saveGuildTreasury();
-  renderGuildTreasury();
-
-  // Log as corpo expense / advance
-  const commId = DOM.tradeCommoditySelect ? DOM.tradeCommoditySelect.value : 'goods';
-  const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === commId);
-  const commName = comm ? (getLocalized(comm, 'name') || comm.name_fr) : commId;
-
-  const expenseItem = {
-    id: 'trade_exp_' + Date.now(),
-    category: 'other',
-    amount: capitalRequired,
-    author: state.callsign || 'CITIZEN-1',
-    location: DOM.tradeOriginInput ? DOM.tradeOriginInput.value : 'Origine Fret',
-    note: `Avance Trésorerie Achat Cargo : ${scu} SCU ${commName}`,
-    timestamp: Date.now()
-  };
-  state.guildExpenses.unshift(expenseItem);
-  saveGuildExpenses();
-  renderGuildExpenses();
-  updateGuildNetWorthMetrics();
-
-  sfx.playSuccess();
-  triggerHaptic(25);
-  showToast(t.toastTradeFinanced || '🏦 Achat financé avec succès depuis la trésorerie de guilde !');
-  broadcastTreasuryToFleet(true);
-}
-
-function addTradeRunToStockpile() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const scu = parseFloat(DOM.tradeCargoScuInput?.value) || 0;
-  const buyPrice = parseFloat(DOM.tradeBuyPriceInput?.value) || 0;
-  const sellPrice = parseFloat(DOM.tradeSellPriceInput?.value) || 0;
-  const origin = DOM.tradeOriginInput ? DOM.tradeOriginInput.value : 'Station Fret';
-  const commId = DOM.tradeCommoditySelect ? DOM.tradeCommoditySelect.value : 'goods';
-
-  if (scu <= 0) {
-    showToast('Volume SCU invalide.');
-    return;
-  }
-
-  const comm = (MINING_DATA.generalCommodities || []).find(c => c.id === commId);
-  const commName = comm ? (getLocalized(comm, 'name') || comm.name_fr) : commId;
-  const capitalRequired = Math.round(scu * buyPrice * 100);
-  const grossReturn = Math.round(scu * sellPrice * 100);
-
-  const newLot = {
-    id: 'trade_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-    category: 'commodity',
-    stationId: origin.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 20),
-    stationName: origin,
-    mineralId: commId,
-    mineralName: commName,
-    scu: scu,
-    unitBuyCost: buyPrice,
-    status: 'refined_ready',
-    rawVal: capitalRequired,
-    refinedVal: grossReturn,
-    depositedBy: state.callsign || 'CITIZEN-1',
-    timestamp: Date.now()
-  };
-
-  state.guildStockpile.unshift(newLot);
-  saveGuildStockpile();
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  const msg = (t.toastTradeDeposited || '📥 Cargaison de {scu} SCU ({commodity}) ajoutée à l\'inventaire de guilde !')
-    .replace('{scu}', scu)
-    .replace('{commodity}', commName);
-  showToast(msg);
-
-  broadcastStockpileToFleet(true);
-}
-
-function renderPopularTradeRoutes() {
-  if (!DOM.popularTradeRoutesGrid) return;
-  const locale = getLocale();
-  DOM.popularTradeRoutesGrid.innerHTML = '';
-
-  (MINING_DATA.popularTradeRoutes || []).forEach(route => {
-    const item = document.createElement('div');
-    item.className = 'trade-route-item';
-
-    const riskClass = route.risk || 'safe';
-    const riskLabel = riskClass === 'extreme' ? '🔴 Extrême' : (riskClass === 'moderate' ? '🟡 Modéré' : '🟢 Sûr');
-
-    item.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-        <strong style="color:#fff; font-family:var(--font-hud); font-size:0.83rem;">${escapeHtml(route.name)}</strong>
-        <span class="trade-risk-badge ${riskClass}" style="font-size:0.65rem; padding:1px 5px;">${riskLabel}</span>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:var(--text-muted);">
-        <span>Achat: ${route.buyPrice} ➔ Vente: ${route.sellPrice} aUEC</span>
-        <strong style="font-family:var(--font-mono); color:var(--accent-emerald);">+${route.marginPerScu.toLocaleString(locale)} aUEC/SCU</strong>
-      </div>
-    `;
-
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.trade-route-item').forEach(el => el.classList.remove('selected'));
-      item.classList.add('selected');
-      loadTradePresetRoute(route.id);
-      sfx.playBeep(650, 'sine', 0.04);
-    });
-
-    DOM.popularTradeRoutesGrid.appendChild(item);
-  });
-}
-
-function broadcastTradeToFleet(silent = false) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (fleetNet && fleetNet.status === 'connected') {
-    const payload = {
-      routeId: DOM.tradePresetRouteSelect ? DOM.tradePresetRouteSelect.value : null,
-      commodityId: DOM.tradeCommoditySelect ? DOM.tradeCommoditySelect.value : null,
-      origin: DOM.tradeOriginInput ? DOM.tradeOriginInput.value : null,
-      destination: DOM.tradeDestinationInput ? DOM.tradeDestinationInput.value : null,
-      buyPrice: parseFloat(DOM.tradeBuyPriceInput?.value) || 0,
-      sellPrice: parseFloat(DOM.tradeSellPriceInput?.value) || 0,
-      scu: parseFloat(DOM.tradeCargoScuInput?.value) || 0,
-      timestamp: Date.now()
-    };
-    const sent = fleetNet.broadcastCorpoTradeSync(payload);
-    if (sent && !silent) {
-      showToast(t.toastTradeSync || '📡 Routes de trading et cargaisons synchronisées avec la flotte !');
-      sfx.playSuccess();
-    }
-  } else if (!silent) {
-    showToast('FLEET-NET non connecté. Rejoignez une escadre pour synchroniser le trading.');
-  }
-}
-
-function handleIncomingCorpoTradeSync(tradeSync, senderCallsign) {
-  if (!tradeSync) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-
-  if (DOM.tradeOriginInput && tradeSync.origin) DOM.tradeOriginInput.value = tradeSync.origin;
-  if (DOM.tradeDestinationInput && tradeSync.destination) DOM.tradeDestinationInput.value = tradeSync.destination;
-  if (DOM.tradeBuyPriceInput && tradeSync.buyPrice) DOM.tradeBuyPriceInput.value = tradeSync.buyPrice.toString();
-  if (DOM.tradeSellPriceInput && tradeSync.sellPrice) DOM.tradeSellPriceInput.value = tradeSync.sellPrice.toString();
-  if (DOM.tradeCargoScuInput && tradeSync.scu) DOM.tradeCargoScuInput.value = tradeSync.scu.toString();
-  if (DOM.tradeCommoditySelect && tradeSync.commodityId) DOM.tradeCommoditySelect.value = tradeSync.commodityId;
-
-  calculateTradeMetrics();
-  sfx.playBeep(700, 'sine', 0.05);
-
-  const msg = (t.toastTradeSync || '📡 Route de trading partagée par {callsign} !')
-    .replace('{callsign}', senderCallsign || 'Négociant');
-  showToast(msg);
-}
-
-// ----------------------------------------------------
-// REFINING JOBS & DESKTOP TIMERS
-// ----------------------------------------------------
-function addRefineryJobFromHold() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (state.holdSCU <= 0 && state.sessionLog.length === 0) {
-    sfx.playWarning();
-    showToast(t.toastHoldEmpty || 'Soute vide.');
-    return;
-  }
-
-  populateRefineryModalSelects();
-  switchStockpileTab('refining');
-  openModal(DOM.refineryModal);
-}
-
-function confirmCreateRefineryJob() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const stationId = DOM.refineryOrderStationSelect ? DOM.refineryOrderStationSelect.value : 'arc_l1';
-  const methodId = DOM.refineryOrderMethodSelect ? DOM.refineryOrderMethodSelect.value : 'dinyx';
-
-  const station = MINING_DATA.refineryStations.find(s => s.id === stationId) || MINING_DATA.refineryStations[0];
-  const method = MINING_DATA.refiningMethods.find(m => m.id === methodId) || MINING_DATA.refiningMethods[0];
-
-  const totalSCU = state.holdSCU > 0 ? state.holdSCU : 10.0;
-  const totalRaw = state.sessionLog.reduce((acc, x) => acc + x.rawVal, 0) || 150000;
-  const bonus = (station.bonusMineral === state.selectedMineral.id) ? (1 + station.bonusRate) : 1.0;
-  const refinedVal = Math.round(totalRaw * method.yieldRate * 1.85 * bonus);
-
-  const durationSec = Math.max(30, Math.round(totalSCU * (method.durationHoursPerSCU || 0.3) * 60));
-  const now = Date.now();
-
-  const newJob = {
-    id: 'job_' + now,
-    stationId: station.id,
-    stationName: station.name,
-    methodId: method.id,
-    methodName: method.name,
-    mineral: state.sessionLog[0]?.mineral || getLocalized(state.selectedMineral, 'name'),
-    scu: totalSCU,
-    rawVal: totalRaw,
-    refinedVal: refinedVal,
-    startTime: now,
-    endTime: now + (durationSec * 1000),
-    durationSec: durationSec,
-    completed: false,
-    collected: false,
-    pushNotified: false
-  };
-
-  state.refineryJobs.unshift(newJob);
-  saveRefineryJobs();
-
-  // Also add to guild stockpile as in-refining lot
-  const stockLot = {
-    id: 'lot_' + now,
-    stationId: station.id,
-    stationName: station.name,
-    mineralId: state.selectedMineral.id,
-    mineralName: newJob.mineral,
-    scu: parseFloat(totalSCU.toFixed(1)),
-    status: 'refining',
-    methodName: method.name,
-    rawVal: totalRaw,
-    refinedVal: refinedVal,
-    depositedBy: state.callsign || 'CITIZEN-1',
-    timestamp: now
-  };
-  state.guildStockpile.unshift(stockLot);
-  saveGuildStockpile();
-
-  // Empty ship hold
-  clearHold();
-
-  renderRefineryJobs();
-  renderGuildStockpile();
-  updateGuildNetWorthMetrics();
-  updateRefineryBadge();
-  sfx.playSuccess();
-  triggerHaptic(20);
-
-  showToast(t.toastRefinerySubmitted || 'Commande de raffinage lancée avec succès !');
-
-  if (fleetNet && fleetNet.status === 'connected') {
-    fleetNet.broadcastCorpoStockSync({
-      action: 'deposit',
-      lot: stockLot,
-      allLots: state.guildStockpile
-    });
-  }
-}
-
-function startRefineryTimerLoop() {
-  if (state.refineryIntervalId) clearInterval(state.refineryIntervalId);
-  state.refineryIntervalId = setInterval(() => {
-    tickRefineryJobs();
-  }, 1000);
-}
-
-function tickRefineryJobs() {
-  if (state.refineryJobs.length === 0) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const now = Date.now();
-  let updated = false;
-
-  state.refineryJobs.forEach(job => {
-    if (!job.completed && now >= job.endTime) {
-      job.completed = true;
-      updated = true;
-
-      // Update matching lot in guild stockpile to ready
-      const matchingLot = state.guildStockpile.find(l => l.id === job.id);
-      if (matchingLot) {
-        matchingLot.status = 'refined_ready';
-        saveGuildStockpile();
-        renderGuildStockpile();
-        updateGuildNetWorthMetrics();
-      }
-
-      // Send desktop Web Push Notification & Cockpit audio
-      if (!job.pushNotified) {
-        job.pushNotified = true;
-        const pushTitle = (t.toastPushReadyTitle || '🔔 Raffinerie {station}').replace('{station}', job.stationName);
-        const pushBody = (t.toastPushReadyBody || 'Votre commande de {scu} SCU de {mineral} est prête au chargement !')
-          .replace('{scu}', job.scu.toFixed(1))
-          .replace('{mineral}', job.mineral);
-        sendDesktopPushNotification(pushTitle, pushBody);
-      }
-    }
-  });
-
-  if (updated) {
-    saveRefineryJobs();
-  }
-  renderRefineryJobs();
-  updateRefineryBadge();
-}
-
-function collectRefineryJob(jobId) {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const job = state.refineryJobs.find(j => j.id === jobId);
-  if (!job) return;
-
-  job.collected = true;
-  addLedgerEntry('refinery', job.mineral, job.scu, job.refinedVal, job.stationName);
-  state.refineryJobs = state.refineryJobs.filter(j => j.id !== jobId);
-  saveRefineryJobs();
-
-  // Mark lot ready or sold in stockpile
-  const stockLot = state.guildStockpile.find(l => l.id === jobId);
-  if (stockLot) {
-    stockLot.status = 'refined_ready';
-    saveGuildStockpile();
-    renderGuildStockpile();
-    updateGuildNetWorthMetrics();
-  }
-
-  renderRefineryJobs();
-  updateRefineryBadge();
-  updateLedgerDisplay();
-  sfx.playSuccess();
-  triggerHaptic(25);
-
-  const msg = (t.toastRefineryCollectedVal || 'Lot récupéré ! +{auec} aUEC')
-    .replace('{auec}', job.refinedVal.toLocaleString(getLocale()));
-  showToast(msg);
-}
-
-function renderRefineryJobs() {
-  if (!DOM.refineryJobsList) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const now = Date.now();
-
-  const activeJobs = state.refineryJobs.filter(j => !j.collected);
-  if (DOM.refineryActiveCount) {
-    DOM.refineryActiveCount.textContent = `${activeJobs.length} ${activeJobs.length > 1 ? (t.refineryBatchPlural || 'Lots') : (t.refineryBatchSingle || 'Lot')}`;
-  }
-  const totalRefVal = activeJobs.reduce((acc, j) => acc + j.refinedVal, 0);
-  if (DOM.refineryTotalValueDisplay) {
-    DOM.refineryTotalValueDisplay.textContent = `${totalRefVal.toLocaleString(locale)} aUEC`;
-  }
-
-  DOM.refineryJobsList.innerHTML = '';
-  if (activeJobs.length === 0) {
-    DOM.refineryJobsList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px;">${t.noActiveJobs || 'Aucune commande de raffinage active.'}</div>`;
-    return;
-  }
-
-  activeJobs.forEach(job => {
-    const isReady = now >= job.endTime || job.completed;
-    const remainingSec = Math.max(0, Math.round((job.endTime - now) / 1000));
-    const elapsedSec = job.durationSec - remainingSec;
-    const pct = isReady ? 100 : Math.min(100, Math.round((elapsedSec / job.durationSec) * 100));
-
-    const card = document.createElement('div');
-    card.className = `refinery-job-card ${isReady ? 'job-ready' : ''}`;
-
-    let timerHtml = '';
-    if (isReady) {
-      timerHtml = `<span class="refinery-timer-badge ready">${t.refineryJobReady || '🟢 PRÊT AU CHARGEMENT'}</span>`;
-    } else {
-      const min = Math.floor(remainingSec / 60);
-      const sec = remainingSec % 60;
-      timerHtml = `<span class="refinery-timer-badge">⏱️ ${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')} (${pct}%)</span>`;
-    }
-
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <strong style="color:#fff; font-family:var(--font-hud); font-size:0.88rem;">${job.stationName}</strong>
-          <div style="color:var(--text-muted); font-size:0.75rem;">${job.methodName} • ${job.mineral} (${job.scu.toFixed(1)} SCU)</div>
+function openOCRDrawer() {
+  openInspector({
+    title: 'Import OCR de Terminal',
+    subtitle: 'Capture terminal_ARC-L1.png · reconnaissance optique',
+    body: `
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div style="border:2px dashed rgba(255,255,255,0.15); padding:24px; text-align:center; border-radius:6px; background:rgba(255,255,255,0.02); cursor:pointer;">
+          <div style="font-size:1.6rem; margin-bottom:6px;">📸</div>
+          <div style="font-weight:600; color:#fff; font-size:0.85rem;">capture_terminal_ARC-L1.png</div>
+          <div style="font-size:0.75rem; color:var(--text-dim); margin-top:2px;">Terminal de raffinage ARC-L1 · Reconnu</div>
         </div>
-        ${timerHtml}
-      </div>
-      <div class="refinery-progress-bar">
-        <div class="refinery-progress-fill ${isReady ? 'ready' : ''}" style="width:${pct}%"></div>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-        <span style="font-family:var(--font-mono); font-size:0.85rem; color:var(--accent-emerald); font-weight:700;">
-          +${job.refinedVal.toLocaleString(locale)} aUEC
-        </span>
-        ${isReady ? `<button class="btn-collect-job" data-collect-id="${job.id}">${t.btnCollectJob || 'Récupérer'}</button>` : `<span style="font-size:0.75rem; color:var(--text-muted);">${t.refineryJobInProgress || 'En cours...'}</span>`}
-      </div>
-    `;
 
-    const collectBtn = card.querySelector('.btn-collect-job');
-    if (collectBtn) {
-      collectBtn.addEventListener('click', () => {
-        collectRefineryJob(job.id);
+        <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">LIGNES EXTRAITES :</div>
+        <table class="vo-table">
+          <thead>
+            <tr>
+              <th>Minerai</th>
+              <th>Volume</th>
+              <th>Confiance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="val-bold">Laranite</td>
+              <td class="val-green">12,4 SCU</td>
+              <td><span class="vo-badge green">98 %</span></td>
+            </tr>
+            <tr>
+              <td class="val-bold">Copper</td>
+              <td class="val-green">8,0 SCU</td>
+              <td><span class="vo-badge green">96 %</span></td>
+            </tr>
+            <tr style="background:rgba(245,158,11,0.12);">
+              <td class="val-bold" style="color:var(--accent-amber);">Bexalite ?</td>
+              <td style="font-weight:700; color:var(--accent-amber);">3,? SCU</td>
+              <td><span class="vo-badge amber">61 % (à vérifier)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `,
+    footer: `
+      <button type="button" class="vo-btn primary" id="btnConfirmOCRModal" style="width:100%;">
+        Valider et synchroniser l'inventaire
+      </button>
+    `
+  });
+
+  document.getElementById('btnConfirmOCRModal')?.addEventListener('click', () => {
+    showToast('✓ 20.4 SCU importés avec succès depuis ARC-L1 !');
+    closeInspector();
+    renderInventoryTable();
+  });
+}
+
+// ============================================================================
+// 6. RENDU : CALCULATEUR DE ROCHER & MINAGE (AARON MFD)
+// Connecté en temps réel au vaisseau actif, à ses tourelles, lasers et modules
+// ============================================================================
+// ============================================================================
+// 6. CALCULATEUR MINIER AARON MFD (SCANNER GÉOLOGIQUE SC 4.10.2)
+// Type de roche (Archétypes), 1 ou 2 minerais max + matériaux inertes automatiques
+// ============================================================================
+let currentMiningScan = {
+  archetypeId: 'basalt',
+  massKg: 18420,
+  resistance: 55,
+  instability: 40,
+  quality: 780,
+  mineral1Id: 'quantainium',
+  pct1: 28,
+  mineral2Id: 'bexalite',
+  pct2: 14,
+  composition: miningCalc.buildRockComposition('quantainium', 28, 'bexalite', 14)
+};
+
+let currentMiningFiringMode = 'all'; // 't1', 't1_t2', ou 'all'
+let quantaniumTimerInterval = null;
+let quantaniumSecondsLeft = 15 * 60; // 15:00 par défaut
+
+function renderMiningActiveShipBanner() {
+  const activeShipEntry = fleetService.getActiveShip();
+  const cap = miningCalc.computeShipMiningCapabilities(activeShipEntry, currentMiningFiringMode);
+
+  const nameEl = document.getElementById('miningBannerShipName');
+  const cargoBadge = document.getElementById('miningBannerCargoBadge');
+  const summaryEl = document.getElementById('miningBannerTurretsSummary');
+  const powerBadge = document.getElementById('miningBannerPowerBadge');
+  const resBadge = document.getElementById('miningBannerResBadge');
+  const optWinBadge = document.getElementById('miningBannerOptWinBadge');
+  const firingContainer = document.getElementById('miningFiringModeContainer');
+
+  if (nameEl) {
+    nameEl.textContent = `${cap.shipName} « ${cap.nickname} »`;
+  }
+  if (cargoBadge) {
+    cargoBadge.textContent = `Soute : ${cap.cargoSCU} SCU`;
+  }
+  if (powerBadge) {
+    powerBadge.textContent = `⚡ ${cap.totalPowerWatts.toLocaleString('fr-FR')} W`;
+  }
+  if (resBadge) {
+    resBadge.textContent = `🛡 -${cap.resistanceReductionPct}% rés.`;
+  }
+  if (optWinBadge) {
+    optWinBadge.textContent = `🎯 Fenêtre ${cap.optimalWindowModPct >= 0 ? '+' : ''}${cap.optimalWindowModPct}%`;
+  }
+
+  if (summaryEl) {
+    if (cap.turrets && cap.turrets.length > 0) {
+      summaryEl.textContent = cap.turrets.map(t => {
+        const prefix = cap.turrets.length > 1 ? `T${t.index}` : 'Tête';
+        const mods = t.modules.length ? ` [${t.modules.join(', ')}]` : '';
+        const op = t.operator ? ` (${t.operator})` : '';
+        return `${prefix}: ${t.laserName}${mods}${op}`;
+      }).join(' · ');
+    } else {
+      summaryEl.textContent = 'Aucune tête laser équipée (Vaisseau de support / fret)';
+    }
+  }
+
+  // Sélecteur multi-tourelles pour MOLE, Arrastra, Orion
+  if (firingContainer) {
+    if (cap.turretCount > 1) {
+      firingContainer.style.display = 'flex';
+      firingContainer.querySelectorAll('.firing-chip').forEach(btn => {
+        const mode = btn.getAttribute('data-mode');
+        btn.classList.toggle('active', mode === currentMiningFiringMode);
       });
+    } else {
+      firingContainer.style.display = 'none';
     }
+  }
 
-    DOM.refineryJobsList.appendChild(card);
+  return cap;
+}
+
+let isMiningMineralsPopulated = false;
+function populateMiningMineralSelects() {
+  const m1Select = document.getElementById('miningMineral1Select');
+  const m2Select = document.getElementById('miningMineral2Select');
+  if (!m1Select || !m2Select || isMiningMineralsPopulated) return;
+
+  const sortedMinerals = [...MINERALS].sort((a, b) => {
+    const nameA = (a.name_fr || a.name || '').toLowerCase();
+    const nameB = (b.name_fr || b.name || '').toLowerCase();
+    return nameA.localeCompare(nameB);
   });
+
+  const m1OptionsHtml = sortedMinerals.map(m => {
+    const sym = m.symbol ? ` [${m.symbol}]` : '';
+    const vol = m.isVolatile ? ' ⚠️' : '';
+    return `<option value="${m.id}">${m.name_fr || m.name}${sym}${vol} · ${m.rawPrice} aUEC</option>`;
+  }).join('');
+  m1Select.innerHTML = m1OptionsHtml;
+
+  const m2OptionsHtml = '<option value="">— Aucun (Rocher mono-minerai) —</option>' + sortedMinerals.map(m => {
+    const sym = m.symbol ? ` [${m.symbol}]` : '';
+    const vol = m.isVolatile ? ' ⚠️' : '';
+    return `<option value="${m.id}">${m.name_fr || m.name}${sym}${vol} · ${m.rawPrice} aUEC</option>`;
+  }).join('');
+  m2Select.innerHTML = m2OptionsHtml;
+
+  isMiningMineralsPopulated = true;
 }
 
-function updateRefineryBadge() {
-  if (!DOM.refineryBadge) return;
-  const count = state.refineryJobs.filter(j => !j.collected).length;
-  if (count > 0) {
-    DOM.refineryBadge.textContent = count;
-    DOM.refineryBadge.style.display = 'inline-flex';
-  } else {
-    DOM.refineryBadge.style.display = 'none';
+function renderMiningScannerUI() {
+  populateMiningMineralSelects();
+
+  // 1. Archétype de roche géologique
+  const rockSelect = document.getElementById('miningRockTypeSelect');
+  const rockBadge = document.getElementById('miningRockTypeBadge');
+  const rockNotes = document.getElementById('miningRockTypeNotes');
+
+  if (rockSelect && currentMiningScan.archetypeId) {
+    rockSelect.value = currentMiningScan.archetypeId;
   }
 
-  if (DOM.dockRefineryBadge) {
-    if (count > 0) {
-      DOM.dockRefineryBadge.textContent = count;
-      DOM.dockRefineryBadge.style.display = 'inline-flex';
-    } else {
-      DOM.dockRefineryBadge.style.display = 'none';
-    }
-  }
-}
-
-function saveRefineryJobs() {
-  try {
-    localStorage.setItem('aaron_mfd_refinery_jobs', JSON.stringify(state.refineryJobs));
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-function loadRefineryJobs() {
-  try {
-    const raw = localStorage.getItem('aaron_mfd_refinery_jobs');
-    if (raw) {
-      state.refineryJobs = JSON.parse(raw) || [];
-      renderRefineryJobs();
-      updateRefineryBadge();
-    }
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-// ==========================================
-// FEATURE 3: SMART GADGET & MODULE ADVISOR
-// ==========================================
-function updateGadgetAdvice(powerRatio, totalLaserPower, requiredPower) {
-  if (!DOM.gadgetAdviceCard) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-
-  state.recommendedGadgetId = null;
-  state.recommendedModuleId = null;
-
-  if (powerRatio < 0.88) {
-    DOM.gadgetAdviceCard.style.display = 'block';
-
-    const effResWithSabir = Math.max(0, state.resistance * (1 - 0.50));
-    const reqPwrWithSabir = (state.rockMass * 0.32) * (1 + (effResWithSabir / 100));
-    const sabirRatio = totalLaserPower / Math.max(1, reqPwrWithSabir);
-
-    if (sabirRatio >= 1.15) {
-      state.recommendedGadgetId = 'sabir';
-      DOM.gadgetAdviceText.textContent = t.adviceSabir.replace('{pct}', Math.round(sabirRatio * 100));
-    } else {
-      state.recommendedGadgetId = 'boremax';
-      DOM.gadgetAdviceText.textContent = t.adviceBoremax;
-    }
-
-    if (state.selectedShip.id === 'mole' && state.moleActiveTurrets < 3) {
-      const neededTurrets = state.moleActiveTurrets + 1;
-      const moleCombinedPower = Math.round(totalLaserPower * (neededTurrets / state.moleActiveTurrets));
-      DOM.gadgetAdviceText.textContent += ' ' + t.adviceMoleTurret
-        .replace('{count}', neededTurrets)
-        .replace('{lasers}', `${neededTurrets}x S2`)
-        .replace('{pwr}', moleCombinedPower.toLocaleString(locale));
-    }
-  } else if (state.instability >= 60) {
-    DOM.gadgetAdviceCard.style.display = 'block';
-    state.recommendedGadgetId = 'stalwart';
-    DOM.gadgetAdviceText.textContent = t.adviceStalwart.replace('{inst}', state.instability);
-  } else if (powerRatio >= 0.88 && powerRatio < 1.15) {
-    DOM.gadgetAdviceCard.style.display = 'block';
-    state.recommendedModuleId = 'surge';
-    DOM.gadgetAdviceText.textContent = t.adviceSurge;
-  } else {
-    DOM.gadgetAdviceCard.style.display = 'none';
-  }
-}
-
-function applyRecommendedAdvice() {
-  if (state.recommendedGadgetId) {
-    const g = MINING_DATA.gadgets.find(x => x.id === state.recommendedGadgetId);
-    if (g) {
-      state.selectedGadget = g;
-      if (DOM.gadgetSelect) DOM.gadgetSelect.value = g.id;
-    }
-  }
-  if (state.recommendedModuleId) {
-    const m = MINING_DATA.modules.find(x => x.id === state.recommendedModuleId);
-    if (m) {
-      state.selectedModules[0] = m.id;
-      const turrets = getShipTurretConfigs(state.selectedShip.id);
-      if (turrets.length > 0 && Array.isArray(turrets[0].moduleIds)) {
-        turrets[0].moduleIds[0] = m.id;
+  const arch = (miningCalc.ROCK_ARCHETYPES_CONFIG || []).find(a => a.id === currentMiningScan.archetypeId);
+  if (arch) {
+    if (rockNotes) rockNotes.textContent = arch.notes_fr;
+    if (rockBadge) {
+      if (arch.baseResistance > 50) {
+        rockBadge.textContent = 'Haute Résistance';
+        rockBadge.className = 'vo-badge amber';
+      } else if (arch.baseInstability > 50) {
+        rockBadge.textContent = 'Haute Instabilité';
+        rockBadge.className = 'vo-badge red';
+      } else {
+        rockBadge.textContent = 'Densité Élevée';
+        rockBadge.className = 'vo-badge cyan';
       }
-      renderShipTurretsConfig();
     }
   }
-  if (state.selectedShip.id === 'mole' && state.moleActiveTurrets < 3) {
-    state.moleActiveTurrets = Math.min(3, state.moleActiveTurrets + 1);
-    document.querySelectorAll('[data-mole-turret]').forEach(btn => {
-      btn.classList.toggle('active', parseInt(btn.dataset.moleTurret, 10) === state.moleActiveTurrets);
-    });
-  }
-  updateLoadoutButtonSummary();
-  calculateAll();
-  sfx.playSuccess();
-  triggerHaptic(20);
-}
 
-// ==========================================
-// FEATURE 4: ROC GEM CLUSTER MODE
-// ==========================================
-function updateRocCluster() {
-  if (!DOM.rocClusterBox) return;
-  const isROC = state.selectedShip.id === 'roc';
-  DOM.rocClusterBox.style.display = isROC ? 'block' : 'none';
+  // 2. Paramètres physiques
+  const massInput = document.getElementById('miningInputMass');
+  const massSlider = document.getElementById('miningSliderMass');
+  if (massInput && massInput !== document.activeElement) massInput.value = currentMiningScan.massKg;
+  if (massSlider && massSlider !== document.activeElement) massSlider.value = Math.min(60000, currentMiningScan.massKg);
 
-  if (!isROC) return;
-
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-  const totalGems = state.rocNodes * state.rocGemsPerNode;
-  const totalSCU = (totalGems / 1000).toFixed(2);
-  const gemVal = Math.round(totalGems * state.selectedMineral.rawPrice);
-  const rocMaxGems = 800; // 0.8 SCU
-  const fillPct = Math.round((totalGems / rocMaxGems) * 100);
-
-  if (DOM.rocNodesDisplay) DOM.rocNodesDisplay.textContent = t.rocNodesCountLabel.replace('{count}', state.rocNodes);
-  if (DOM.rocGemsPerNodeDisplay) DOM.rocGemsPerNodeDisplay.textContent = t.rocGemsPerNodeLabel.replace('{count}', state.rocGemsPerNode);
-  if (DOM.rocTotalGemsDisplay) {
-    DOM.rocTotalGemsDisplay.textContent = t.rocGemsCalcSummary.replace('{total}', totalGems.toLocaleString(locale)).replace('{scu}', totalSCU).replace('{val}', gemVal.toLocaleString(locale));
-  }
-  if (DOM.rocHoldStatusNote) {
-    DOM.rocHoldStatusNote.textContent = t.rocHoldStatusText.replace('{pct}', fillPct).replace('{total}', totalGems).replace('{max}', rocMaxGems);
-    DOM.rocHoldStatusNote.style.color = fillPct > 100 ? 'var(--accent-rose)' : 'var(--text-muted)';
-  }
-}
-
-function addRocClusterToHold() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  const totalGems = state.rocNodes * state.rocGemsPerNode;
-  const scu = Math.round((totalGems / 1000) * 10) / 10;
-  const mineral = state.selectedMineral;
-  const rawVal = Math.round(totalGems * mineral.rawPrice);
-  const locale = getLocale();
-
-  if (state.holdSCU + scu > state.selectedShip.scu) {
-    sfx.playWarning();
-    alert(t.alertRocCapacityExceeded.replace('{cur}', state.holdSCU.toFixed(1)));
-    return;
+  const instInput = document.getElementById('miningInputInstability');
+  const instSlider = document.getElementById('miningSliderInstability');
+  const instBadge = document.getElementById('miningInstabilityBadge');
+  if (instInput && instInput !== document.activeElement) instInput.value = currentMiningScan.instability;
+  if (instSlider && instSlider !== document.activeElement) instSlider.value = currentMiningScan.instability;
+  if (instBadge) {
+    instBadge.textContent = currentMiningScan.instability > 50 ? 'Haute' : (currentMiningScan.instability > 25 ? 'Moyenne' : 'Basse');
+    instBadge.className = `vo-badge ${currentMiningScan.instability > 50 ? 'red' : (currentMiningScan.instability > 25 ? 'amber' : 'green')}`;
   }
 
-  state.holdSCU = Math.round((state.holdSCU + scu) * 10) / 10;
+  const resInput = document.getElementById('miningInputResistance');
+  const resSlider = document.getElementById('miningSliderResistance');
+  if (resInput && resInput !== document.activeElement) resInput.value = currentMiningScan.resistance;
+  if (resSlider && resSlider !== document.activeElement) resSlider.value = currentMiningScan.resistance;
 
-  const logEntry = {
-    id: Date.now(),
-    mineralId: mineral.id,
-    mineral: getLocalized(mineral, 'name'),
-    color: mineral.color,
-    scu: scu,
-    isVolatile: false,
-    rawVal: rawVal,
-    time: new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-  };
-
-  state.sessionLog.unshift(logEntry);
-  addLedgerEntry('roc', logEntry.mineral, logEntry.scu, logEntry.rawVal);
-
-  saveSession();
-  updateHoldDisplay();
-  sfx.playSuccess();
-  triggerHaptic(20);
-  showToast(t.toastRocClusterLoaded.replace('{gems}', totalGems.toLocaleString(locale)));
-}
-
-// ==========================================
-// FEATURE 5: FLIGHT LEDGER & STATS
-// ==========================================
-function addLedgerEntry(type, mineral, scu, auec, station = '') {
-  const entry = {
-    id: Date.now(),
-    date: new Date().toISOString(),
-    type: type,
-    mineral: mineral,
-    scu: scu,
-    auec: auec,
-    station: station
-  };
-  state.ledgerHistory.unshift(entry);
-  saveLedger();
-  updateLedgerDisplay();
-}
-
-function updateLedgerDisplay() {
-  if (!DOM.ledgerRunsList) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const locale = getLocale();
-
-  let totalEarned = 0;
-  let todayEarned = 0;
-  let totalSCU = 0;
-  const todayStr = new Date().toISOString().slice(0, 10);
-
-  state.ledgerHistory.forEach(item => {
-    totalEarned += item.auec || 0;
-    totalSCU += item.scu || 0;
-    if (item.date && item.date.startsWith(todayStr)) {
-      todayEarned += item.auec || 0;
-    }
+  // Qualité du matériau géologique (SC 4.0)
+  const qInput = document.getElementById('miningInputQuality');
+  const qSlider = document.getElementById('miningSliderQuality');
+  const qBadge = document.getElementById('miningQualityBadge');
+  const curQ = typeof currentMiningScan.quality === 'number' ? currentMiningScan.quality : 780;
+  if (qInput && qInput !== document.activeElement) qInput.value = curQ;
+  if (qSlider && qSlider !== document.activeElement) qSlider.value = curQ;
+  if (qBadge && craftingService.getQualityTier) {
+    const tier = craftingService.getQualityTier(curQ);
+    qBadge.className = `quality-badge ${tier.badgeClass}`;
+    qBadge.textContent = `⭐ Q${curQ} ${tier.shortName}`;
+  }
+  document.querySelectorAll('.mining-quality-preset-btn[data-quality]').forEach(btn => {
+    const qVal = Number(btn.getAttribute('data-quality'));
+    btn.classList.toggle('active', Math.abs(qVal - curQ) < 30);
   });
 
-  const elapsedHours = Math.max(0.2, (Date.now() - state.sessionStartTime) / (1000 * 3600));
-  const hourlyRate = Math.round(todayEarned / elapsedHours);
+  // 3. Minerais 1 & 2
+  const m1Select = document.getElementById('miningMineral1Select');
+  const pct1Input = document.getElementById('miningPct1Input');
+  const pct1Slider = document.getElementById('miningPct1Slider');
+  const comp1Dot = document.getElementById('miningComp1Dot');
 
-  if (DOM.statTotalEarnedDisplay) DOM.statTotalEarnedDisplay.textContent = `${totalEarned.toLocaleString(locale)} aUEC`;
-  if (DOM.statTodayEarnedDisplay) DOM.statTodayEarnedDisplay.textContent = `${todayEarned.toLocaleString(locale)} aUEC`;
-  if (DOM.statTotalSCUDisplay) DOM.statTotalSCUDisplay.textContent = `${totalSCU.toFixed(1)} SCU`;
-  if (DOM.statRunsCountDisplay) DOM.statRunsCountDisplay.textContent = state.ledgerHistory.length;
-  if (DOM.statHourlyRateDisplay) DOM.statHourlyRateDisplay.textContent = `${hourlyRate.toLocaleString(locale)} aUEC/h`;
+  const m2Select = document.getElementById('miningMineral2Select');
+  const pct2Input = document.getElementById('miningPct2Input');
+  const pct2Slider = document.getElementById('miningPct2Slider');
+  const comp2Dot = document.getElementById('miningComp2Dot');
 
-  DOM.ledgerRunsList.innerHTML = '';
-  if (state.ledgerHistory.length === 0) {
-    DOM.ledgerRunsList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px;">${t.noLedgerEntries}</div>`;
-    return;
+  const min1 = MINERALS.find(m => m.id === currentMiningScan.mineral1Id) || MINERALS[0];
+  if (m1Select) m1Select.value = currentMiningScan.mineral1Id;
+  if (pct1Input && pct1Input !== document.activeElement) pct1Input.value = currentMiningScan.pct1;
+  if (pct1Slider && pct1Slider !== document.activeElement) pct1Slider.value = currentMiningScan.pct1;
+  if (comp1Dot) comp1Dot.style.backgroundColor = min1?.color || 'var(--accent-purple)';
+
+  const hasComp2 = Boolean(currentMiningScan.mineral2Id);
+  const min2 = hasComp2 ? MINERALS.find(m => m.id === currentMiningScan.mineral2Id) : null;
+  if (m2Select) m2Select.value = currentMiningScan.mineral2Id || '';
+
+  if (pct2Input) {
+    pct2Input.disabled = !hasComp2;
+    if (pct2Input !== document.activeElement) pct2Input.value = hasComp2 ? currentMiningScan.pct2 : 0;
   }
+  if (pct2Slider) {
+    pct2Slider.disabled = !hasComp2;
+    if (pct2Slider !== document.activeElement) pct2Slider.value = hasComp2 ? currentMiningScan.pct2 : 0;
+  }
+  if (comp2Dot) comp2Dot.style.backgroundColor = hasComp2 ? (min2?.color || 'var(--accent-cyan)') : '#64748b';
 
-  state.ledgerHistory.forEach(run => {
-    const dateFormatted = new Date(run.date).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const item = document.createElement('div');
-    item.className = 'ledger-run-item';
-    item.innerHTML = `
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:1.1rem;">${run.type === 'refinery' ? '🏭' : (run.type === 'roc' ? '🌸' : '💎')}</span>
-        <div>
-          <strong style="color:#fff;">${run.mineral}</strong>
-          <div style="color:var(--text-muted); font-size:0.75rem;">${dateFormatted} ${run.station ? '• ' + run.station : ''}</div>
+  // 4. Inerte (100 - Pct1 - Pct2)
+  const inertPct = Math.max(0, Math.round((100 - currentMiningScan.pct1 - (hasComp2 ? currentMiningScan.pct2 : 0)) * 10) / 10);
+  const inertLabel = document.getElementById('miningInertPctLabel');
+  const inertBar = document.getElementById('miningInertBar');
+  if (inertLabel) inertLabel.textContent = `${inertPct} %`;
+  if (inertBar) inertBar.style.width = `${inertPct}%`;
+
+  // 5. Rendu du HUD scanner (barres SC 4.10.2)
+  const hudContainer = document.getElementById('miningHudBarsContainer');
+  if (hudContainer) {
+    hudContainer.innerHTML = currentMiningScan.composition.map(item => `
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+          <span style="font-weight:600; color:${item.color || '#fff'}; display:flex; align-items:center; gap:5px;">
+            <span class="comp-dot" style="background-color:${item.color || '#94a3b8'}; width:7px; height:7px;"></span>
+            ${item.name}${item.isVolatile ? ' <span class="vo-badge red" style="font-size:0.6rem; padding:1px 4px;">VOLATILE</span>' : ''}
+          </span>
+          <span style="font-weight:700; color:#fff; font-size:0.8rem;">${item.pct} %</span>
+        </div>
+        <div class="vo-progress-track" style="width:100%; height:7px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
+          <div class="vo-progress-bar" style="width:${Math.max(0, Math.min(100, item.pct))}%; background-color:${item.color || 'var(--accent-cyan)'}; height:100%; transition:width 0.2s ease;"></div>
         </div>
       </div>
-      <div style="text-align:right;">
-        <div style="font-family:var(--font-mono); color:var(--accent-emerald); font-weight:700;">+${run.auec.toLocaleString(locale)} aUEC</div>
-        <div style="font-family:var(--font-mono); color:var(--text-muted); font-size:0.75rem;">${run.scu.toFixed(1)} SCU</div>
-      </div>
-    `;
-    DOM.ledgerRunsList.appendChild(item);
-  });
-}
-
-function exportLedgerJson() {
-  const jsonStr = JSON.stringify(state.ledgerHistory, null, 2);
-  const blob = new Blob([jsonStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `aaron-mfd-ledger-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  sfx.playSuccess();
-}
-
-function exportLedgerCsv() {
-  let csv = 'Timestamp,Type,Mineral,SCU,aUEC,Station\n';
-  state.ledgerHistory.forEach(r => {
-    csv += `"${r.date}","${r.type}","${r.mineral}",${r.scu},${r.auec},"${r.station || ''}"\n`;
-  });
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `aaron-mfd-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  sfx.playSuccess();
-}
-
-function clearLedgerHistory() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  if (confirm(t.confirmClearLedger)) {
-    state.ledgerHistory = [];
-    saveLedger();
-    updateLedgerDisplay();
-    sfx.playBeep(350, 'square', 0.08);
-  }
-}
-
-function saveLedger() {
-  try {
-    localStorage.setItem('aaron_mfd_ledger', JSON.stringify(state.ledgerHistory));
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-function loadLedger() {
-  try {
-    const raw = localStorage.getItem('aaron_mfd_ledger');
-    if (raw) {
-      state.ledgerHistory = JSON.parse(raw) || [];
-      updateLedgerDisplay();
-    }
-  } catch (e) {
-    console.warn(e);
-  }
-}
-
-// ==========================================
-// FEATURE 6: AARON HALO QT RANGEFINDER
-// ==========================================
-function populateHaloRangefinderSelect() {
-  if (!DOM.haloRouteSelect) return;
-  DOM.haloRouteSelect.innerHTML = '';
-  MINING_DATA.aaronHaloBands.forEach(band => {
-    const opt = document.createElement('option');
-    opt.value = band.id;
-    opt.textContent = `${band.route} (${getLocalized(band, 'band')})`;
-    DOM.haloRouteSelect.appendChild(opt);
-  });
-  DOM.haloRouteSelect.value = state.haloSelectedRouteId;
-}
-
-function updateHaloRangefinder() {
-  if (!DOM.haloRouteSelect || !DOM.haloCurrentDist) return;
-  const t = I18N[state.currentLang] || I18N.fr;
-  const routeId = DOM.haloRouteSelect.value;
-  state.haloSelectedRouteId = routeId;
-  const band = MINING_DATA.aaronHaloBands.find(b => b.id === routeId) || MINING_DATA.aaronHaloBands[0];
-
-  const currentDist = parseFloat(DOM.haloCurrentDist.value) || 0;
-  state.haloCurrentDist = currentDist;
-  const targetDist = band.targetDistanceMkm;
-  const diff = currentDist - targetDist;
-  const absDiff = Math.abs(diff);
-
-  if (DOM.rangefinderDiffDisplay) {
-    const sign = diff >= 0 ? '+' : '-';
-    DOM.rangefinderDiffDisplay.textContent = `${sign}${absDiff.toFixed(2)} M km`;
-    DOM.rangefinderDiffDisplay.style.color = absDiff <= 0.15 ? 'var(--accent-rose)' : (absDiff <= 1.2 ? 'var(--accent-amber)' : 'var(--accent-cyan)');
+    `).join('');
   }
 
-  if (DOM.rangefinderProgressFill) {
-    const maxSpan = 15;
-    const proximity = Math.max(0, Math.min(100, Math.round((1 - (absDiff / maxSpan)) * 100)));
-    DOM.rangefinderProgressFill.style.width = `${proximity}%`;
-    DOM.rangefinderProgressFill.classList.toggle('drop-now', absDiff <= 0.15);
+  const purityLabel = document.getElementById('miningPurityLabel');
+  const usefulPct = Math.round((currentMiningScan.pct1 + (hasComp2 ? currentMiningScan.pct2 : 0)) * 10) / 10;
+  if (purityLabel) {
+    purityLabel.textContent = `Pureté utile : ${usefulPct} %`;
+    purityLabel.style.color = usefulPct >= 30 ? 'var(--accent-green)' : (usefulPct >= 15 ? 'var(--accent-cyan)' : 'var(--text-muted)');
   }
 
-  if (DOM.rangefinderAlertText) {
-    if (absDiff <= 0.15) {
-      DOM.rangefinderAlertText.style.display = 'block';
-      DOM.rangefinderAlertText.className = 'rangefinder-alert-text alert-drop';
-      DOM.rangefinderAlertText.textContent = t.haloDropNow;
-    } else if (absDiff <= 1.2) {
-      DOM.rangefinderAlertText.style.display = 'block';
-      DOM.rangefinderAlertText.className = 'rangefinder-alert-text alert-approaching';
-      DOM.rangefinderAlertText.textContent = t.haloDropApproaching;
+  const totalStatusLabel = document.getElementById('miningTotalStatusLabel');
+  if (totalStatusLabel) {
+    const total = Math.round((currentMiningScan.pct1 + (hasComp2 ? currentMiningScan.pct2 : 0) + inertPct) * 10) / 10;
+    if (total === 100) {
+      totalStatusLabel.textContent = 'Total : 100 % (Équilibré)';
+      totalStatusLabel.style.color = 'var(--text-muted)';
     } else {
-      DOM.rangefinderAlertText.style.display = 'none';
+      totalStatusLabel.textContent = `Total : ${total} %`;
+      totalStatusLabel.style.color = 'var(--accent-amber)';
     }
   }
 }
 
-// ==========================================
-// SERVICE WORKER & OFFLINE PWA
-// ==========================================
-function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => {
-          console.log('[AARON MFD] ServiceWorker actif (v2.0.0):', reg.scope);
+function evaluateAndRenderMiningRock() {
+  const activeShipEntry = fleetService.getActiveShip();
+  const cap = miningCalc.computeShipMiningCapabilities(activeShipEntry, currentMiningFiringMode);
+  const evalResult = miningCalc.calculateLiveRockEvaluation(currentMiningScan, cap);
 
-          // Force update check
-          reg.update().catch(() => {});
+  // 0. VERDICT TACTIQUE & RENTABILITÉ DE FRACTURE
+  const prof = evalResult.profitability;
+  if (prof) {
+    const cardProf = document.getElementById('cardMiningProfitability');
+    const vIcon = document.getElementById('miningVerdictIcon');
+    const vTitle = document.getElementById('miningVerdictTitle');
+    const vBadge = document.getElementById('miningVerdictBadge');
+    const vScore = document.getElementById('miningProfitScoreBadge');
+    const vDesc = document.getElementById('miningVerdictDesc');
+    const mNet = document.getElementById('miningMetricNetGain');
+    const mUnit = document.getElementById('miningMetricUnitValue');
+    const mDiag = document.getElementById('miningMetricDiagnostic');
 
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[AARON MFD] Nouvelle version v2.0.0 disponible en cache.');
-                  const t = I18N[state.currentLang] || I18N.fr;
-                  showToast(t.toastCacheCleared || 'Mise à jour v2.0.0 disponible !');
-                }
-              });
+    if (cardProf) {
+      cardProf.className = `vo-card mining-verdict-card status-${prof.status}`;
+    }
+    if (vIcon) vIcon.textContent = prof.icon;
+    if (vTitle) {
+      vTitle.textContent = prof.title;
+      vTitle.style.color = (prof.status === 'great' || prof.status === 'good')
+        ? 'var(--accent-green)'
+        : (prof.status === 'meh' ? 'var(--accent-amber)' : 'var(--accent-red)');
+    }
+    if (vBadge) {
+      vBadge.textContent = prof.badgeText;
+      vBadge.className = `vo-badge ${prof.badgeClass}`;
+    }
+    if (vScore) {
+      vScore.textContent = `Score : ${prof.profitScore} / 100`;
+    }
+    if (vDesc) {
+      vDesc.textContent = prof.desc;
+      vDesc.style.borderLeftColor = (prof.status === 'great' || prof.status === 'good')
+        ? 'var(--accent-green)'
+        : (prof.status === 'meh' ? 'var(--accent-amber)' : 'var(--accent-red)');
+    }
+    if (mNet) {
+      mNet.textContent = prof.bestRefinedNet > 0 ? `+${prof.bestRefinedNet.toLocaleString('fr-FR')} aUEC` : '0 aUEC';
+      mNet.style.color = prof.isProfitable ? 'var(--accent-green)' : 'var(--accent-red)';
+    }
+    if (mUnit) {
+      mUnit.textContent = `${prof.unitValuePerSCU.toLocaleString('fr-FR')} aUEC / SCU`;
+    }
+    if (mDiag) {
+      mDiag.textContent = prof.tacticalDiagnostic;
+      mDiag.title = prof.tacticalDiagnostic;
+    }
+  }
+
+  // Résistance effective après lasers
+  const effResLabel = document.getElementById('miningEffectiveResLabel');
+  if (effResLabel) {
+    effResLabel.textContent = `Résistance effective : ${evalResult.effectiveResistance} % (brute : ${evalResult.resistance} % − lasers : ${cap.resistanceReductionPct} %)`;
+  }
+
+  // 1. KPI Faisabilité
+  const feasVal = document.getElementById('miningKpiFeasibilityVal');
+  const feasSub = document.getElementById('miningKpiFeasibilitySub');
+  const ratioLabel = document.getElementById('miningEnergyRatioLabel');
+  const gaugeBar = document.getElementById('miningFractureGaugeBar');
+
+  if (feasVal) {
+    feasVal.textContent = evalResult.verdictLabel;
+    feasVal.className = `kpi-main-val ${evalResult.verdictClass}`;
+  }
+  if (feasSub) {
+    feasSub.textContent = evalResult.summaryText;
+  }
+  if (ratioLabel) {
+    ratioLabel.textContent = `${Math.round(evalResult.powerRatio * 100)} %`;
+  }
+  if (gaugeBar) {
+    const pct = Math.min(100, Math.max(10, Math.round(evalResult.powerRatio * 80)));
+    gaugeBar.style.width = `${pct}%`;
+    gaugeBar.style.backgroundColor = evalResult.verdictClass === 'green'
+      ? 'var(--accent-green)'
+      : (evalResult.verdictClass === 'amber' ? 'var(--accent-amber)' : 'var(--accent-red)');
+  }
+
+  // 2. KPI Valeur Brute & Utilisation Soute
+  const grossVal = document.getElementById('miningKpiGrossVal');
+  const grossSub = document.getElementById('miningKpiGrossSub');
+  const cargoBar = document.getElementById('miningKpiCargoBar');
+  const cargoText = document.getElementById('miningKpiCargoText');
+
+  if (grossVal) {
+    grossVal.textContent = evalResult.rawGrossUEC.toLocaleString('fr-FR');
+  }
+  if (grossSub) {
+    grossSub.textContent = `aUEC · ${evalResult.usefulSCU} SCU de minerai utile`;
+  }
+  if (cargoBar) {
+    cargoBar.style.width = `${evalResult.cargoFillPct}%`;
+    cargoBar.style.backgroundColor = evalResult.cargoOverflow ? 'var(--accent-red)' : 'var(--accent-cyan)';
+  }
+  if (cargoText) {
+    cargoText.textContent = `Soute : ${evalResult.usefulSCU} / ${cap.cargoSCU} SCU (${evalResult.cargoFillPct} % de soute)${evalResult.cargoOverflow ? ' ⚠️ Dépassement soute !' : ''}`;
+    cargoText.style.color = evalResult.cargoOverflow ? 'var(--accent-red)' : 'var(--text-muted)';
+  }
+
+  // 3. KPI Risque Quantainium
+  const qStatus = document.getElementById('miningKpiQuantaStatus');
+  const qSub = document.getElementById('miningKpiQuantaSub');
+  const qCard = document.getElementById('cardKpiQuantanium');
+
+  if (qStatus) {
+    qStatus.textContent = evalResult.quantaniumRisk.label;
+    qStatus.className = `kpi-main-val ${evalResult.quantaniumRisk.class}`;
+  }
+  if (qSub) {
+    qSub.textContent = evalResult.quantaniumRisk.sub;
+  }
+  if (qCard) {
+    if (evalResult.quantaniumRisk.class === 'red') {
+      qCard.classList.add('pulse-red-glow');
+    } else {
+      qCard.classList.remove('pulse-red-glow');
+    }
+  }
+
+  // 4. Tableau Vendre ou Raffiner ?
+  const optStationBadge = document.getElementById('miningOptimalStationBadge');
+  if (optStationBadge) {
+    optStationBadge.textContent = `Station conseillée : ${evalResult.refineryMethods[0]?.location || 'CRU-L1'}`;
+  }
+
+  const tbody = document.getElementById('miningRefiningTableBody');
+  if (tbody) {
+    tbody.innerHTML = evalResult.refineryMethods.map(m => `
+      <tr class="${m.highlight ? 'highlight-green-row' : ''}">
+        <td class="val-bold" style="${m.highlight ? 'color:var(--accent-green);' : ''}">${m.option}</td>
+        <td>${m.location}</td>
+        <td>${m.yieldPct !== undefined ? `${m.yieldPct} %` : '—'}</td>
+        <td>${m.durationText}</td>
+        <td style="color:${m.cost < 0 ? 'var(--accent-amber)' : 'inherit'};">${m.cost !== 0 ? m.cost.toLocaleString('fr-FR') : '0'}</td>
+        <td class="val-green">${m.net > 0 ? `+${m.net.toLocaleString('fr-FR')}` : m.net.toLocaleString('fr-FR')}</td>
+        <td>${m.tag ? `<span class="vo-badge ${m.tagClass || 'green'}">${m.tag}</span>` : ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  const btnRefine = document.getElementById('btnLaunchRefining');
+  if (btnRefine) {
+    btnRefine.textContent = `Lancer le raffinage à ${evalResult.refineryMethods[0]?.location || 'CRU-L1'}`;
+  }
+
+  // 5. Arbitrage Stratégique & Actions (Garder pour Craft vs Vendre Brut vs Raffiner & Vendre)
+  const qa = evalResult.qualityArbitrage;
+  if (qa) {
+    const sIcon = document.getElementById('miningStratRecIcon');
+    const sTitle = document.getElementById('miningStratRecTitle');
+    const sBadge = document.getElementById('miningStratRecBadge');
+    const sAlert = document.getElementById('miningStratAlert');
+    const sRationale = document.getElementById('miningStratRationale');
+    const sStatBonus = document.getElementById('miningStratStatBonus');
+
+    if (sIcon) sIcon.textContent = qa.icon;
+    if (sTitle) sTitle.textContent = qa.title;
+    if (sBadge) {
+      sBadge.textContent = qa.badgeText;
+      sBadge.className = `vo-badge ${qa.badgeClass}`;
+    }
+    if (sAlert) {
+      sAlert.className = `mining-strategic-alert ${qa.decision}`;
+    }
+    if (sRationale) {
+      sRationale.textContent = qa.rationale;
+    }
+    if (sStatBonus) {
+      sStatBonus.textContent = `⚡ Potentiel d'overclocking atelier : ${qa.statBonus}`;
+      sStatBonus.style.color = qa.statBonusPct > 0 ? 'var(--accent-green)' : (qa.statBonusPct < 0 ? 'var(--accent-red)' : 'var(--accent-cyan)');
+    }
+
+    // Bouton 1 : Garder pour Craft
+    const btnKeep = document.getElementById('btnMiningActionKeepCraft');
+    const badgeKeepQ = document.getElementById('badgeActionKeepQuality');
+    const labelKeepSCU = document.getElementById('labelActionKeepSCU');
+    if (btnKeep) {
+      if (qa.decision === 'craft') {
+        btnKeep.classList.add('recommended');
+      } else {
+        btnKeep.classList.remove('recommended');
+      }
+    }
+    if (badgeKeepQ) badgeKeepQ.textContent = `⭐ Q${qa.qualityScore}`;
+    if (labelKeepSCU) labelKeepSCU.textContent = `+${evalResult.usefulSCU} SCU utiles stockés`;
+
+    // Bouton 2 : Vendre Brut
+    const btnSellRaw = document.getElementById('btnMiningActionSellRaw');
+    const labelSellRawPrice = document.getElementById('labelActionSellRawPrice');
+    if (btnSellRaw) {
+      if (qa.decision === 'sell_raw') {
+        btnSellRaw.classList.add('recommended');
+      } else {
+        btnSellRaw.classList.remove('recommended');
+      }
+    }
+    if (labelSellRawPrice) {
+      labelSellRawPrice.textContent = `+${evalResult.rawGrossUEC.toLocaleString('fr-FR')} aUEC cash`;
+    }
+
+    // Bouton 3 : Raffiner & Vendre
+    const btnRefineSell = document.getElementById('btnMiningActionRefine');
+    const badgeRefineYield = document.getElementById('badgeActionRefineYield');
+    const labelRefineNet = document.getElementById('labelActionRefineNet');
+    if (btnRefineSell) {
+      if (qa.decision === 'refine_and_sell') {
+        btnRefineSell.classList.add('recommended');
+      } else {
+        btnRefineSell.classList.remove('recommended');
+      }
+    }
+    if (badgeRefineYield) {
+      badgeRefineYield.textContent = `${evalResult.refineryMethods[0]?.yieldPct || 92}% Dinyx`;
+    }
+    if (labelRefineNet) {
+      const bestNet = evalResult.refineryMethods[0]?.net || 0;
+      labelRefineNet.textContent = `+${bestNet.toLocaleString('fr-FR')} aUEC net`;
+    }
+
+    const usefulBarSCU = document.getElementById('miningStatusBarUsefulSCU');
+    if (usefulBarSCU) {
+      usefulBarSCU.textContent = `${evalResult.usefulSCU} SCU utiles`;
+    }
+  }
+
+  return evalResult;
+}
+
+function renderMiningScreen() {
+  renderMiningActiveShipBanner();
+  renderMiningScannerUI();
+  evaluateAndRenderMiningRock();
+}
+
+
+function openMiningOCRModal() {
+  const OCR_DETECTIONS = [
+    {
+      id: 'basalt',
+      title: 'Basalte Volcanique · Quantainium 28 % / Bexalite 14 %',
+      massKg: 18420,
+      confidence: '99 %',
+      badgeClass: 'green'
+    },
+    {
+      id: 'granite',
+      title: 'Granite Continental · Laranite 36 % / Agricium 16 %',
+      massKg: 34500,
+      confidence: '97 %',
+      badgeClass: 'green'
+    },
+    {
+      id: 'gneiss',
+      title: 'Gneiss Métamorphique (Équilibré)',
+      massKg: 14800,
+      confidence: '95 %',
+      badgeClass: 'cyan'
+    }
+  ];
+
+  openInspector({
+    title: 'Scan Optique OCR · Scanner Minier SC 4.x',
+    subtitle: 'Reconnaissance HUD temps réel d\'astéroïde / roche',
+    body: `
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="border:2px dashed var(--accent-cyan); padding:20px; text-align:center; border-radius:6px; background:rgba(14,165,233,0.04); cursor:pointer;">
+          <div style="font-size:2rem; margin-bottom:6px;">📡</div>
+          <div style="font-weight:700; color:#fff; font-size:0.9rem;">scanner_rock_hud_042.png</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Scan optique de tourelle active · Stanton / Pyro</div>
+        </div>
+
+        <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; letter-spacing:0.5px;">ROCHERS DÉTECTÉS DANS LE SCAN :</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${OCR_DETECTIONS.map((scan, idx) => `
+            <button type="button" class="vo-card btn-ocr-choice" data-arch="${scan.id}" data-mass="${scan.massKg}" style="text-align:left; cursor:pointer; background:${idx === 0 ? 'rgba(14,165,233,0.1)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${idx === 0 ? 'var(--accent-cyan)' : 'var(--border-medium)'}; padding:10px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="val-bold" style="color:var(--accent-cyan);">${scan.title}</span>
+                <span class="vo-badge ${scan.badgeClass}">Confiance ${scan.confidence}</span>
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${scan.massKg.toLocaleString('fr-FR')} kg · SC 4.10.2</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `,
+    footer: `
+      <button type="button" class="vo-btn primary" id="btnConfirmMiningOCR" style="width:100%;">
+        Valider et importer le scan sélectionné
+      </button>
+    `
+  });
+
+  let selectedScan = OCR_DETECTIONS[0];
+  document.querySelectorAll('.btn-ocr-choice').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.btn-ocr-choice').forEach(b => {
+        b.style.borderColor = 'var(--border-medium)';
+        b.style.background = 'rgba(255,255,255,0.02)';
+      });
+      btn.style.borderColor = 'var(--accent-cyan)';
+      btn.style.background = 'rgba(14,165,233,0.1)';
+      const archId = btn.getAttribute('data-arch');
+      selectedScan = OCR_DETECTIONS.find(s => s.id === archId) || OCR_DETECTIONS[0];
+    });
+  });
+
+  document.getElementById('btnConfirmMiningOCR')?.addEventListener('click', () => {
+    const arch = (miningCalc.ROCK_ARCHETYPES_CONFIG || []).find(a => a.id === selectedScan.id);
+    if (arch) {
+      currentMiningScan.archetypeId = arch.id;
+      currentMiningScan.massKg = selectedScan.massKg;
+      currentMiningScan.resistance = arch.baseResistance;
+      currentMiningScan.instability = arch.baseInstability;
+      renderMiningScannerUI();
+      evaluateAndRenderMiningRock();
+    }
+    triggerHaptic(12);
+    showToast(`📷 Scan OCR importé : ${arch?.name || 'Roche'} (${currentMiningScan.massKg.toLocaleString('fr-FR')} kg)`);
+    closeInspector();
+  });
+}
+
+// ============================================================================
+// 7. RENDU : CRAFT & BLUEPRINTS (AARON MFD ENRICHI)
+// ============================================================================
+// Blueprints unifiés : 42 recettes de minage d'origine + 1618 schémas officiels FleetYards
+const CRAFT_SAMPLE_BLUEPRINTS = (function() {
+  try {
+    const list = craftingService.getBlueprints() || [];
+    // Adapter le format pour l'affichage de l'atelier de craft AARON MFD
+    return list.map((b, idx) => {
+      const ings = (b.materials || b.ingredients || []).map(m => ({
+        name: m.name_fr || m.name || m.mineralId || 'Composant',
+        code: m.code || m.mineralId || m.slug || 'mat',
+        quantity: m.scu || m.quantity || 1,
+        unit: m.unit || 'SCU'
+      }));
+
+      const acqs = b.acquisitions || (b.obtaining ? [{
+        type: 'Lieu',
+        title: `${b.obtaining.location_fr || b.obtaining.location_en || 'Stanton'} · ${b.obtaining.faction_fr || 'Verse'}`
+      }] : [{ type: 'Fabrication', title: 'Fabricator standard' }]);
+
+      return {
+        id: b.id,
+        name: b.name,
+        category: craftingService.resolveBlueprintCategory(b),
+        size: b.size ? (typeof b.size === 'number' ? 'S' + b.size : b.size) : 'S1',
+        craftMinutes: b.craftMinutes || Math.round((b.craftTimeSeconds || 60) / 60),
+        owned: Boolean(b.owned || (store.get('crafting')?.unlockedBlueprintIds || []).includes(b.id)),
+        ingredients: ings,
+        acquisitions: acqs,
+        status: b.statsSummary || 'Vérifié Star Citizen 4.x (FleetYards)',
+        guild: b.guild || { owners: 1, crafters: [] },
+        rawBlueprint: b
+      };
+    });
+  } catch {
+    return [];
+  }
+})();
+
+// Stock dynamique synchronisé depuis l'inventaire réel
+let craftUserStock = {};
+
+function syncCraftStockFromInventory() {
+  craftUserStock = {};
+  if (typeof inventoryService !== 'undefined' && typeof inventoryService.getItems === 'function') {
+    const items = inventoryService.getItems();
+    items.forEach(item => {
+      const code = (item.mineralId || item.code || '').toLowerCase();
+      if (code) {
+        craftUserStock[code] = (craftUserStock[code] || 0) + (Number(item.quantitySCU || item.quantity) || 0);
+      }
+    });
+  }
+}
+
+// Qualité des matériaux injectés dans le craft en cours (0 à 1 000)
+let craftSelectedQualities = {};
+
+let craftFilters = {
+  search: '',
+  category: 'toutes',
+  size: 'toutes',
+  acq: 'toutes',
+  chip: null // 'g' | 'a' | 'b' | 'r'
+};
+
+let selectedCraftBpId = CRAFT_SAMPLE_BLUEPRINTS[0]?.id || 'bp_lancet_s1_mk2';
+let craftCurrentQty = 1;
+
+function evaluateBlueprintCraft(bp) {
+  let maxQty = Infinity;
+  const missing = [];
+
+  bp.ingredients.forEach(ing => {
+    const have = craftUserStock[ing.code] || 0;
+    const needed = ing.quantity;
+    const possible = Math.floor(have / needed);
+    if (possible < 1) {
+      missing.push({ name: ing.name, needed, have });
+    }
+    maxQty = Math.min(maxQty, possible);
+  });
+
+  const finalMaxQty = maxQty === Infinity ? 0 : maxQty;
+  let statusKey = 'r';
+  let statusLabel = 'Non possédé';
+
+  if (bp.owned) {
+    if (finalMaxQty > 0) {
+      statusKey = 'g';
+      statusLabel = 'Craftable';
+    } else {
+      statusKey = 'a';
+      statusLabel = `Manque ${missing.length}`;
+    }
+  }
+
+  // Closeness score (aaron-mfd) : 0 pour craftable, 1-99 pour manquant, 1000 pour non possédé
+  let closeness = 1000;
+  if (bp.owned) {
+    closeness = finalMaxQty > 0 ? 0 : missing.length;
+  }
+
+  return {
+    ...bp,
+    maxQty: finalMaxQty,
+    missing,
+    statusKey,
+    statusLabel,
+    closeness
+  };
+}
+
+function renderCraftingCatalog() {
+  const tbody = document.getElementById('craftRankedTableBody');
+  if (!tbody) return;
+
+  // Synchroniser le stock avec l'inventaire réel
+  syncCraftStockFromInventory();
+
+  // Évaluer tous les blueprints
+  const evaluated = CRAFT_SAMPLE_BLUEPRINTS.map(evaluateBlueprintCraft);
+
+  // Mettre à jour les compteurs de chips
+  const countG = evaluated.filter(b => b.statusKey === 'g').length;
+  const countA = evaluated.filter(b => b.statusKey === 'a').length;
+  const countB = evaluated.filter(b => b.owned).length;
+  const countR = evaluated.filter(b => !b.owned).length;
+
+  const countGEl = document.getElementById('countCraftable');
+  const countAEl = document.getElementById('countMissing');
+  const countBEl = document.getElementById('countOwned');
+  const countREl = document.getElementById('countUnowned');
+
+  if (countGEl) countGEl.textContent = countG;
+  if (countAEl) countAEl.textContent = countA;
+  if (countBEl) countBEl.textContent = countB;
+  if (countREl) countREl.textContent = countR;
+
+  // Filtrer
+  const filtered = evaluated.filter(bp => {
+    const text = `${bp.name} ${bp.category} ${bp.acquisitions.map(a => a.title).join(' ')} ${bp.ingredients.map(i => i.name).join(' ')}`.toLowerCase();
+    if (craftFilters.search && !text.includes(craftFilters.search.toLowerCase())) return false;
+    if (craftFilters.category !== 'toutes' && bp.category !== craftFilters.category) return false;
+    if (craftFilters.size !== 'toutes' && bp.size !== craftFilters.size) return false;
+    if (craftFilters.acq !== 'toutes' && !bp.acquisitions.some(a => a.type === craftFilters.acq)) return false;
+
+    if (craftFilters.chip === 'g' || craftFilters.chip === 'a') return bp.statusKey === craftFilters.chip;
+    if (craftFilters.chip === 'b') return bp.owned;
+    if (craftFilters.chip === 'r') return !bp.owned;
+    return true;
+  });
+
+  const subEl = document.getElementById('craftCatalogSub');
+  if (subEl) {
+    const totalCount = CRAFT_SAMPLE_BLUEPRINTS.length;
+    const catLabel = craftFilters.category === 'toutes' ? 'Toutes catégories' : craftFilters.category;
+    subEl.textContent = `Catalogue : ${totalCount.toLocaleString('fr-FR')} schémas industriels · ${countB} possédés · ${countG} craftables immédiatement · Filtre : ${catLabel} (${filtered.length} affichés)`;
+  }
+
+  // Trier par closeness (proche du craft)
+  filtered.sort((a, b) => a.closeness - b.closeness);
+
+  tbody.innerHTML = filtered.map(bp => {
+    const isSel = bp.id === selectedCraftBpId;
+    const acqFirst = bp.acquisitions[0];
+    const acqText = acqFirst
+      ? `${acqFirst.type} · ${acqFirst.title}${bp.acquisitions.length > 1 ? ` (+${bp.acquisitions.length - 1})` : ''}`
+      : '—';
+
+    const missingNames = bp.owned && bp.missing.length > 0
+      ? bp.missing.map(m => m.name.split(' ')[0]).join(', ')
+      : '';
+
+    return `
+      <tr class="craft-row-item ${isSel ? 'highlight-green-row' : ''}" data-craft-id="${bp.id}" style="cursor:pointer;">
+        <td class="val-bold">${bp.name}</td>
+        <td>${bp.category}</td>
+        <td>${bp.size}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted);">${acqText}</td>
+        <td>
+          <span class="vo-badge ${bp.owned ? 'cyan' : 'red'}">${bp.owned ? 'Possédé' : 'Non possédé'}</span>
+        </td>
+        <td>
+          <span class="vo-badge ${bp.statusKey === 'g' ? 'green' : (bp.statusKey === 'a' ? 'amber' : 'red')}">
+            ${bp.statusLabel}
+          </span>
+        </td>
+        <td style="font-size:0.75rem; color:var(--text-dim);">${missingNames}</td>
+      </tr>
+    `;
+  }).join('');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:20px;">Aucun blueprint ne correspond aux filtres.</td></tr>`;
+  }
+
+  // Row click bindings
+  tbody.querySelectorAll('.craft-row-item').forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.getAttribute('data-craft-id');
+      if (id) {
+        selectedCraftBpId = id;
+        craftCurrentQty = 1;
+        renderCraftingCatalog();
+      }
+    });
+  });
+
+  // Mettre à jour la colonne détail
+  const selectedBp = evaluated.find(b => b.id === selectedCraftBpId) || evaluated[0];
+  if (selectedBp) {
+    renderCraftDetail(selectedBp);
+  }
+}
+
+function renderCraftDetail(bp) {
+  const nameEl = document.getElementById('craftDetailName');
+  const subEl = document.getElementById('craftDetailSubtitle');
+  const badgeEl = document.getElementById('craftDetailBadge');
+  const acqBody = document.getElementById('craftAcquisitionsBody');
+  const statusNoteEl = document.getElementById('craftVerificationStatus');
+  const ingBody = document.getElementById('craftIngredientsBody');
+  const actionsRow = document.getElementById('craftActionsRow');
+  const ownersEl = document.getElementById('guildOwnersCount');
+  const craftersCountEl = document.getElementById('guildCraftersCount');
+  const craftersNamesEl = document.getElementById('guildCraftersNames');
+
+  if (nameEl) nameEl.textContent = bp.name;
+  if (subEl) subEl.textContent = `${bp.category} ${bp.size !== '—' ? bp.size : ''} · ${bp.craftMinutes} min`;
+
+  if (badgeEl) {
+    badgeEl.className = `vo-badge ${bp.statusKey === 'g' ? 'green' : (bp.statusKey === 'a' ? 'amber' : 'red')}`;
+    badgeEl.textContent = bp.owned
+      ? (bp.maxQty > 0 ? `Craftable ×${bp.maxQty}` : bp.statusLabel)
+      : 'Non possédé';
+  }
+
+  if (acqBody) {
+    const ACQ_BADGES = { Mission: 'cyan', Vendeur: 'amber', Loot: 'red', Événement: 'green' };
+    acqBody.innerHTML = bp.acquisitions.map(a => `
+      <tr>
+        <td style="width:110px;">
+          <span class="vo-badge ${ACQ_BADGES[a.type] || 'cyan'}">${a.type}</span>
+        </td>
+        <td>
+          ${a.title}
+          ${a.price ? ` · <span style="font-family:var(--font-mono); font-weight:600;">${a.price.toLocaleString('fr-FR')} aUEC</span>` : ''}
+          ${a.dropRatePct ? ` · <span class="val-green">drop ~${a.dropRatePct} %</span>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  if (statusNoteEl) statusNoteEl.textContent = bp.status || '';
+
+  if (ingBody) {
+    ingBody.innerHTML = bp.ingredients.map(ing => {
+      const have = craftUserStock[ing.code] || 0;
+      const req = ing.quantity * craftCurrentQty;
+      const isMet = have >= req;
+
+      return `
+        <tr>
+          <td class="val-bold">${ing.name}</td>
+          <td>${req} ${ing.unit}</td>
+          <td class="val-bold">${have} ${ing.unit}</td>
+          <td><span class="${isMet ? 'status-dot-green' : 'status-dot-red'}"></span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // === QUALITÉ DES MATÉRIAUX & ATELIER D'OPTIMISATION (0-1000) ===
+  bp.ingredients.forEach(ing => {
+    if (craftSelectedQualities[ing.code] === undefined) {
+      craftSelectedQualities[ing.code] = 500;
+    }
+  });
+
+  const slidersContainer = document.getElementById('craftQualitySlidersContainer');
+  const compositeScoreVal = document.getElementById('compositeScoreValue');
+  const compositeMeterFill = document.getElementById('compositeMeterFill');
+  const compositeTierBadge = document.getElementById('compositeTierBadge');
+  const chipOverallTier = document.getElementById('chipOverallQualityTier');
+  const compositeTierDesc = document.getElementById('compositeTierDesc');
+  const statsGrid = document.getElementById('craftStatsComparisonGrid');
+
+  function updateQualityCalculations() {
+    const ingredientsWithQ = bp.ingredients.map(ing => ({
+      quantity: ing.quantity,
+      scu: ing.quantity,
+      quality: craftSelectedQualities[ing.code] ?? 500
+    }));
+
+    const compositeQ = craftingService.calculateCompositeQuality(ingredientsWithQ);
+    const tier = craftingService.getQualityTier(compositeQ);
+    const analysis = craftingService.calculateCraftedStats(bp.rawBlueprint || bp, compositeQ);
+
+    if (compositeScoreVal) compositeScoreVal.textContent = 'Q' + compositeQ;
+    if (compositeMeterFill) compositeMeterFill.style.width = Math.min(100, Math.max(5, Math.round(compositeQ / 10))) + '%';
+    if (compositeTierBadge) {
+      compositeTierBadge.className = 'quality-badge ' + tier.badgeClass;
+      compositeTierBadge.textContent = tier.shortName;
+    }
+    if (chipOverallTier) {
+      chipOverallTier.textContent = `${tier.name} · Q${compositeQ}`;
+      chipOverallTier.className = `vo-chip ${tier.id === 'masterwork' ? 'amber' : (tier.id === 'high' ? 'green' : (tier.id === 'enhanced' ? 'purple' : (tier.id === 'low' ? 'red' : 'cyan')))}`;
+    }
+    if (compositeTierDesc) {
+      const sign = analysis.deltaPct >= 0 ? '+' : '';
+      compositeTierDesc.textContent = `Modificateur stats global : ${sign}${analysis.deltaPct}% · Cote marchande : ×${analysis.valueMultiplier}`;
+    }
+
+    // Grille de comparaison des stats
+    if (statsGrid) {
+      if (analysis.baseStats.laserPowerWatts) {
+        const pDelta = analysis.statDeltas.powerDeltaPct;
+        const rDelta = analysis.statDeltas.resDeltaPct;
+        const gDelta = analysis.statDeltas.greenDeltaPct;
+        const baseVal = 145000;
+        const customVal = Math.round(baseVal * analysis.valueMultiplier);
+
+        statsGrid.innerHTML = `
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Puissance Laser</span>
+            <div class="craft-stat-val">
+              <span>${analysis.craftedStats.laserPowerWatts.toLocaleString('fr-FR')} W</span>
+              <span class="delta-pill ${pDelta >= 0 ? 'positive' : 'negative'}">${pDelta >= 0 ? '+' : ''}${pDelta}%</span>
+            </div>
+            <span style="font-size:0.68rem; color:var(--text-dim);">Usine : ${analysis.baseStats.laserPowerWatts.toLocaleString('fr-FR')} W</span>
+          </div>
+
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Réduction Résistance</span>
+            <div class="craft-stat-val">
+              <span>-${analysis.craftedStats.resistanceReductionPct}%</span>
+              <span class="delta-pill ${rDelta >= 0 ? 'positive' : 'negative'}">${rDelta >= 0 ? '+' : ''}${rDelta}%</span>
+            </div>
+            <span style="font-size:0.68rem; color:var(--text-dim);">Usine : -${analysis.baseStats.resistanceReductionPct}%</span>
+          </div>
+
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Zone Verte (Fenêtre)</span>
+            <div class="craft-stat-val">
+              <span>+${analysis.craftedStats.greenZoneBonusPct}%</span>
+              <span class="delta-pill ${gDelta >= 0 ? 'positive' : 'negative'}">${gDelta >= 0 ? '+' : ''}${gDelta}%</span>
+            </div>
+            <span style="font-size:0.68rem; color:var(--text-dim);">Usine : +${analysis.baseStats.greenZoneBonusPct}%</span>
+          </div>
+
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Valeur Estimée</span>
+            <div class="craft-stat-val">
+              <span style="color:var(--accent-green);">${customVal.toLocaleString('fr-FR')}</span>
+              <span class="delta-pill ${analysis.valueMultiplier >= 1 ? 'positive' : 'negative'}">×${analysis.valueMultiplier}</span>
+            </div>
+            <span style="font-size:0.68rem; color:var(--text-dim);">Usine : ${baseVal.toLocaleString('fr-FR')} aUEC</span>
+          </div>
+        `;
+      } else if (analysis.baseStats.instabReductionPct) {
+        statsGrid.innerHTML = `
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Stabilité Rocher</span>
+            <div class="craft-stat-val">
+              <span>-${analysis.craftedStats.instabReductionPct}%</span>
+              <span class="delta-pill positive">${analysis.statDeltas.instabDeltaPct >= 0 ? '+' : ''}${analysis.statDeltas.instabDeltaPct}%</span>
+            </div>
+          </div>
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Extraction SCU</span>
+            <div class="craft-stat-val">
+              <span>+${analysis.craftedStats.extractionSpeedBonusPct}%</span>
+              <span class="delta-pill positive">${analysis.statDeltas.extractDeltaPct >= 0 ? '+' : ''}${analysis.statDeltas.extractDeltaPct}%</span>
+            </div>
+          </div>
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Charges Disponibles</span>
+            <div class="craft-stat-val">
+              <span>${analysis.craftedStats.chargesCount}</span>
+            </div>
+          </div>
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Valeur Estimée</span>
+            <div class="craft-stat-val">
+              <span style="color:var(--accent-green);">${Math.round(38000 * analysis.valueMultiplier).toLocaleString('fr-FR')}</span>
+              <span class="delta-pill positive">×${analysis.valueMultiplier}</span>
+            </div>
+          </div>
+        `;
+      } else {
+        statsGrid.innerHTML = `
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Efficacité Pièce</span>
+            <div class="craft-stat-val">
+              <span>${analysis.craftedStats.efficiencyPct || 100}%</span>
+              <span class="delta-pill ${analysis.deltaPct >= 0 ? 'positive' : 'negative'}">${analysis.deltaPct >= 0 ? '+' : ''}${analysis.deltaPct}%</span>
+            </div>
+          </div>
+          <div class="craft-stat-box">
+            <span class="craft-stat-label">Multiplicateur Valeur</span>
+            <div class="craft-stat-val">
+              <span style="color:var(--accent-green);">×${analysis.valueMultiplier}</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    return { compositeQ, tier, analysis };
+  }
+
+  if (slidersContainer) {
+    slidersContainer.innerHTML = bp.ingredients.map(ing => {
+      const q = craftSelectedQualities[ing.code] ?? 500;
+      const ingTier = craftingService.getQualityTier(q);
+      const req = ing.quantity * craftCurrentQty;
+
+      return `
+        <div class="craft-ingredient-quality-row" data-ing-code="${ing.code}">
+          <div class="ing-quality-top">
+            <span class="ing-quality-name">
+              <span style="color:var(--accent-cyan);">✦</span> ${ing.name} <span style="color:var(--text-dim); font-size:0.75rem;">(${req} ${ing.unit})</span>
+            </span>
+            <div class="ing-quality-val">
+              <span class="quality-badge ${ingTier.badgeClass}" id="badge-quality-${ing.code}">
+                ${ingTier.shortName}
+              </span>
+              <span id="label-quality-${ing.code}" style="color:#fff;">Q${q}</span>
+            </div>
+          </div>
+          <input type="range" min="0" max="1000" step="10" value="${q}" class="quality-range-slider" id="slider-quality-${ing.code}" data-ing-code="${ing.code}">
+          <div class="ing-presets-row">
+            <span style="font-size:0.68rem; color:var(--text-dim); margin-right:4px;">Presets :</span>
+            <button type="button" class="quality-preset-btn" data-preset="250" data-ing-code="${ing.code}">Rebut (Q250)</button>
+            <button type="button" class="quality-preset-btn" data-preset="500" data-ing-code="${ing.code}">Standard (Q500)</button>
+            <button type="button" class="quality-preset-btn" data-preset="750" data-ing-code="${ing.code}">Militaire (Q750)</button>
+            <button type="button" class="quality-preset-btn" data-preset="950" data-ing-code="${ing.code}">⭐ Maître (Q950)</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    slidersContainer.querySelectorAll('.quality-range-slider').forEach(slider => {
+      slider.addEventListener('input', (e) => {
+        const code = e.target.getAttribute('data-ing-code');
+        const val = Number(e.target.value) || 500;
+        craftSelectedQualities[code] = val;
+        const label = document.getElementById(`label-quality-${code}`);
+        if (label) label.textContent = 'Q' + val;
+        const badge = document.getElementById(`badge-quality-${code}`);
+        if (badge) {
+          const t = craftingService.getQualityTier(val);
+          badge.className = 'quality-badge ' + t.badgeClass;
+          badge.textContent = t.shortName;
+        }
+        updateQualityCalculations();
+      });
+    });
+
+    slidersContainer.querySelectorAll('.quality-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const code = btn.getAttribute('data-ing-code');
+        const val = Number(btn.getAttribute('data-preset')) || 500;
+        craftSelectedQualities[code] = val;
+        const slider = document.getElementById(`slider-quality-${code}`);
+        if (slider) slider.value = val;
+        const label = document.getElementById(`label-quality-${code}`);
+        if (label) label.textContent = 'Q' + val;
+        const badge = document.getElementById(`badge-quality-${code}`);
+        if (badge) {
+          const t = craftingService.getQualityTier(val);
+          badge.className = 'quality-badge ' + t.badgeClass;
+          badge.textContent = t.shortName;
+        }
+        triggerHaptic(8);
+        updateQualityCalculations();
+      });
+    });
+  }
+
+  // Initialiser les calculs immédiats
+  updateQualityCalculations();
+
+  // Action buttons & stepper
+  if (actionsRow) {
+    if (bp.owned && bp.maxQty > 0) {
+      actionsRow.innerHTML = `
+        <button type="button" class="vo-btn primary" id="btnExecuteCraftMain">⚒ Crafter ×${craftCurrentQty}</button>
+        <div class="stepper-container">
+          <button type="button" class="stepper-btn" id="btnCraftQtyMinus">−</button>
+          <span class="stepper-val" id="craftQtyDisplay">${craftCurrentQty}</span>
+          <button type="button" class="stepper-btn" id="btnCraftQtyPlus">+</button>
+          <span style="font-size:0.75rem; color:var(--text-dim);">max ${bp.maxQty}</span>
+        </div>
+      `;
+
+      document.getElementById('btnExecuteCraftMain')?.addEventListener('click', () => {
+        const { compositeQ, tier, analysis } = updateQualityCalculations();
+
+        // 1. Appel du moteur officiel de fabrication avec qualité
+        const res = craftingService.executeCraft(bp.id, 'personal', 'ARC-L1 Wide Forest Station', craftCurrentQty, craftSelectedQualities);
+
+        // 2. Déduction locale du stock visuel de l'interface
+        bp.ingredients.forEach(ing => {
+          craftUserStock[ing.code] = Math.max(0, (craftUserStock[ing.code] || 0) - (ing.quantity * craftCurrentQty));
+        });
+
+        // 3. Si le craft a réussi ou si une pièce a été créée en inventaire
+        if (res && res.success) {
+          showToast(`🛠 ${craftCurrentQty} × ${bp.name} (${tier.name} · Q${compositeQ}) forgé avec succès !`);
+        } else {
+          // Création directe sécurisée dans l'inventaire avec métadonnées de qualité
+          let cat = 'crafted_laser';
+          let subCat = 'mining_laser';
+          if (bp.category.includes('module')) { cat = 'crafted_module'; subCat = 'mining_module'; }
+          else if (bp.category.includes('arme')) { cat = 'crafted_weapon'; subCat = 'ship_weapon'; }
+
+          inventoryService.addItem({
+            category: cat,
+            subCategory: subCat,
+            code: bp.id,
+            name: `${bp.name} [Q${compositeQ}]`,
+            size: bp.size ? String(bp.size).replace('S', '') : '1',
+            grade: tier.id === 'masterwork' ? 'A+' : (tier.id === 'high' ? 'A' : (tier.id === 'enhanced' ? 'B' : 'C')),
+            quantityUnits: craftCurrentQty,
+            quantitySCU: 0,
+            origin: 'crafted',
+            materialQuality: compositeQ,
+            qualityTier: tier.id,
+            qualityTierLabel: tier.name,
+            catalogReferencePriceUEC: 145000,
+            metadata: {
+              craftStats: analysis.statsSummary,
+              detailedStats: analysis.craftedStats,
+              statDeltas: analysis.statDeltas,
+              materialQuality: compositeQ,
+              qualityTier: tier.id,
+              qualityTierLabel: tier.name,
+              valueMultiplier: analysis.valueMultiplier,
+              notes: `Forgé avec matériaux ${tier.name} (Q${compositeQ}/1000).`
             }
           });
-        })
-        .catch(err => console.log('Erreur ServiceWorker:', err));
+          showToast(`🛠 ${craftCurrentQty} × ${bp.name} (${tier.name} · Q${compositeQ}) forgé et ajouté à l'inventaire !`);
+        }
 
-      // Auto-reload when new controller claims the page
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          console.log('[AARON MFD] Contrôleur mis à jour, rafraîchissement...');
-          window.location.reload();
+        triggerHaptic(25);
+        craftCurrentQty = 1;
+        renderCraftingCatalog();
+        renderInventoryTable();
+        if (currentActiveApp === 'guild') renderGuildMarket();
+      });
+
+      document.getElementById('btnCraftQtyMinus')?.addEventListener('click', () => {
+        if (craftCurrentQty > 1) {
+          craftCurrentQty--;
+          renderCraftDetail(bp);
+        }
+      });
+
+      document.getElementById('btnCraftQtyPlus')?.addEventListener('click', () => {
+        if (craftCurrentQty < bp.maxQty) {
+          craftCurrentQty++;
+          renderCraftDetail(bp);
+        }
+      });
+    } else if (bp.owned) {
+      actionsRow.innerHTML = `
+        <button type="button" class="vo-btn outline" id="btnFindMissingIngredients">🛒 Où trouver ce qui manque</button>
+      `;
+      document.getElementById('btnFindMissingIngredients')?.addEventListener('click', () => {
+        showToast(`🛒 Ordre d'approvisionnement généré pour les ingrédients manquants de ${bp.name} !`);
+      });
+    } else {
+      actionsRow.innerHTML = `
+        <button type="button" class="vo-btn outline" id="btnTrackBlueprint">★ Je le cherche</button>
+      `;
+      document.getElementById('btnTrackBlueprint')?.addEventListener('click', () => {
+        showToast(`★ ${bp.name} ajouté à votre journal de recherche d'épaves !`);
+      });
+    }
+  }
+
+  // Guild info
+  if (ownersEl) ownersEl.textContent = `${bp.guild.owners} membre${bp.guild.owners > 1 ? 's' : ''}`;
+  if (craftersCountEl) craftersCountEl.textContent = bp.guild.crafters.length;
+  if (craftersNamesEl) {
+    craftersNamesEl.textContent = bp.guild.crafters.length > 0 ? ` (${bp.guild.crafters.join(', ')})` : '';
+  }
+
+  const reqGuildBtn = document.getElementById('btnRequestGuildCraft');
+  if (reqGuildBtn) {
+    reqGuildBtn.style.display = bp.guild.crafters.length > 0 ? 'inline-block' : 'none';
+    reqGuildBtn.onclick = () => {
+      showToast(`✉ Demande de fabrication de ${bp.name} transmise à ${bp.guild.crafters.join(' et ')} !`);
+    };
+  }
+}
+
+// ============================================================================
+// 8. RENDU : COMMERCE (AARON MFD ENRICHI)
+// Calculateur bidirectionnel : Vaisseau ➔ Routes et Route ➔ Vaisseaux
+// Strictement aligné sur CommerceScreen.js & la charte mobiGlas Holo
+// ============================================================================
+
+let tradeState = {
+  customSelectedShip: null, // Si null, calculé dynamiquement depuis la flotte du joueur
+  userCapital: 1284500,
+  avoidHighRisk: true,
+  selectedRouteId: 'r1'
+};
+
+const MARKET_CARGO_SHIPS = [
+  { id: 'c2', name: 'C2 Hercules', fullName: 'Crusader C2 Hercules', cargoScu: 696, qdSize: 3, owned: false },
+  { id: 'caterpillar', name: 'Drake Caterpillar', fullName: 'Drake Caterpillar', cargoScu: 576, qdSize: 3, owned: false },
+  { id: 'hull_c', name: 'Hull C', fullName: 'MISC Hull C', cargoScu: 4608, qdSize: 3, owned: false },
+  { id: 'taurus', name: 'Constellation Taurus', fullName: 'RSI Constellation Taurus', cargoScu: 174, qdSize: 2, owned: false },
+  { id: 'freelancer_max', name: 'Freelancer MAX', fullName: 'MISC Freelancer MAX', cargoScu: 120, qdSize: 2, owned: false },
+  { id: 'cutlass_black', name: 'Cutlass Black', fullName: 'Drake Cutlass Black', cargoScu: 46, qdSize: 2, owned: false }
+];
+
+/**
+ * Récupère le vaisseau de commerce effectif en se synchronisant avec la flotte du joueur
+ * Si le vaisseau actif est un mineur (Prospector/MOLE), propose un cargo de la flotte s'il existe
+ * Sinon, bascule en mode simulation de marché (C2 Hercules) sans prétendre qu'il est possédé
+ */
+function getEffectiveTradeContext() {
+  const activeEntry = fleetService.getActiveShip();
+  const activeDef = getShip(activeEntry?.shipId);
+  const isMiner = activeDef?.role === 'mining';
+
+  // Identifier tous les vaisseaux de fret possédés dans la flotte du joueur
+  const allFleetShips = fleetService.getShips();
+  const fleetCargoShips = allFleetShips.map(s => {
+    const def = getShip(s.shipId);
+    return {
+      uid: s.uid,
+      shipId: s.shipId,
+      nickname: s.nickname,
+      name: def?.name || s.shipId,
+      fullName: `${def?.name || s.shipId} « ${s.nickname} »`,
+      cargoScu: def?.scu || 0,
+      role: def?.role || 'cargo',
+      qdSize: def?.qdSize || 2,
+      isMiner: def?.role === 'mining',
+      active: s.active,
+      owned: true
+    };
+  }).filter(s => !s.isMiner && s.cargoScu > 0);
+
+  // Si l'utilisateur a sélectionné manuellement un vaisseau dans cette session
+  if (tradeState.customSelectedShip) {
+    const isOwned = tradeService.isShipOwnedInFleet(tradeState.customSelectedShip, allFleetShips);
+    return {
+      currentShip: { ...tradeState.customSelectedShip, owned: isOwned },
+      activeEntry,
+      activeDef,
+      isMiner,
+      fleetCargoShips,
+      hasOwnedCargo: isOwned
+    };
+  }
+
+  // Si le vaisseau actif EST un cargo ou transporteur de fret
+  if (!isMiner && activeDef?.scu > 0) {
+    const activeShipObj = {
+      id: activeEntry.shipId,
+      name: activeDef.name,
+      fullName: `${activeDef.name} « ${activeEntry.nickname} »`,
+      cargoScu: activeDef.scu,
+      qdSize: activeDef.qdSize || 2,
+      owned: true
+    };
+    return {
+      currentShip: activeShipObj,
+      activeEntry,
+      activeDef,
+      isMiner: false,
+      fleetCargoShips,
+      hasOwnedCargo: true
+    };
+  }
+
+  // Si le vaisseau actif est un mineur (Prospector, MOLE, etc.) :
+  // Si le joueur possède des vaisseaux cargos dans sa flotte, on propose le meilleur
+  if (fleetCargoShips.length > 0) {
+    const bestFleetCargo = fleetCargoShips.sort((a, b) => b.cargoScu - a.cargoScu)[0];
+    return {
+      currentShip: bestFleetCargo,
+      activeEntry,
+      activeDef,
+      isMiner: true,
+      fleetCargoShips,
+      hasOwnedCargo: true
+    };
+  }
+
+  // Si AUCUN cargo n'est possédé dans la flotte du joueur :
+  // Mode simulation de marché (C2 Hercules) avec owned: false
+  const marketSimulationShip = {
+    id: 'c2',
+    name: 'C2 Hercules',
+    fullName: 'Crusader C2 Hercules (Simulation Marché)',
+    cargoScu: 696,
+    qdSize: 3,
+    owned: false
+  };
+
+  return {
+    currentShip: marketSimulationShip,
+    activeEntry,
+    activeDef,
+    isMiner: true,
+    fleetCargoShips,
+    hasOwnedCargo: false
+  };
+}
+
+function renderTradeCards() {
+  const tbody = document.getElementById('tradeRoutesTableBody');
+  if (!tbody) return;
+
+  const { currentShip, activeEntry, activeDef, isMiner, fleetCargoShips, hasOwnedCargo } = getEffectiveTradeContext();
+
+  // 0. Indicateur de synchronisation Bourse UEX Corp
+  const syncInfo = uexService.getSyncStatus();
+  const uexBadge = document.getElementById('uexSyncBadge');
+  const uexText = document.getElementById('uexSyncText');
+  const countEl = document.getElementById('tradeCommoditiesCount');
+  if (uexBadge && uexText) {
+    uexBadge.className = `uex-sync-badge ${syncInfo.badgeClass}`;
+    uexText.textContent = `${syncInfo.badgeText} (${syncInfo.timeAgoText})`;
+  }
+  if (countEl) {
+    countEl.textContent = syncInfo.totalCommodities;
+  }
+
+  // 1. Bannière de synchronisation flotte (Mineur vs Cargo)
+  const bannerEl = document.getElementById('tradeActiveShipBanner');
+  if (bannerEl) {
+    if (isMiner) {
+      if (hasOwnedCargo && currentShip.owned) {
+        bannerEl.innerHTML = `
+          <div class="trade-fleet-sync-bar is-miner">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:1.5rem;">⛏️</span>
+              <div>
+                <div style="font-weight:700; color:#fff; font-size:0.9rem;">
+                  Vaisseau actif : <span style="color:var(--accent-purple);">${activeDef?.name || 'Vaisseau'} « ${activeEntry?.nickname || 'Actif'} »</span> (Minage · ${activeDef?.scu || 32} SCU minerai brut)
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                  Vaisseau de minage non prévu pour le fret marchand. Cargo assigné depuis votre flotte : <b style="color:var(--accent-cyan);">${currentShip.fullName || currentShip.name} (${currentShip.cargoScu} SCU)</b>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="vo-btn outline" id="btnTradeSwitchFleetShip" style="font-size:0.75rem; padding:6px 12px;">
+              Changer de cargo de flotte ▾
+            </button>
+          </div>
+        `;
+      } else {
+        bannerEl.innerHTML = `
+          <div class="trade-fleet-sync-bar is-miner" style="border-left-color:var(--accent-amber, #f59e0b);">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="font-size:1.5rem;">⚠️</span>
+              <div>
+                <div style="font-weight:700; color:#fff; font-size:0.9rem;">
+                  Vaisseau actif : <span style="color:var(--accent-purple);">${activeDef?.name || 'Vaisseau'} « ${activeEntry?.nickname || 'Actif'} »</span> (Minage · ${activeDef?.scu || 32} SCU minerai brut)
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                  Aucun vaisseau de transport dans votre flotte. <b style="color:var(--accent-amber, #f59e0b);">Simulation Marché : ${currentShip.name} (${currentShip.cargoScu} SCU · Hors flotte)</b>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="vo-btn outline" id="btnTradeSwitchFleetShip" style="font-size:0.75rem; padding:6px 12px;">
+              Choisir un vaisseau ▾
+            </button>
+          </div>
+        `;
+      }
+    } else {
+      bannerEl.innerHTML = `
+        <div class="trade-fleet-sync-bar">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:1.5rem;">🛸</span>
+            <div>
+              <div style="font-weight:700; color:#fff; font-size:0.9rem;">
+                Vaisseau actif connecté : <span style="color:var(--accent-cyan);">${activeDef?.name || 'Vaisseau'} « ${activeEntry?.nickname || 'Actif'} »</span> (${currentShip.cargoScu} SCU · Prêt pour le fret)
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                Synchronisé avec votre hangar · Prise en compte de la route en Quantum Full et des temps atmosphériques
+              </div>
+            </div>
+          </div>
+          <button type="button" class="vo-btn outline" id="btnTradeSwitchFleetShip" style="font-size:0.75rem; padding:6px 12px;">
+            Changer de vaisseau cargo ▾
+          </button>
+        </div>
+      `;
+    }
+    document.getElementById('btnTradeSwitchFleetShip')?.addEventListener('click', openTradeShipModal);
+  }
+
+  // 2. Mettre à jour les labels de la barre d'outils
+  const shipBtn = document.getElementById('btnTradeShip');
+  if (shipBtn) {
+    const isOwnedInFleet = Boolean(currentShip.owned);
+    shipBtn.textContent = `${isOwnedInFleet ? 'Flotte' : 'Marché (Simu)'} : ${currentShip.name} (${currentShip.cargoScu} SCU)`;
+  }
+
+  const capitalBtn = document.getElementById('btnTradeCapital');
+  if (capitalBtn) {
+    capitalBtn.textContent = `Capital : ${tradeState.userCapital.toLocaleString('fr-FR')} aUEC`;
+  }
+
+  const riskBtn = document.getElementById('btnTradeRiskToggle');
+  if (riskBtn) {
+    riskBtn.textContent = tradeState.avoidHighRisk ? 'Éviter zones à risque ✓' : 'Toutes zones (avec risque) ⚠';
+    riskBtn.className = `vo-btn ${tradeState.avoidHighRisk ? 'outline' : 'primary'}`;
+  }
+
+  // 3. Calcul dynamique des meilleures routes pour ce vaisseau en Quantum Full
+  const evaluatedRoutes = tradeService.findBestRoutesForShip(
+    currentShip,
+    tradeState.userCapital,
+    10,
+    { avoidHighRisk: tradeState.avoidHighRisk, shipName: currentShip.name }
+  );
+
+  // Vérifier si la route sélectionnée est présente
+  if (!evaluatedRoutes.some(r => r.id === tradeState.selectedRouteId)) {
+    tradeState.selectedRouteId = evaluatedRoutes[0]?.id || 'r1';
+  }
+
+  // 4. Rendu du tableau des meilleures routes
+  tbody.innerHTML = evaluatedRoutes.map((r, index) => {
+    const isSel = r.id === tradeState.selectedRouteId;
+    const rank = index + 1;
+    return `
+      <tr class="trade-route-row ${isSel ? 'sel' : ''}" data-route-id="${r.id}" style="cursor:pointer;">
+        <td>${rank}</td>
+        <td class="val-bold">${r.from || r.origin}</td>
+        <td class="val-bold">${r.to || r.destination}</td>
+        <td>${r.item || r.name}</td>
+        <td class="val-green">+${r.fullHoldProfit.toLocaleString('fr-FR')}</td>
+        <td class="val-green"><b>+${r.profitPerHourUEC.toLocaleString('fr-FR')}</b></td>
+        <td><span class="tag ${r.freshnessTier || 't-g'}">${r.freshness}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  // Clic interactif sur chaque ligne de route
+  tbody.querySelectorAll('.trade-route-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const rid = row.getAttribute('data-route-id');
+      if (rid) {
+        tradeState.selectedRouteId = rid;
+        renderTradeCards();
+        triggerHaptic(8);
+      }
+    });
+  });
+
+  // 5. Rendu de la route sélectionnée
+  const selRoute = evaluatedRoutes.find(r => r.id === tradeState.selectedRouteId) || evaluatedRoutes[0];
+  if (selRoute) {
+    renderTradeRouteDetail(selRoute, currentShip);
+  }
+}
+
+function renderTradeRouteDetail(route, currentShip) {
+  const titleEl = document.getElementById('tradeRouteDetailTitle');
+  const buyEl = document.getElementById('tradeDetailBuy');
+  const sellEl = document.getElementById('tradeDetailSell');
+  const distEl = document.getElementById('tradeDetailDistance');
+  const quantumTimeEl = document.getElementById('tradeDetailQuantumTime');
+  const fillRateEl = document.getElementById('tradeDetailFillRate');
+  const riskBadgeEl = document.getElementById('tradeDetailRiskBadge');
+  const warningBox = document.getElementById('tradeCapitalWarningBox');
+  const warningText = document.getElementById('tradeCapitalWarningText');
+  const oversizedBox = document.getElementById('tradeOversizedWarningBox');
+  const oversizedText = document.getElementById('tradeOversizedWarningText');
+  const bestShipsBody = document.getElementById('tradeBestShipsBody');
+
+  if (titleEl) {
+    titleEl.textContent = `ROUTE #${route.rank || 1} · DÉTAIL`;
+  }
+
+  const hold = currentShip.cargoScu;
+  const costPerScu = route.costPerSCU || route.buyPricePerScu || Math.round((route.buyPrice || 10) * 100);
+  const revenuePerScu = route.revenuePerSCU || route.sellPricePerScu || Math.round((route.sellPrice || 12) * 100);
+  const buyTotal = hold * costPerScu;
+  const sellTotal = hold * revenuePerScu;
+
+  if (buyEl) {
+    buyEl.textContent = `${hold} SCU × ${costPerScu.toLocaleString('fr-FR')} = ${buyTotal.toLocaleString('fr-FR')}`;
+  }
+  if (sellEl) {
+    sellEl.textContent = `${hold} SCU × ${revenuePerScu.toLocaleString('fr-FR')} = ${sellTotal.toLocaleString('fr-FR')}`;
+  }
+  if (distEl) {
+    distEl.textContent = route.distance || `${route.origin} ➔ ${route.destination}`;
+  }
+
+  // Métriques de rotation en Quantum Full
+  const q = route.quantumRoute || tradeService.computeQuantumFullRoute(route, currentShip);
+  if (quantumTimeEl) {
+    quantumTimeEl.textContent = `~${q.totalRotationMinutes} min A/R (${q.rotationsPerHour} rot/h · QD ${q.qdName})`;
+  }
+
+  // Taux de remplissage effectif
+  const maxAffordable = costPerScu > 0 ? Math.floor(tradeState.userCapital / costPerScu) : hold;
+  const actualCargoSCU = Math.min(hold, maxAffordable);
+  const fillRatePct = hold > 0 ? Math.round((actualCargoSCU / hold) * 1000) / 10 : 0;
+  if (fillRateEl) {
+    fillRateEl.textContent = `${actualCargoSCU} / ${hold} SCU (${fillRatePct} %)`;
+  }
+
+  if (riskBadgeEl) {
+    riskBadgeEl.className = `vo-badge ${route.riskClass || 'green'}`;
+    riskBadgeEl.textContent = route.risk || 'Faible';
+  }
+
+  // Alerte 1 : Contrainte de capital
+  if (warningBox && warningText) {
+    if (actualCargoSCU < hold) {
+      warningBox.style.display = 'flex';
+      warningBox.classList.remove('success');
+      warningText.textContent = `Capital insuffisant pour une soute pleine : ${actualCargoSCU} SCU max sur ${hold}`;
+    } else {
+      warningBox.style.display = 'flex';
+      warningBox.classList.add('success');
+      warningText.textContent = `✓ Capital suffisant pour une soute pleine : ${hold} SCU financés`;
+    }
+  }
+
+  // Alerte 2 : Surdimensionnement (ex. C2 pour seulement 4 SCU)
+  const isOversized = actualCargoSCU <= 10 || (fillRatePct < 15 && hold >= 100);
+  if (oversizedBox && oversizedText) {
+    if (isOversized) {
+      oversizedBox.style.display = 'flex';
+      const actualProfitH = Math.round(actualCargoSCU * (route.marginPerScu || 592) * q.rotationsPerHour);
+      oversizedText.textContent = `Vaisseau surdimensionné : seulement ${actualCargoSCU} SCU transportés sur les ${hold} SCU du ${currentShip.name} (${fillRatePct} %). Mobiliser un C2 pour ${actualCargoSCU} SCU en Quantum Full génère un profit horaire dérisoire (+${actualProfitH.toLocaleString('fr-FR')} aUEC/h). Utilisez un transport plus agile (Cutlass 46 SCU) ou financez une soute pleine.`;
+    } else {
+      oversizedBox.style.display = 'none';
+    }
+  }
+
+  // Tableau comparatif des meilleurs vaisseaux pour cette route (Mode 2)
+  if (bestShipsBody) {
+    const scoredShips = tradeService.getBestShipsForRoute(route, tradeState.userCapital, fleetService.getShips());
+    bestShipsBody.innerHTML = scoredShips.map(s => {
+      const isCurrentActive = s.shipName === currentShip.name ||
+        currentShip.name.includes(s.shipName) ||
+        s.shipName.includes(currentShip.name);
+      return `
+        <tr class="trade-ship-candidate-row ${isCurrentActive ? 'sel' : ''}" data-ship-name="${s.shipName}" style="cursor:pointer;" title="Cliquez pour sélectionner ce vaisseau">
+          <td class="val-bold"><b>${s.shipName}</b></td>
+          <td>${s.cargoScu} SCU</td>
+          <td class="val-green"><b>+${s.profitPerHourUEC.toLocaleString('fr-FR')}/h</b></td>
+          <td>
+            <span class="tag ${s.owned ? 't-g' : 't-r'}">${s.owned ? 'Possédé' : 'Non possédé'}</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Interaction : cliquer sur un vaisseau dans le tableau comparatif
+    bestShipsBody.querySelectorAll('.trade-ship-candidate-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const sname = row.getAttribute('data-ship-name');
+        const candidate = scoredShips.find(c => c.shipName === sname);
+        const match = MARKET_CARGO_SHIPS.find(p => p.name === sname || sname.includes(p.name));
+        const isOwned = Boolean(candidate?.owned);
+        if (match) {
+          tradeState.customSelectedShip = { ...match, owned: isOwned };
+        } else {
+          tradeState.customSelectedShip = {
+            id: candidate?.id || 'custom',
+            name: candidate?.shipName || sname,
+            fullName: candidate?.shipName || sname,
+            cargoScu: candidate?.cargoScu || 100,
+            qdSize: candidate?.quantumRoute?.qdSize || 2,
+            owned: isOwned
+          };
+        }
+        renderTradeCards();
+        triggerHaptic(10);
+        showToast(`Vaisseau sélectionné : ${tradeState.customSelectedShip.name} (${tradeState.customSelectedShip.cargoScu} SCU · ${isOwned ? 'Flotte' : 'Simulation'})`);
+      });
+    });
+  }
+}
+
+// Tiroir de sélection de vaisseau pour le commerce (Priorité flotte du joueur)
+function openTradeShipModal() {
+  const { currentShip, fleetCargoShips } = getEffectiveTradeContext();
+  const allFleetShips = fleetService.getShips();
+
+  const fleetHtml = fleetCargoShips.map(s => {
+    const isSelected = s.name === currentShip.name || s.cargoScu === currentShip.cargoScu;
+    return `
+      <div class="vo-card" style="margin-bottom:8px; padding:12px; display:flex; justify-content:space-between; align-items:center; border:${isSelected ? '1px solid var(--accent-cyan)' : '1px solid var(--border-medium)'}; cursor:pointer;" data-select-ship-fleet="${s.uid}">
+        <div>
+          <div style="font-weight:700; color:#fff;">${s.fullName}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+            Soute cargo : <b style="color:var(--accent-cyan);">${s.cargoScu} SCU</b> · Moteur Quantique : <b>S${s.qdSize}</b> ·
+            <span class="tag t-g" style="margin-left:4px;">Dans votre flotte</span>
+          </div>
+        </div>
+        <button type="button" class="vo-btn ${isSelected ? 'primary' : 'outline'}" style="font-size:0.72rem; padding:6px 12px;">
+          ${isSelected ? 'Actif ✓' : 'Sélectionner'}
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  const marketHtml = MARKET_CARGO_SHIPS.map(s => {
+    const isOwnedInFleet = tradeService.isShipOwnedInFleet(s, allFleetShips);
+    const isSelected = s.name === currentShip.name;
+    return `
+      <div class="vo-card" style="margin-bottom:8px; padding:12px; display:flex; justify-content:space-between; align-items:center; border:${isSelected ? '1px solid var(--accent-cyan)' : '1px solid var(--border-medium)'}; cursor:pointer;" data-select-ship-market="${s.id}">
+        <div>
+          <div style="font-weight:700; color:#fff;">${s.fullName}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+            Soute cargo : <b style="color:var(--accent-cyan);">${s.cargoScu} SCU</b> ·
+            <span class="tag ${isOwnedInFleet ? 't-g' : 't-r'}" style="margin-left:4px;">${isOwnedInFleet ? 'Dans votre flotte' : 'Hors flotte'}</span>
+          </div>
+        </div>
+        <button type="button" class="vo-btn ${isSelected ? 'primary' : 'outline'}" style="font-size:0.72rem; padding:6px 12px;">
+          ${isSelected ? 'Actif ✓' : (isOwnedInFleet ? 'Sélectionner' : 'Simuler')}
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  openInspector({
+    title: 'Choisir le vaisseau de commerce',
+    subtitle: 'Vaisseaux de fret de votre flotte & marché',
+    body: `
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">
+            DISPONIBLES DANS VOTRE FLOTTE
+          </div>
+          ${fleetHtml.length ? fleetHtml : `
+            <div class="vo-card" style="padding:12px; background:rgba(255,255,255,0.02); border:1px dashed var(--border-medium); text-align:center;">
+              <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 4px 0;">Aucun vaisseau cargo dans votre flotte.</p>
+              <p style="font-size:0.72rem; color:var(--text-dim); margin:0;">Vous possédez actuellement des vaisseaux de minage. Ajoutez un transporteur dans l'onglet <b>Flotte</b> pour l'exploiter en commerce.</p>
+            </div>
+          `}
+        </div>
+
+        <div>
+          <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">
+            AUTRES TRANSPORTEURS DU MARCHÉ (SIMULATION)
+          </div>
+          ${marketHtml}
+        </div>
+      </div>
+    `,
+    footer: `
+      <button type="button" class="vo-btn outline" id="btnCloseTradeShipDrawer" style="width:100%;">
+        Fermer
+      </button>
+    `
+  });
+
+  document.getElementById('btnCloseTradeShipDrawer')?.addEventListener('click', closeInspector);
+
+  // Écouteur pour les vaisseaux de la flotte
+  document.querySelectorAll('[data-select-ship-fleet]').forEach(card => {
+    card.addEventListener('click', () => {
+      const uidVal = card.getAttribute('data-select-ship-fleet');
+      const target = fleetCargoShips.find(s => s.uid === uidVal);
+      if (target) {
+        tradeState.customSelectedShip = { ...target, owned: true };
+        renderTradeCards();
+        triggerHaptic(12);
+        showToast(`Vaisseau cargo assigné : ${target.fullName} (${target.cargoScu} SCU)`);
+        closeInspector();
+      }
+    });
+  });
+
+  // Écouteur pour les autres vaisseaux du marché
+  document.querySelectorAll('[data-select-ship-market]').forEach(card => {
+    card.addEventListener('click', () => {
+      const mid = card.getAttribute('data-select-ship-market');
+      const target = MARKET_CARGO_SHIPS.find(s => s.id === mid);
+      if (target) {
+        const isOwnedInFleet = tradeService.isShipOwnedInFleet(target, allFleetShips);
+        tradeState.customSelectedShip = { ...target, owned: isOwnedInFleet };
+        renderTradeCards();
+        triggerHaptic(12);
+        showToast(`${isOwnedInFleet ? 'Vaisseau cargo assigné' : 'Simulation activée sur'} : ${target.fullName} (${target.cargoScu} SCU)`);
+        closeInspector();
+      }
+    });
+  });
+}
+
+// Tiroir d'ajustement du capital disponible
+function openTradeCapitalModal() {
+  const presets = [10000, 500000, 1284500, 2500000, 5000000, 10000000];
+  const presetsHtml = presets.map(p => `
+    <button type="button" class="vo-btn ${tradeState.userCapital === p ? 'primary' : 'outline'} btn-capital-preset" data-preset="${p}" style="font-size:0.75rem; padding:8px;">
+      ${p.toLocaleString('fr-FR')} aUEC ${p === 10000 ? '(Test 4 SCU)' : ''}
+    </button>
+  `).join('');
+
+  openInspector({
+    title: 'Ajuster votre capital de commerce',
+    subtitle: 'Calcul d\'exposition financière, soute et Quantum Full',
+    body: `
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <p style="font-size:0.8rem; color:var(--text-dim);">
+          Le capital détermine le nombre maximum de SCU finançables par rotation et vérifie si le vaisseau n'est pas surdimensionné pour le volume acheté :
+        </p>
+        <div>
+          <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:6px;">Presets rapides :</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            ${presetsHtml}
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:6px;">Montant personnalisé (aUEC) :</label>
+          <input type="number" id="inputCustomCapital" value="${tradeState.userCapital}" step="50000" min="1000" style="width:100%; padding:10px 14px; background:var(--bg-card-inner); border:1px solid var(--border-medium); border-radius:4px; color:#fff; font-family:var(--font-mono); font-size:1rem;">
+        </div>
+      </div>
+    `,
+    footer: `
+      <button type="button" class="vo-btn primary" id="btnConfirmCapital" style="width:100%;">
+        Appliquer ce capital (${tradeState.userCapital.toLocaleString('fr-FR')} aUEC)
+      </button>
+    `
+  });
+
+  document.querySelectorAll('.btn-capital-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = Number(btn.getAttribute('data-preset')) || 1284500;
+      const input = document.getElementById('inputCustomCapital');
+      if (input) input.value = val;
+      const confirmBtn = document.getElementById('btnConfirmCapital');
+      if (confirmBtn) confirmBtn.textContent = `Appliquer ce capital (${val.toLocaleString('fr-FR')} aUEC)`;
+      triggerHaptic(6);
+    });
+  });
+
+  document.getElementById('inputCustomCapital')?.addEventListener('input', (e) => {
+    const val = Number(e.target.value) || 0;
+    const confirmBtn = document.getElementById('btnConfirmCapital');
+    if (confirmBtn) confirmBtn.textContent = `Appliquer ce capital (${val.toLocaleString('fr-FR')} aUEC)`;
+  });
+
+  document.getElementById('btnConfirmCapital')?.addEventListener('click', () => {
+    const input = document.getElementById('inputCustomCapital');
+    const val = Math.max(1000, Number(input?.value) || tradeState.userCapital);
+    tradeState.userCapital = val;
+    renderTradeCards();
+    triggerHaptic(12);
+    showToast(`Capital disponible mis à jour : ${val.toLocaleString('fr-FR')} aUEC`);
+    closeInspector();
+  });
+}
+
+// Tiroir Mode 2 : Analyse détaillée de la route & vaisseau optimal
+function openTradeRouteAnalysisModal() {
+  const routes = tradeService.getRoutes();
+  const sel = routes.find(r => r.id === tradeState.selectedRouteId) || routes[0];
+  const rec = tradeService.recommendBestShipForRoute(sel, tradeState.userCapital, fleetService.getShips());
+  const { currentShip } = getEffectiveTradeContext();
+  const q = tradeService.computeQuantumFullRoute(sel, rec.recommendedShip);
+
+  openInspector({
+    title: `Mode 2 · Analyse de la route`,
+    subtitle: `${sel.name || sel.item}`,
+    body: `
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="vo-card" style="padding:14px; background:rgba(60,210,255,0.06); border-left:3px solid var(--accent-cyan);">
+          <div style="font-weight:700; color:#fff; font-size:0.9rem; margin-bottom:4px;">Recommandation AARON MFD</div>
+          <p style="font-size:0.82rem; color:#d1fae5; line-height:1.5; margin:0;">
+            ${rec.rationale_fr}
+          </p>
+        </div>
+
+        <div>
+          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">NAVIGATION EN QUANTUM FULL</div>
+          <table class="vo-table">
+            <tbody>
+              <tr><td>Distance interplanétaire</td><td style="text-align:right;" class="val-bold">${q.distanceGm} GM (${(q.distanceKm).toLocaleString('fr-FR')} km)</td></tr>
+              <tr><td>Moteur Quantique préconisé</td><td style="text-align:right;">${q.qdName} (${(q.qdSpeedKmS).toLocaleString('fr-FR')} km/s)</td></tr>
+              <tr><td>Temps Quantum pur (A/R)</td><td style="text-align:right;">~${q.quantumMinutesRoundTrip} min</td></tr>
+              <tr><td>Montée / descente atmosphère</td><td style="text-align:right;">~${q.atmoMinutesRoundTrip} min</td></tr>
+              <tr><td>Transit TDD & terminaux</td><td style="text-align:right;">~${q.terminalMinutesRoundTrip} min</td></tr>
+              <tr><td>Rotation complète Quantum Full</td><td style="text-align:right;" class="val-green"><b>~${q.totalRotationMinutes} min (${q.rotationsPerHour} rot/h)</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `,
+    footer: `
+      <button type="button" class="vo-btn primary" id="btnApplyOptimalShip" style="width:100%;">
+        ${rec.recommendedShip.owned ? 'Assigner' : 'Simuler avec'} ${rec.recommendedShip.shipName} (${rec.recommendedShip.cargoScu} SCU)
+      </button>
+    `
+  });
+
+  document.getElementById('btnApplyOptimalShip')?.addEventListener('click', () => {
+    const recShip = rec.recommendedShip;
+    const isOwned = tradeService.isShipOwnedInFleet(recShip, fleetService.getShips());
+    const match = MARKET_CARGO_SHIPS.find(p => p.name === recShip.shipName || recShip.shipName.includes(p.name));
+    if (match) {
+      tradeState.customSelectedShip = { ...match, owned: isOwned };
+    } else {
+      tradeState.customSelectedShip = {
+        id: 'custom',
+        name: recShip.shipName,
+        fullName: recShip.shipName,
+        cargoScu: recShip.cargoScu,
+        owned: isOwned
+      };
+    }
+    renderTradeCards();
+    triggerHaptic(12);
+    showToast(`Vaisseau optimal assigné : ${recShip.shipName} (${recShip.cargoScu} SCU · ${isOwned ? 'Flotte' : 'Simulation'}) !`);
+    closeInspector();
+  });
+}
+
+// Tiroir interactif d'exploration des marchandises de commerce (Catalogue UEX Corp)
+function openCommoditiesCatalogModal() {
+  let selectedCategory = 'all';
+  let searchQuery = '';
+
+  const renderTableContent = () => {
+    const list = uexService.getCommoditiesList({
+      category: selectedCategory,
+      search: searchQuery
+    });
+
+    if (list.length === 0) {
+      return `
+        <tr>
+          <td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">
+            Aucune marchandise trouvée pour « ${searchQuery} »
+          </td>
+        </tr>
+      `;
+    }
+
+    return list.map(c => {
+      const marginClass = c.marginPerScu > 2000 ? 'val-green' : (c.marginPerScu > 0 ? '' : 'val-red');
+      const categoryIcon = {
+        metals: '💎',
+        industrial: '⚙️',
+        medical: '💉',
+        consumables: '🥫',
+        gases: '⛽',
+        illicit: '☠️'
+      }[c.category] || '📦';
+
+      return `
+        <tr class="comm-catalog-row" data-comm-id="${c.id}" style="cursor:pointer;" title="Cliquez pour filtrer les routes avec cette marchandise">
+          <td class="val-bold">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.1rem;">${categoryIcon}</span>
+              <div>
+                <div style="font-weight:700; color:#fff;">${c.name_fr}</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">${c.name_en}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="tag" style="font-size:0.65rem;">${c.category.toUpperCase()}</span>
+            ${c.isIllegal ? '<span class="tag t-r" style="margin-left:4px; font-size:0.65rem;">ILLICITE</span>' : ''}
+          </td>
+          <td style="font-family:var(--font-mono); text-align:right;">${c.currentBuy.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}</td>
+          <td style="font-family:var(--font-mono); text-align:right;">${c.currentSell.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}</td>
+          <td class="${marginClass}" style="font-family:var(--font-mono); font-weight:700; text-align:right;">
+            +${c.marginPerScu.toLocaleString('fr-FR')} aUEC
+          </td>
+          <td style="font-size:0.75rem;">
+            <b>${c.bestBuy?.location || 'Stanton'}</b>
+            <div style="font-size:0.68rem; color:var(--text-muted);">${c.bestBuy?.system || 'Stanton'}</div>
+          </td>
+          <td style="font-size:0.75rem;">
+            <b>${c.bestSell?.location || 'TDD'}</b>
+            <div style="font-size:0.68rem; color:var(--text-muted);">${c.bestSell?.system || 'Stanton'}</div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  };
+
+  const categories = uexService.getCategories();
+  const catChipsHtml = categories.map(cat => `
+    <button type="button" class="vo-btn ${cat.id === 'all' ? 'primary' : 'outline'} btn-comm-cat-filter" data-cat="${cat.id}" style="font-size:0.7rem; padding:4px 8px;">
+      ${cat.icon} ${cat.label_fr.split(' ')[0]} (${cat.count})
+    </button>
+  `).join('');
+
+  const syncInfo = uexService.getSyncStatus();
+
+  openInspector({
+    title: 'Catalogue des Marchandises de Trade',
+    subtitle: `Star Citizen 4.x · 28 commodités · Cours ${syncInfo.badgeText} (${syncInfo.timeAgoText})`,
+    body: `
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <!-- Barre de recherche et filtres -->
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="commCatalogSearchInput" placeholder="Rechercher une marchandise (Quantainium, Titane, Maze, Vivres)..." style="flex:1; padding:8px 12px; background:var(--bg-card-inner); border:1px solid var(--border-medium); border-radius:4px; color:#fff; font-size:0.85rem;">
+        </div>
+
+        <!-- Puces de catégories -->
+        <div style="display:flex; gap:6px; flex-wrap:wrap;" id="commCategoryChipsContainer">
+          ${catChipsHtml}
+        </div>
+
+        <!-- Tableau scrollable des marchandises -->
+        <div style="max-height:480px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:4px;">
+          <table class="vo-table" style="font-size:0.78rem;">
+            <thead>
+              <tr style="position:sticky; top:0; background:var(--bg-card); z-index:2;">
+                <th>Marchandise</th>
+                <th>Catégorie</th>
+                <th style="text-align:right;">Achat (aUEC/cSCU)</th>
+                <th style="text-align:right;">Vente (aUEC/cSCU)</th>
+                <th style="text-align:right;">Marge / SCU</th>
+                <th>Meilleur Achat</th>
+                <th>Meilleure Vente</th>
+              </tr>
+            </thead>
+            <tbody id="commCatalogTableBody">
+              ${renderTableContent()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `,
+    footer: `
+      <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        <span style="font-size:0.75rem; color:var(--text-muted);">
+          1 SCU = 100 cSCU · Données officielles UEX Corp (Stanton & Pyro)
+        </span>
+        <button type="button" class="vo-btn outline" id="btnCloseCommCatalog">
+          Fermer
+        </button>
+      </div>
+    `,
+    wide: true
+  });
+
+  const searchInput = document.getElementById('commCatalogSearchInput');
+  const tbody = document.getElementById('commCatalogTableBody');
+
+  const updateTable = () => {
+    if (tbody) tbody.innerHTML = renderTableContent();
+    attachRowClicks();
+  };
+
+  const attachRowClicks = () => {
+    tbody?.querySelectorAll('.comm-catalog-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const commId = row.getAttribute('data-comm-id');
+        if (commId) {
+          tradeState.selectedCommodityFilter = commId;
+          triggerHaptic(8);
+          closeInspector();
+          showToast(`Marchandise filtrée : ${commId}`);
+          renderTradeCards();
         }
       });
     });
+  };
+
+  attachRowClicks();
+
+  searchInput?.addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    updateTable();
+  });
+
+  document.querySelectorAll('.btn-comm-cat-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.btn-comm-cat-filter').forEach(b => {
+        b.className = 'vo-btn outline btn-comm-cat-filter';
+      });
+      btn.className = 'vo-btn primary btn-comm-cat-filter';
+      selectedCategory = btn.getAttribute('data-cat') || 'all';
+      triggerHaptic(6);
+      updateTable();
+    });
+  });
+
+  document.getElementById('btnCloseCommCatalog')?.addEventListener('click', closeInspector);
+}
+
+// ============================================================================
+// 9. RENDU : GUILDE (NOVA MINING CO. - MAQUETTE 5 EXACTE)
+// ============================================================================
+let activeGuildTab = 'overview';
+
+function renderGuildContent() {
+  // Bind candidates action buttons
+  document.querySelectorAll('.candidate-btn.approve').forEach(btn => {
+    btn.onclick = () => {
+      const row = btn.closest('.candidate-row');
+      const name = row?.querySelector('.val-bold')?.textContent || 'Candidat';
+      row?.remove();
+      showToast(`✓ Candidature de ${name} approuvée dans Nova Mining Co. !`);
+    };
+  });
+
+  document.querySelectorAll('.candidate-btn.reject').forEach(btn => {
+    btn.onclick = () => {
+      const row = btn.closest('.candidate-row');
+      const name = row?.querySelector('.val-bold')?.textContent || 'Candidat';
+      row?.remove();
+      showToast(`Candidature de ${name} rejetée.`);
+    };
+  });
+
+  // Ordres logistiques interactifs (Kanban click to advance)
+  document.querySelectorAll('.logistics-kanban-card').forEach(card => {
+    card.onclick = () => {
+      showToast('📦 Statut de transfert logistique synchronisé avec le hangar de guilde !');
+    };
+  });
+
+  // Sous-onglets Guilde (Vue d'ensemble / Membres / Opérations / Logistique / Bourse & Marché)
+  document.querySelectorAll('#viewGuild [data-gtab]').forEach(btn => {
+    btn.onclick = () => {
+      const gtab = btn.getAttribute('data-gtab');
+      switchGuildSubTab(gtab);
+    };
+  });
+}
+
+// ============================================================================
+// 10. FLEETS & MULTI-CREW OPERATIONS CONTROLLER (AARON MFD WING OPS)
+// Coordination multi-joueurs à bord du même vaisseau (MOLE) ou en escadre (Wing),
+// simulation de tir laser synchronisé, répartition de session et ordres mo.Trader
+// ============================================================================
+let liveSessionSeconds = 0;
+let liveSessionTimerInterval = null;
+let activeFleetSubview = 'roster'; // 'roster' | 'jointfire' | 'payouts' | 'logs'
+let activeJointFireCallsigns = new Set();
+
+function formatSessionTime(sec) {
+  const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+  const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `EN COURS ${h}:${m}:${s}`;
+}
+
+function renderFleetsScreen() {
+  const hasSession = coopService.hasActiveSession();
+  const session = coopService.getSession();
+  const emptyContainer = document.getElementById('fleetEmptyStateContainer');
+  const activeContainer = document.getElementById('fleetActiveStateContainer');
+  const timerBadge = document.getElementById('fleetLiveTimerBadge');
+  const titleEl = document.getElementById('fleetLiveSessionTitle');
+  const subEl = document.getElementById('fleetLiveSubtitle');
+  const btnClose = document.getElementById('btnCloseLiveSession');
+  const btnAddShip = document.getElementById('btnOpenAddFleetShip');
+  const presetSelect = document.getElementById('fleetPresetSelect');
+
+  if (!hasSession || !session) {
+    if (emptyContainer) emptyContainer.style.display = 'block';
+    if (activeContainer) activeContainer.style.display = 'none';
+
+    if (titleEl) titleEl.textContent = "Opérations d'Escadre (Fleets)";
+    if (subEl) subEl.textContent = "Coordination multi-joueurs, partage de soute et tirs laser synchronisés";
+    if (timerBadge) timerBadge.style.display = 'none';
+    if (btnClose) btnClose.style.display = 'none';
+    if (btnAddShip) btnAddShip.style.display = 'none';
+    if (presetSelect) presetSelect.value = '';
+
+    if (liveSessionTimerInterval) {
+      clearInterval(liveSessionTimerInterval);
+      liveSessionTimerInterval = null;
+    }
+    updateFleetNetUI();
+    return;
+  }
+
+  // Session active
+  if (emptyContainer) emptyContainer.style.display = 'none';
+  if (activeContainer) activeContainer.style.display = 'block';
+  if (btnClose) btnClose.style.display = 'inline-flex';
+  if (btnAddShip) btnAddShip.style.display = 'inline-flex';
+
+  if (timerBadge) {
+    timerBadge.style.display = 'inline-block';
+    timerBadge.className = 'vo-badge green';
+    timerBadge.textContent = formatSessionTime(liveSessionSeconds);
+  }
+
+  if (titleEl) titleEl.textContent = session.name || 'Escadre Minière en direct';
+  if (subEl) subEl.textContent = `Escadre Minière & Multi-Crew · ${session.location || 'Stanton'}`;
+
+  // Démarre le timer si pas encore démarré
+  if (!liveSessionTimerInterval) {
+    liveSessionTimerInterval = setInterval(() => {
+      liveSessionSeconds++;
+      if (timerBadge) timerBadge.textContent = formatSessionTime(liveSessionSeconds);
+    }, 1000);
+  }
+
+  const metrics = coopService.getCombinedMetrics();
+  const split = coopService.calculateFinancialSplit();
+
+  // KPI 1 : Soute Flotte
+  const cargoVal = document.getElementById('fleetKpiCargoVal');
+  const cargoBar = document.getElementById('fleetKpiCargoBar');
+  const cargoSub = document.getElementById('fleetKpiCargoSub');
+  if (cargoVal) {
+    cargoVal.innerHTML = `${session.totalOreSCU || 0} / ${metrics.totalScuCapacity} <span style="font-size:0.9rem; font-weight:500; color:var(--text-dim);">SCU</span>`;
+  }
+  if (cargoBar) {
+    const pct = metrics.totalScuCapacity > 0 ? Math.min(100, Math.round(((session.totalOreSCU || 0) / metrics.totalScuCapacity) * 100)) : 0;
+    cargoBar.style.width = `${pct}%`;
+  }
+  if (cargoSub) {
+    cargoSub.textContent = `${session.totalOreSCU || 0} SCU extraits · Soutes & Pods cumulés`;
+  }
+
+  // KPI 2 : Puissance Laser Combinée
+  const laserPower = document.getElementById('fleetKpiLaserPower');
+  const laserDetails = document.getElementById('fleetKpiLaserDetails');
+  if (laserPower) {
+    laserPower.innerHTML = `${metrics.combinedPowerMegaWatts} <span style="font-size:0.9rem; font-weight:500;">MW</span>`;
+  }
+  if (laserDetails) {
+    laserDetails.textContent = `${metrics.totalLasersCount} lasers actifs · -${metrics.combinedResistanceReductionPct}% Résistance cumulée`;
+  }
+
+  // KPI 3 : Valeur Nette
+  const netVal = document.getElementById('fleetKpiNetVal');
+  const grossSub = document.getElementById('fleetKpiGrossSub');
+  if (netVal) {
+    netVal.textContent = `${(split.distributableUEC / 1000000).toFixed(2)} M`;
+  }
+  if (grossSub) {
+    const deductionsK = Math.round((split.expenses + split.guildTaxUEC + split.reserveFundUEC) / 1000);
+    grossSub.textContent = `aUEC · Brut ${(split.gross / 1000000).toFixed(2)} M (Déductions -${deductionsK} k)`;
+  }
+
+  // KPI 4 : Effectif & Sécurité
+  const crewCount = document.getElementById('fleetKpiCrewCount');
+  const securitySub = document.getElementById('fleetKpiSecuritySub');
+  if (crewCount) {
+    crewCount.textContent = `${metrics.totalCrewCount} membres`;
+  }
+  if (securitySub) {
+    const mcCount = (session.ships || []).filter(s => s.isMultiCrew).length;
+    securitySub.textContent = `${metrics.totalShipsCount} vaisseaux · ${mcCount} Multi-Crew · Escorte Active`;
+  }
+
+  // Sélecteur de preset synchronisé
+  if (presetSelect && session.presetId) {
+    presetSelect.value = session.presetId;
+  }
+
+  // Sous-vues
+  renderFleetRoster(session);
+  renderFleetJointFire(session);
+  renderFleetPayouts(session, split);
+  renderFleetLogs(session);
+
+  // Mise à jour de la barre de liaison P2P
+  updateFleetNetUI();
+}
+
+function renderFleetRoster(session) {
+  const container = document.getElementById('fleetShipsRosterGrid');
+  if (!container) return;
+
+  container.innerHTML = session.ships.map(ship => {
+    if (ship.isMultiCrew) {
+      // Affichage spécifique Vaisseau Multi-Crew avec postes à bord
+      const stationsHtml = ship.crew.map(member => {
+        const isLaser = Boolean(member.laserId);
+        const laserDetail = isLaser
+          ? `<div class="station-laser-info">⚡ ${member.laserName || 'Laser'} · ${member.powerWatts} W ${member.resistanceReductionPct > 0 ? `· <span class="val-green">-${member.resistanceReductionPct}% rés</span>` : ''}</div>`
+          : `<div class="station-laser-info" style="color:var(--text-dim);">Commande de vol & navigation</div>`;
+
+        return `
+          <div class="crew-station-box">
+            <div class="station-role-row">
+              <span class="station-role-label">${member.role.includes('pilot') ? '🧑‍✈️' : (member.role.includes('turret') ? '⚡' : '🧲')} ${member.roleLabel}</span>
+              <span class="vo-badge ${member.status === 'online' ? 'green' : 'amber'}" style="font-size:0.68rem; padding:1px 6px;">
+                ${member.status === 'online' ? 'EN LIGNE' : 'ABSENT'}
+              </span>
+            </div>
+            <div class="station-operator">
+              <span class="status-dot-green"></span>
+              <span class="station-callsign">${member.callsign}</span>
+            </div>
+            ${laserDetail}
+            <div class="station-actions">
+              <span style="font-size:0.72rem; color:var(--text-dim); font-family:var(--font-mono);">Part : ${member.sharePct}%</span>
+              <button type="button" class="vo-btn outline btn-edit-crew-slot" data-ship-id="${ship.id}" data-callsign="${member.callsign}" style="font-size:0.68rem; padding:2px 6px;">
+                ✏️ Assigner
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="multicrew-ship-card">
+          <div class="multicrew-header">
+            <div>
+              <div class="multicrew-title">
+                <span>🛰️</span> ${ship.name}
+                <span class="vo-badge cyan">Multi-Crew (${ship.crew.length} postes occupés)</span>
+              </div>
+              <div class="multicrew-meta">
+                Modèle : ${ship.modelId.toUpperCase()} · Soute : ${ship.totalScu} SCU · Rôle : ${ship.roleLabel}
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="vo-btn outline btn-quick-assign-crew" data-ship-id="${ship.id}" style="font-size:0.72rem; padding:4px 8px;">
+                ＋ Ajouter poste
+              </button>
+            </div>
+          </div>
+
+          <div style="font-size:0.78rem; font-weight:700; color:var(--accent-cyan); text-transform:uppercase; letter-spacing:0.5px;">
+            Postes à bord & Opérateurs de tourelles :
+          </div>
+          <div class="stations-grid">
+            ${stationsHtml}
+          </div>
+        </div>
+      `;
+    } else {
+      // Vaisseau solo ou support d'escadre
+      const pilot = ship.crew[0] || { callsign: 'Non assigné', roleLabel: 'Pilote', sharePct: 10 };
+      const roleBadgeCls = ship.role === 'cargo' ? 'green' : (ship.role === 'escort' ? 'amber' : 'cyan');
+
+      return `
+        <div class="vo-card" style="padding:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div class="citizen-avatar-pill" style="width:42px; height:42px; font-size:1.3rem;">
+              ${ship.role === 'cargo' ? '📦' : (ship.role === 'escort' ? '⚔️' : '⛏️')}
+            </div>
+            <div>
+              <div style="font-size:0.98rem; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+                ${ship.name}
+                <span class="vo-badge ${roleBadgeCls}">${ship.roleLabel}</span>
+              </div>
+              <div style="font-size:0.76rem; color:var(--text-dim); margin-top:2px;">
+                Pilote : <strong style="color:#fff;">${pilot.callsign}</strong> · Capacité : ${ship.totalScu} SCU · Part : ${pilot.sharePct}%
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" class="vo-btn outline btn-edit-crew-slot" data-ship-id="${ship.id}" data-callsign="${pilot.callsign}" style="font-size:0.72rem; padding:4px 8px;">
+              ✏️ Changer pilote
+            </button>
+            <button type="button" class="vo-btn outline btn-remove-wing-ship" data-ship-id="${ship.id}" style="font-size:0.72rem; padding:4px 8px; color:var(--accent-red);">
+              ✕ Retirer
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }).join('');
+
+  // Clics sur boutons d'assignation
+  container.querySelectorAll('.btn-edit-crew-slot').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const shipId = btn.getAttribute('data-ship-id');
+      const callsign = btn.getAttribute('data-callsign');
+      const newCallsign = prompt(`Nouveau callsign / pseudo pour ce poste (actuel: ${callsign}) :`, callsign);
+      if (newCallsign && newCallsign.trim()) {
+        const ship = session.ships.find(s => s.id === shipId);
+        if (ship) {
+          const member = ship.crew.find(m => m.callsign === callsign);
+          if (member) member.callsign = newCallsign.trim().toUpperCase();
+        }
+        renderFleetsScreen();
+        showToast(`✓ Poste assigné à ${newCallsign.trim().toUpperCase()} !`);
+      }
+    });
+  });
+
+  container.querySelectorAll('.btn-quick-assign-crew').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const shipId = btn.getAttribute('data-ship-id');
+      const callsign = prompt('Callsign du nouveau coéquipier à bord :');
+      if (callsign && callsign.trim()) {
+        coopService.assignCrewMember(shipId, {
+          callsign: callsign.trim().toUpperCase(),
+          role: 'turret_extra',
+          roleLabel: 'Tourelle Auxiliaire',
+          laserId: 'lancet_s2',
+          laserName: 'Lancet MH2 S2',
+          powerWatts: 2000,
+          resistanceReductionPct: 35,
+          sharePct: 15
+        });
+        renderFleetsScreen();
+        showToast(`✓ Nouveau coéquipier ${callsign.trim().toUpperCase()} ajouté à bord !`);
+      }
+    });
+  });
+
+  container.querySelectorAll('.btn-remove-wing-ship').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const shipId = btn.getAttribute('data-ship-id');
+      coopService.removeShip(shipId);
+      renderFleetsScreen();
+      showToast('Vaisseau retiré de l’escadre.');
+    });
+  });
+}
+
+function renderFleetJointFire(session) {
+  const listEl = document.getElementById('jointFireLasersList');
+  if (!listEl) return;
+
+  const allMembers = coopService.getAllCrewMembers().filter(m => m.laserId && m.powerWatts > 0);
+  const sim = coopService.simulateJointFracture(session.targetRock, Array.from(activeJointFireCallsigns));
+
+  listEl.innerHTML = allMembers.map(m => {
+    const isFiring = activeJointFireCallsigns.has(m.callsign);
+    return `
+      <div class="laser-toggle-item ${isFiring ? 'firing' : ''}" data-callsign="${m.callsign}">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" ${isFiring ? 'checked' : ''} style="cursor:pointer;" onclick="event.stopPropagation()">
+          <div>
+            <div style="font-weight:700; color:#fff; font-size:0.86rem;">
+              ${m.shipName} · ${m.roleLabel}
+            </div>
+            <div style="font-size:0.74rem; color:var(--text-dim);">
+              Opérateur : <strong style="color:var(--accent-cyan);">${m.callsign}</strong> · ${m.laserName || 'Laser'}
+            </div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--font-mono); font-weight:700; color:#fff; font-size:0.88rem;">${m.powerWatts} W</div>
+          ${m.resistanceReductionPct > 0 ? `<div style="font-size:0.7rem; color:#4ade80;">-${m.resistanceReductionPct}% rés.</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  listEl.querySelectorAll('.laser-toggle-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const callsign = item.getAttribute('data-callsign');
+      if (activeJointFireCallsigns.has(callsign)) {
+        activeJointFireCallsigns.delete(callsign);
+      } else {
+        activeJointFireCallsigns.add(callsign);
+      }
+      coopService.broadcastJointFire(activeJointFireCallsigns);
+      renderFleetJointFire(session);
+    });
+  });
+
+  // Mettre à jour l'affichage de fracture
+  const rockNameEl = document.getElementById('jointFireRockName');
+  const rockSubEl = document.getElementById('jointFireRockSub');
+  const rockValEl = document.getElementById('jointFireRockValBadge');
+  const rockMassEl = document.getElementById('jointFireRockMass');
+  const effectiveResEl = document.getElementById('jointFireRockEffectiveRes');
+  const reqWattsEl = document.getElementById('jointFireRequiredWatts');
+  const powerDeliveredEl = document.getElementById('jointFirePowerDelivered');
+  const powerBarEl = document.getElementById('jointFirePowerBar');
+  const verdictTitleEl = document.getElementById('jointFireVerdictTitle');
+  const verdictDescEl = document.getElementById('jointFireVerdictDesc');
+  const verdictBoxEl = document.getElementById('jointFireVerdictBox');
+
+  const rock = session.targetRock || {};
+  if (rockNameEl) rockNameEl.textContent = rock.name || 'Astéroïde Colossal';
+  if (rockSubEl) rockSubEl.textContent = `${rock.mineralName || 'Quantainium'} ${rock.orePercentage || 30}% · ${(rock.massKg || 35000).toLocaleString('fr-FR')} kg · Résistance ${rock.resistance}% · Instabilité ${rock.instability}`;
+  if (rockValEl) rockValEl.textContent = `~${((rock.estimatedValueUEC || 3000000) / 1000000).toFixed(1)} M aUEC`;
+  if (rockMassEl) rockMassEl.textContent = `${((rock.massKg || 35000) / 1000).toFixed(1)} t`;
+  if (effectiveResEl) effectiveResEl.textContent = `${sim.effectiveResistancePct} %`;
+  if (reqWattsEl) reqWattsEl.textContent = `${sim.requiredWatts.toLocaleString('fr-FR')} W`;
+  if (powerDeliveredEl) powerDeliveredEl.textContent = `${sim.totalWatts.toLocaleString('fr-FR')} W (${sim.activeShooters.length} lasers)`;
+
+  if (powerBarEl) {
+    const pct = Math.min(100, Math.round((sim.totalWatts / (sim.requiredWatts || 1)) * 100));
+    powerBarEl.style.width = `${pct}%`;
+    powerBarEl.className = `power-bar-fill ${sim.powerRatio > 1.8 ? 'overload' : ''}`;
+  }
+
+  if (verdictBoxEl) {
+    if (sim.isFracturable) {
+      verdictBoxEl.style.background = 'rgba(34,197,94,0.12)';
+      verdictBoxEl.style.borderColor = '#22c55e';
+      if (verdictTitleEl) {
+        verdictTitleEl.style.color = '#4ade80';
+        verdictTitleEl.textContent = '✓ FRACTURABLE EN ÉQUIPE';
+      }
+      if (verdictDescEl) {
+        verdictDescEl.textContent = `${sim.activeShooters.length} lasers synchronisés · Seuil d'énergie franchi (${Math.round(sim.powerRatio * 100)}%) · Temps estimé : ~${sim.estimatedTimeToFractureSec}s`;
+      }
+    } else {
+      verdictBoxEl.style.background = 'rgba(239,68,68,0.12)';
+      verdictBoxEl.style.borderColor = '#ef4444';
+      if (verdictTitleEl) {
+        verdictTitleEl.style.color = '#f87171';
+        verdictTitleEl.textContent = '⚠ PUISSANCE INSUFFISANTE';
+      }
+      if (verdictDescEl) {
+        verdictDescEl.textContent = `Il manque ${Math.round(sim.requiredWatts - sim.totalWatts)} W pour briser ce bloc. Activez une tourelle laser supplémentaire ou appliquez un gadget Sabir !`;
+      }
+    }
   }
 }
 
-// Force clean caches and unregister service workers
-function forceRefreshCache() {
-  const t = I18N[state.currentLang] || I18N.fr;
-  sfx.playSuccess();
-  triggerHaptic(25);
-  showToast(t.toastCacheCleared || 'Cache vidé ! Rechargement v2.0.0...');
+function renderFleetPayouts(session, split) {
+  const tbody = document.getElementById('fleetPayoutsTableBody');
+  const box = document.getElementById('motraderCommandsBox');
+  const distTotalEl = document.getElementById('fleetDistributableTotal');
+  const guildTaxEl = document.getElementById('fleetGuildTaxTotal');
 
-  const cleanCaches = 'caches' in window
-    ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-    : Promise.resolve();
+  if (distTotalEl) distTotalEl.textContent = `${split.distributableUEC.toLocaleString('fr-FR')} aUEC`;
+  if (guildTaxEl) guildTaxEl.textContent = `${split.guildTaxUEC.toLocaleString('fr-FR')} aUEC`;
 
-  const unregSW = 'serviceWorker' in navigator
-    ? navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister())))
-    : Promise.resolve();
+  if (tbody) {
+    tbody.innerHTML = split.payouts.map(p => {
+      let roleCls = 'cyan';
+      if (p.shipRole === 'cargo') roleCls = 'green';
+      else if (p.shipRole === 'escort') roleCls = 'amber';
 
-  Promise.all([cleanCaches, unregSW])
-    .then(() => {
-      setTimeout(() => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('reload', Date.now().toString());
-        window.location.href = url.toString();
-      }, 400);
-    })
-    .catch(() => {
-      setTimeout(() => {
-        window.location.reload(true);
-      }, 400);
-    });
+      return `
+        <tr>
+          <td><span class="status-dot-green" style="display:inline-block; margin-right:6px;"></span><strong>${p.callsign}</strong></td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">${p.shipName}</td>
+          <td><span class="vo-badge ${roleCls}">${p.roleLabel}</span></td>
+          <td>${p.calculatedSharePct || p.sharePct} %</td>
+          <td class="val-green" style="font-family:var(--font-mono); font-weight:700;">${p.amountUEC.toLocaleString('fr-FR')} aUEC</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Commandes mo.Trader
+  if (box) {
+    const cmds = coopService.generateMoTraderCommands();
+    box.innerHTML = cmds.map(c => `
+      <div class="motrader-cmd-line">
+        <span>${c.commandText}</span>
+        <span style="color:var(--text-dim); font-size:0.74rem;">${c.role}</span>
+      </div>
+    `).join('');
+  }
 }
 
-// Run on load
-document.addEventListener('DOMContentLoaded', init);
+function renderFleetLogs(session) {
+  const feed = document.getElementById('fleetLiveLogFeed');
+  if (!feed) return;
+
+  const logs = session.logs || [];
+  feed.innerHTML = logs.map(l => {
+    let authorColor = 'var(--accent-cyan)';
+    if (l.type === 'cargo') authorColor = 'var(--accent-green)';
+    if (l.type === 'security') authorColor = 'var(--accent-amber)';
+
+    return `
+      <div class="session-log-item">
+        <span class="session-log-time">${l.time}</span>
+        <span><strong style="color:${authorColor};">${l.author}</strong> : ${l.text}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Timer tick pour la session de flotte
+setInterval(() => {
+  liveSessionSeconds++;
+  const badgeEl = document.getElementById('fleetLiveTimerBadge');
+  if (badgeEl) badgeEl.textContent = formatSessionTime(liveSessionSeconds);
+}, 1000);
+
+// ============================================================================
+// LIAISON RÉSEAU MULTIJOUEUR EN DIRECT (FLEET-NET P2P & LOCAL)
+// ============================================================================
+
+function updateFleetNetUI() {
+  const net = coopService.getNetworkStatus();
+  const dot = document.getElementById('fleetNetStatusDot');
+  const text = document.getElementById('fleetNetStatusText');
+  const details = document.getElementById('fleetNetDetailsTag');
+  const roomEl = document.getElementById('fleetNetRoomCodeDisplay');
+  const peersEl = document.getElementById('fleetNetPeersCountDisplay');
+  const pingEl = document.getElementById('fleetNetPingDisplay');
+  const actionBtnText = document.getElementById('btnWingActionText');
+  const inviteBtn = document.getElementById('btnCopyInviteLink');
+  const disconnectBtn = document.getElementById('btnDisconnectWing');
+  const topbarFleetDot = document.getElementById('topbarFleetDot');
+  const topbarFleetName = document.getElementById('topbarFleetName');
+
+  const isConnected = (net.status === 'connected');
+  const isConnecting = (net.status === 'connecting');
+
+  if (dot) {
+    if (isConnected) {
+      dot.style.background = '#22c55e';
+      dot.style.boxShadow = '0 0 8px rgba(34,197,94,0.6)';
+    } else if (isConnecting) {
+      dot.style.background = '#f59e0b';
+      dot.style.boxShadow = '0 0 8px rgba(245,158,11,0.6)';
+    } else {
+      dot.style.background = '#ef4444';
+      dot.style.boxShadow = '0 0 8px rgba(239,68,68,0.6)';
+    }
+  }
+
+  if (text) {
+    if (isConnected) {
+      text.textContent = `LIAISON P2P MULTIJOUEUR EN LIGNE (${net.isHost ? 'HÔTE' : 'AILIER'})`;
+      text.style.color = '#4ade80';
+    } else if (isConnecting) {
+      text.textContent = 'CONNEXION RÉSEAU P2P EN COURS...';
+      text.style.color = '#fbbf24';
+    } else {
+      text.textContent = 'LIAISON P2P : HORS-LIGNE (MODE SOLO)';
+      text.style.color = 'var(--text-muted)';
+    }
+  }
+
+  if (details) {
+    details.style.display = isConnected ? 'inline-flex' : 'none';
+  }
+  if (roomEl) roomEl.textContent = net.roomCode || 'WING-XXXX';
+  if (peersEl) {
+    const count = net.peers.length;
+    peersEl.textContent = `${count} ailier${count > 1 ? 's' : ''} connecté${count > 1 ? 's' : ''}`;
+  }
+  if (pingEl) pingEl.textContent = `${net.pingMs || 15} ms`;
+
+  if (actionBtnText) {
+    actionBtnText.textContent = isConnected ? `Gérer Escadre (${net.roomCode})` : 'Rejoindre / Créer Escadre P2P';
+  }
+  if (inviteBtn) inviteBtn.style.display = isConnected ? 'inline-flex' : 'none';
+  if (disconnectBtn) disconnectBtn.style.display = isConnected ? 'inline-flex' : 'none';
+
+  if (topbarFleetDot) {
+    topbarFleetDot.style.background = isConnected ? '#22c55e' : (isConnecting ? '#f59e0b' : '#ef4444');
+    topbarFleetDot.style.boxShadow = isConnected ? '0 0 8px rgba(34,197,94,0.6)' : 'none';
+  }
+  if (topbarFleetName) {
+    topbarFleetName.textContent = isConnected
+      ? `${net.roomCode} [${net.peers.length + 1}p · ${net.pingMs || 15}ms]`
+      : 'Opération Quanta (Solo)';
+  }
+}
+
+function initFleetNetSync() {
+  const localCallsign = (typeof store !== 'undefined' && store.get('callsign')) || 'VORTEX-1';
+  coopService.initFleetNet({
+    callsign: localCallsign,
+    onStatusChange: (status, roomCode, isHost) => {
+      updateFleetNetUI();
+      if (status === 'connected') {
+        showToast(`🟢 Liaison P2P ${isHost ? 'Hôte' : 'Ailier'} active sur le salon ${roomCode}`);
+      }
+    },
+    onPeersUpdate: () => {
+      updateFleetNetUI();
+      const session = coopService.getSession();
+      renderFleetRoster(session);
+      renderFleetJointFire(session);
+    },
+    onPeerJoin: (peer) => {
+      showToast(`🛰️ ${peer.callsign} a rejoint l’escadre !`);
+      renderFleetsScreen();
+    },
+    onPeerLeave: (peer) => {
+      showToast(`👋 ${peer.callsign} s'est déconnecté.`);
+      renderFleetsScreen();
+    }
+  });
+
+  coopService.manager.onJointFireRemoteSync = (fireData, fromCallsign) => {
+    if (fireData && Array.isArray(fireData.activeCallsigns)) {
+      activeJointFireCallsigns = new Set(fireData.activeCallsigns);
+      renderFleetJointFire(coopService.getSession());
+      showToast(`⚡ Tir laser synchronisé par ${fromCallsign}`);
+    }
+  };
+
+  coopService.manager.onNetworkUpdate = () => {
+    renderFleetsScreen();
+  };
+
+  // Détection du paramètre d'invitation URL (?fleet=WING-XXXX ou ?wing=WING-XXXX)
+  if (typeof window !== 'undefined' && window.location.search) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('fleet') || urlParams.get('wing');
+    if (roomFromUrl && roomFromUrl.trim()) {
+      setTimeout(() => {
+        coopService.joinWing(roomFromUrl.trim().toUpperCase());
+        setActiveApp('fleets');
+        showToast(`🛰️ Rejoint l'escadre ${roomFromUrl.trim().toUpperCase()} via lien d'invitation !`);
+      }, 600);
+    }
+  }
+}
+
+// ============================================================================
+// 10. COMPTE, AUTHENTIFICATION & PROFIL CITOYEN UEE (1.1)
+// ============================================================================
+
+const CALLSIGN_PREFIXES = ['VORTEX', 'HAULER', 'VIPER', 'GHOST', 'IRONCLAD', 'TITAN', 'EAGLE', 'SHADOW', 'ROCK', 'NOVA', 'CORSAIR', 'APEX', 'STORM', 'PHANTOM'];
+
+function generateRandomCallsign() {
+  const prefix = CALLSIGN_PREFIXES[Math.floor(Math.random() * CALLSIGN_PREFIXES.length)];
+  const num = Math.floor(1 + Math.random() * 99);
+  return `${prefix}-${num}`;
+}
+
+function evaluatePasswordStrength(password) {
+  if (!password) return { percent: 0, text: 'Vide', color: '#64748b' };
+  let score = 0;
+  if (password.length >= 6) score += 25;
+  if (password.length >= 10) score += 25;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 25;
+  if (/[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password)) score += 25;
+
+  if (score <= 25) return { percent: 25, text: 'Faible', color: '#ef4444' };
+  if (score <= 50) return { percent: 50, text: 'Moyen', color: '#f59e0b' };
+  if (score <= 75) return { percent: 75, text: 'Fort', color: '#38bdf8' };
+  return { percent: 100, text: 'Sécurisé UEE', color: '#22c55e' };
+}
+
+let selectedSpecialtiesCache = ['mining'];
+
+function renderTopBarCitizen() {
+  const user = authService.getCurrentUser();
+  if (!user) return;
+
+  // 1. Position
+  const posEl = document.getElementById('topbarPositionName');
+  if (posEl) posEl.textContent = user.location || 'Stanton · ARC-L1';
+
+  // 2. Solde aUEC
+  const balEl = document.getElementById('topbarBalanceVal');
+  if (balEl && typeof user.balanceAuec === 'number') {
+    balEl.textContent = `${user.balanceAuec.toLocaleString('fr-FR')} aUEC`;
+  }
+
+  // 3. Capsule Citoyen Topbar
+  const avatarEl = document.getElementById('topbarCitizenAvatar');
+  const callsignEl = document.getElementById('topbarCallsign');
+  const handleEl = document.getElementById('topbarRsiHandle');
+  const dropTitle = document.getElementById('dropdownUserTitle');
+  const dropSub = document.getElementById('dropdownUserSub');
+
+  const specialtyInfo = CITIZEN_SPECIALTIES[user.primarySpecialty] || CITIZEN_SPECIALTIES.mining;
+  if (avatarEl) avatarEl.textContent = specialtyInfo.icon || '⛏️';
+  if (callsignEl) callsignEl.textContent = user.callsign || 'CITIZEN-1';
+  if (handleEl) handleEl.textContent = `@${user.rsiHandle || 'Citizen'}`;
+  if (dropTitle) dropTitle.textContent = `${user.rsiHandle || 'Citoyen'} (${user.callsign || 'PILOT'})`;
+  if (dropSub) dropSub.textContent = `${specialtyInfo.label} · ${user.citizenshipNumber || 'UEE-847291'}`;
+
+  // 4. Salutation Dashboard
+  const dashTitle = document.querySelector('#viewDashboard .screen-title');
+  const dashSub = document.querySelector('#viewDashboard .screen-subtitle');
+  if (dashTitle) {
+    dashTitle.textContent = `Bonsoir, Commandant ${user.callsign}`;
+  }
+  if (dashSub) {
+    const specsList = (user.specialties || [user.primarySpecialty])
+      .map(s => CITIZEN_SPECIALTIES[s]?.label || s)
+      .join(', ');
+    dashSub.textContent = `Identité RSI : @${user.rsiHandle} · Spécialité : ${specsList} · ${user.location}`;
+  }
+}
+
+function renderProfileScreen() {
+  const user = authService.getCurrentUser();
+  if (!user) return;
+
+  const specInfo = CITIZEN_SPECIALTIES[user.primarySpecialty] || CITIZEN_SPECIALTIES.mining;
+
+  // 1. Hero Card
+  const heroIcon = document.getElementById('heroCitizenIcon');
+  if (heroIcon) heroIcon.textContent = specInfo.icon || '⛏️';
+
+  const heroRank = document.getElementById('heroCitizenRank');
+  if (heroRank) heroRank.textContent = (specInfo.shortLabel || 'CITOYEN').toUpperCase();
+
+  const heroCallsign = document.getElementById('heroCallsign');
+  if (heroCallsign) heroCallsign.textContent = user.callsign;
+
+  const heroHandle = document.getElementById('heroRsiHandle');
+  if (heroHandle) heroHandle.textContent = `@${user.rsiHandle}`;
+
+  const heroUeeNum = document.getElementById('heroUeeNum');
+  if (heroUeeNum) heroUeeNum.textContent = `REGISTRE UEE · #${user.citizenshipNumber || 'UEE-847291'} · ${user.citizenshipStatus || 'STATUT ACTIF'}`;
+
+  const heroLoc = document.getElementById('heroLocation');
+  if (heroLoc) heroLoc.textContent = user.location ? user.location.replace(/^Stanton · |^Pyro · /, '') : 'ARC-L1';
+
+  const heroShip = document.getElementById('heroActiveShip');
+  if (heroShip) {
+    const activeShip = fleetService.getActiveShip();
+    const shipMeta = activeShip ? getShip(activeShip.shipId) : null;
+    heroShip.textContent = shipMeta?.name || 'Prospector';
+  }
+
+  const heroBal = document.getElementById('heroBalance');
+  if (heroBal) heroBal.textContent = `${user.balanceAuec.toLocaleString('fr-FR')}`;
+
+  // Hero Specialties tags
+  const heroTags = document.getElementById('heroSpecialtiesTags');
+  if (heroTags) {
+    heroTags.innerHTML = (user.specialties || ['mining']).map(specKey => {
+      const sp = CITIZEN_SPECIALTIES[specKey] || { label: specKey, icon: '❖' };
+      const isPri = specKey === user.primarySpecialty;
+      return `<span class="specialty-badge-pill ${isPri ? 'primary' : ''}">${sp.icon} ${sp.label} ${isPri ? '★' : ''}</span>`;
+    }).join('');
+  }
+
+  // 2. Formulaire Identité RSI
+  const rsiInput = document.getElementById('profileInputRsiHandle');
+  if (rsiInput) rsiInput.value = user.rsiHandle || '';
+
+  const callsignInput = document.getElementById('profileInputCallsign');
+  if (callsignInput) callsignInput.value = user.callsign || '';
+
+  const bioInput = document.getElementById('profileInputBio');
+  if (bioInput) bioInput.value = user.bio || '';
+
+  const locSelect = document.getElementById('profileSelectLocation');
+  if (locSelect) locSelect.value = user.location || 'Stanton · ARC-L1 Wide Forest';
+
+  const emailDisplay = document.getElementById('profileDisplayEmail');
+  if (emailDisplay) emailDisplay.value = user.email || '';
+
+  const pairingCodeDisplay = document.getElementById('profilePairingCodeDisplay');
+  if (pairingCodeDisplay) pairingCodeDisplay.textContent = user.pairingCode || '749-821';
+
+  // 3. Sélecteur de Spécialités (Grille)
+  renderSpecialtiesGrid(user);
+
+  // 4. Sélecteur de Spécialité Principale
+  const priSelect = document.getElementById('profileSelectPrimarySpecialty');
+  if (priSelect) {
+    priSelect.innerHTML = (user.specialties || ['mining']).map(s => {
+      const sp = CITIZEN_SPECIALTIES[s] || { label: s, icon: '❖' };
+      return `<option value="${s}" ${s === user.primarySpecialty ? 'selected' : ''}>${sp.icon} ${sp.label}</option>`;
+    }).join('');
+  }
+
+  // 5. Sélecteur de Vaisseau Actif
+  const shipSelect = document.getElementById('profileSelectActiveShip');
+  if (shipSelect) {
+    const allUserShips = fleetService.getAllShips();
+    shipSelect.innerHTML = allUserShips.map(s => {
+      const meta = getShip(s.shipId);
+      const isAct = s.isActive ? 'selected' : '';
+      const [roleName] = ROLE_LABELS[meta?.role || s.role] || ['Support'];
+      return `<option value="${s.id}" ${isAct}>${meta?.name || 'Vaisseau'} « ${s.nickname} » (${roleName})</option>`;
+    }).join('');
+  }
+
+  // 6. Rendu des Sessions Actives
+  renderSessionsList(user);
+
+  // 7. Préférences
+  const hapticCheck = document.getElementById('prefHaptics');
+  if (hapticCheck) hapticCheck.checked = user.preferences?.hapticsEnabled ?? true;
+
+  const syncCheck = document.getElementById('prefAutoSyncScan');
+  if (syncCheck) syncCheck.checked = user.preferences?.autoSyncScan ?? true;
+
+  const guildCheck = document.getElementById('prefGuildShare');
+  if (guildCheck) guildCheck.checked = user.preferences?.privacyShareWithGuild ?? true;
+}
+
+function renderSpecialtiesGrid(user) {
+  const container = document.getElementById('specialtySelectionGrid');
+  if (!container) return;
+
+  selectedSpecialtiesCache = [...(user.specialties || ['mining'])];
+
+  container.innerHTML = Object.values(CITIZEN_SPECIALTIES).map(spec => {
+    const isSelected = selectedSpecialtiesCache.includes(spec.id);
+    const isPrimary = spec.id === user.primarySpecialty;
+
+    return `
+      <div class="specialty-choice-card ${isSelected ? 'selected' : ''} ${isPrimary ? 'is-primary' : ''}" data-specialty="${spec.id}">
+        <div class="specialty-card-header">
+          <div class="specialty-card-title">
+            <span>${spec.icon}</span>
+            <span>${spec.label}</span>
+          </div>
+          <div class="specialty-checkbox">
+            ${isSelected ? '✓' : ''}
+          </div>
+        </div>
+        <div class="specialty-card-desc">${spec.description}</div>
+        ${isPrimary ? '<div class="specialty-primary-tag">★ Spécialité Maîtresse</div>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.specialty-choice-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const specId = card.getAttribute('data-specialty');
+      if (!specId) return;
+
+      if (selectedSpecialtiesCache.includes(specId)) {
+        if (selectedSpecialtiesCache.length <= 1) {
+          showToast('Au moins une spécialité doit rester sélectionnée');
+          return;
+        }
+        selectedSpecialtiesCache = selectedSpecialtiesCache.filter(s => s !== specId);
+      } else {
+        selectedSpecialtiesCache.push(specId);
+      }
+
+      // Mettre à jour le selecteur de spécialité principale
+      const priSelect = document.getElementById('profileSelectPrimarySpecialty');
+      if (priSelect) {
+        const curPri = priSelect.value;
+        priSelect.innerHTML = selectedSpecialtiesCache.map(s => {
+          const sp = CITIZEN_SPECIALTIES[s] || { label: s, icon: '❖' };
+          return `<option value="${s}" ${s === curPri ? 'selected' : ''}>${sp.icon} ${sp.label}</option>`;
+        }).join('');
+      }
+
+      renderSpecialtiesGrid({ ...user, specialties: selectedSpecialtiesCache });
+      triggerHaptic(8);
+    });
+  });
+}
+
+function renderSessionsList(user) {
+  const container = document.getElementById('profileSessionsList');
+  if (!container) return;
+
+  const sessions = user.sessions || [];
+  if (sessions.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-dim); font-size:0.8rem; padding:8px;">Aucune session active enregistrée.</div>';
+    return;
+  }
+
+  container.innerHTML = sessions.map(sess => {
+    let icon = '💻';
+    if (sess.deviceType === 'tablet') icon = '📱';
+    else if (sess.deviceType === 'mobile') icon = '📲';
+
+    return `
+      <div class="session-item-row">
+        <div class="session-item-left">
+          <div class="session-icon">${icon}</div>
+          <div>
+            <div class="session-name">
+              ${sess.deviceName}
+              ${sess.isCurrent ? '<span style="color:var(--accent-green); font-size:0.7rem; margin-left:6px;">● Actuelle</span>' : ''}
+            </div>
+            <div class="session-meta">
+              IP: ${sess.ip || '192.168.1.x'} · Dernière activité : ${new Date(sess.lastActive || Date.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+        </div>
+        <div>
+          ${sess.isCurrent 
+            ? '<span class="specialty-badge-pill primary" style="font-size:0.7rem;">Cet appareil</span>'
+            : `<button type="button" class="vo-btn outline btn-revoke-session" data-session-id="${sess.id}" style="padding:4px 8px; font-size:0.72rem; color:#f87171; border-color:rgba(248,113,113,0.3);">Révoquer</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.btn-revoke-session').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sessId = btn.getAttribute('data-session-id');
+      if (sessId) {
+        authService.revokeSession(sessId);
+        showToast('Session révoquée avec succès');
+        renderProfileScreen();
+      }
+    });
+  });
+}
+
+function openAuthModal(defaultTab = 'login') {
+  const modal = document.getElementById('authModalBackdrop');
+  if (!modal) return;
+  modal.classList.add('active');
+  switchAuthTab(defaultTab);
+  triggerHaptic(10);
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById('authModalBackdrop');
+  if (!modal) return;
+  modal.classList.remove('active');
+}
+
+function switchAuthTab(tabId) {
+  document.querySelectorAll('.auth-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+
+  const paneLogin = document.getElementById('authPaneLogin');
+  const paneReg = document.getElementById('authPaneRegister');
+  const panePairing = document.getElementById('authPanePairing');
+
+  if (paneLogin) paneLogin.style.display = tabId === 'login' ? 'block' : 'none';
+  if (paneReg) paneReg.style.display = tabId === 'register' ? 'block' : 'none';
+  if (panePairing) panePairing.style.display = tabId === 'pairing' ? 'block' : 'none';
+}
+
+function initCitizenProfileAndAuth() {
+  // 1. Bouton Capsule Citoyen Topbar & Menu Déroulant
+  const citizenBtn = document.getElementById('topbarCitizenBtn');
+  const citizenMenu = document.getElementById('citizenDropdownMenu');
+
+  citizenBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (citizenMenu) {
+      citizenMenu.style.display = citizenMenu.style.display === 'none' ? 'block' : 'none';
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (citizenMenu && !citizenMenu.contains(e.target) && !citizenBtn?.contains(e.target)) {
+      citizenMenu.style.display = 'none';
+    }
+  });
+
+  // Liens du menu déroulant
+  document.getElementById('btnMenuOpenProfile')?.addEventListener('click', () => {
+    if (citizenMenu) citizenMenu.style.display = 'none';
+    setActiveApp('profile');
+  });
+
+  document.getElementById('btnMenuPairDevice')?.addEventListener('click', () => {
+    if (citizenMenu) citizenMenu.style.display = 'none';
+    setActiveApp('profile');
+    setTimeout(() => {
+      document.querySelector('.fast-pairing-box')?.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
+  });
+
+  document.getElementById('btnMenuSwitchUser')?.addEventListener('click', () => {
+    if (citizenMenu) citizenMenu.style.display = 'none';
+    openAuthModal('login');
+  });
+
+  document.getElementById('btnMenuLogout')?.addEventListener('click', () => {
+    if (citizenMenu) citizenMenu.style.display = 'none';
+    authService.logout();
+    showToast('Déconnexion effectuée');
+    openAuthModal('login');
+  });
+
+  // Boutons du Profil Citoyen
+  document.getElementById('btnProfileSwitchAccount')?.addEventListener('click', () => {
+    openAuthModal('login');
+  });
+
+  document.getElementById('btnProfileLogout')?.addEventListener('click', () => {
+    authService.logout();
+    showToast('Déconnexion effectuée');
+    openAuthModal('login');
+  });
+
+  // Génération de callsign aléatoire
+  document.getElementById('btnRandomCallsign')?.addEventListener('click', () => {
+    const input = document.getElementById('profileInputCallsign');
+    if (input) {
+      input.value = generateRandomCallsign();
+      triggerHaptic(8);
+    }
+  });
+
+  document.getElementById('btnRegRandomCallsign')?.addEventListener('click', () => {
+    const input = document.getElementById('regCallsign');
+    if (input) {
+      input.value = generateRandomCallsign();
+      triggerHaptic(8);
+    }
+  });
+
+  // Sauvegarde de l'identité RSI
+  document.getElementById('btnSaveRsiProfile')?.addEventListener('click', () => {
+    const rsiHandle = document.getElementById('profileInputRsiHandle')?.value || '';
+    const callsign = document.getElementById('profileInputCallsign')?.value || '';
+    const location = document.getElementById('profileSelectLocation')?.value || '';
+    const bio = document.getElementById('profileInputBio')?.value || '';
+    const primarySpecialty = document.getElementById('profileSelectPrimarySpecialty')?.value || 'mining';
+    const activeShipId = document.getElementById('profileSelectActiveShip')?.value;
+
+    if (activeShipId) {
+      fleetService.setActiveShip(activeShipId);
+    }
+
+    const res = authService.updateProfile({
+      rsiHandle,
+      callsign,
+      location,
+      bio,
+      specialties: selectedSpecialtiesCache,
+      primarySpecialty
+    });
+
+    if (res.success) {
+      showToast(`Identité RSI enregistrée : ${res.user.callsign}`);
+      updateTopBarProfile();
+      renderProfileScreen();
+    } else {
+      showToast(`Erreur : ${res.error}`);
+    }
+  });
+
+  // Régénération du code PIN d'appairage
+  document.getElementById('btnRegeneratePairingCode')?.addEventListener('click', () => {
+    const newCode = authService.generateNewPairingCode();
+    if (newCode) {
+      const display = document.getElementById('profilePairingCodeDisplay');
+      if (display) display.textContent = newCode;
+      showToast(`Nouveau code PIN généré : ${newCode}`);
+    }
+  });
+
+  // Copier le lien compagnon
+  document.getElementById('btnCopyPairingLink')?.addEventListener('click', () => {
+    const user = authService.getCurrentUser();
+    if (!user) return;
+    const pin = (user.pairingCode || '').replace(/[\s-]+/g, '');
+    const url = `${window.location.origin}${window.location.pathname}?pair=${pin}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Lien compagnon copié dans le presse-papier !');
+      }).catch(() => {
+        showToast(`Lien direct : ${url}`);
+      });
+    } else {
+      showToast(`Lien direct : ${url}`);
+    }
+  });
+
+  // Changement de mot de passe
+  document.getElementById('profileInputNewPassword')?.addEventListener('input', (e) => {
+    const strength = evaluatePasswordStrength(e.target.value);
+    const bar = document.getElementById('profilePasswordBar');
+    const label = document.getElementById('profilePasswordLabel');
+    if (bar) {
+      bar.style.width = `${strength.percent}%`;
+      bar.style.backgroundColor = strength.color;
+    }
+    if (label) {
+      label.textContent = `Force : ${strength.text}`;
+      label.style.color = strength.color;
+    }
+  });
+
+  document.getElementById('btnChangePassword')?.addEventListener('click', () => {
+    const oldPass = document.getElementById('profileInputOldPassword')?.value || '';
+    const newPass = document.getElementById('profileInputNewPassword')?.value || '';
+    const confPass = document.getElementById('profileInputConfirmPassword')?.value || '';
+
+    if (!oldPass) {
+      showToast('Veuillez saisir votre mot de passe actuel');
+      return;
+    }
+    if (newPass.length < 6) {
+      showToast('Le nouveau mot de passe doit comporter au moins 6 caractères');
+      return;
+    }
+    if (newPass !== confPass) {
+      showToast('La confirmation du mot de passe ne correspond pas');
+      return;
+    }
+
+    const res = authService.changePassword(oldPass, newPass);
+    if (res.success) {
+      showToast('Mot de passe mis à jour avec succès');
+      const oldEl = document.getElementById('profileInputOldPassword');
+      if (oldEl) oldEl.value = '';
+      const newEl = document.getElementById('profileInputNewPassword');
+      if (newEl) newEl.value = '';
+      const confEl = document.getElementById('profileInputConfirmPassword');
+      if (confEl) confEl.value = '';
+      const bar = document.getElementById('profilePasswordBar');
+      if (bar) bar.style.width = '0%';
+      const label = document.getElementById('profilePasswordLabel');
+      if (label) label.textContent = 'Force : -';
+    } else {
+      showToast(`Erreur : ${res.error}`);
+    }
+  });
+
+  // Préférences
+  ['prefHaptics', 'prefAutoSyncScan', 'prefGuildShare'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      const haptics = document.getElementById('prefHaptics')?.checked ?? true;
+      const autoSync = document.getElementById('prefAutoSyncScan')?.checked ?? true;
+      const guildShare = document.getElementById('prefGuildShare')?.checked ?? true;
+
+      authService.updateProfile({
+        preferences: {
+          hapticsEnabled: haptics,
+          autoSyncScan: autoSync,
+          privacyShareWithGuild: guildShare
+        }
+      });
+      showToast('Préférences sauvegardées');
+    });
+  });
+
+  // Modale d'authentification : Onglets & Fermeture
+  document.getElementById('btnCloseAuthModal')?.addEventListener('click', closeAuthModal);
+  document.getElementById('authModalBackdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'authModalBackdrop') closeAuthModal();
+  });
+
+  document.querySelectorAll('.auth-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+      if (tab) switchAuthTab(tab);
+    });
+  });
+
+  // Formulaire Connexion
+  document.getElementById('formAuthLogin')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail')?.value || '';
+    const password = document.getElementById('loginPassword')?.value || '';
+    const res = authService.login(email, password);
+    if (res.success) {
+      closeAuthModal();
+      showToast(`Bienvenue à bord, Commandant ${res.user.callsign} !`);
+      updateTopBarProfile();
+      renderProfileScreen();
+    } else {
+      showToast(`Erreur de connexion : ${res.error}`);
+    }
+  });
+
+  // Connexion Express Démo
+  document.getElementById('btnQuickDemoLogin')?.addEventListener('click', () => {
+    const res = authService.login('vortex@rsi.space', 'Password123!');
+    if (res.success) {
+      closeAuthModal();
+      showToast(`Connecté en tant que Commandant ${res.user.callsign}`);
+      updateTopBarProfile();
+      renderProfileScreen();
+    }
+  });
+
+  // Formulaire Inscription / Enrôlement
+  document.getElementById('formAuthRegister')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('regEmail')?.value || '';
+    const password = document.getElementById('regPassword')?.value || '';
+    const confPassword = document.getElementById('regConfirmPassword')?.value || '';
+    const rsiHandle = document.getElementById('regRsiHandle')?.value || '';
+    const callsign = document.getElementById('regCallsign')?.value || '';
+    const primarySpecialty = document.getElementById('regPrimarySpecialty')?.value || 'mining';
+    const location = document.getElementById('regLocation')?.value || 'Stanton · ARC-L1 Wide Forest';
+
+    if (password !== confPassword) {
+      showToast('La confirmation du mot de passe ne correspond pas');
+      return;
+    }
+
+    const res = authService.register({
+      email,
+      password,
+      rsiHandle,
+      callsign,
+      primarySpecialty,
+      specialties: [primarySpecialty],
+      location
+    });
+
+    if (res.success) {
+      closeAuthModal();
+      showToast(`Enrôlement citoyen réussi ! Bienvenue Commandant ${res.user.callsign}`);
+      updateTopBarProfile();
+      renderProfileScreen();
+    } else {
+      showToast(`Erreur d'inscription : ${res.error}`);
+    }
+  });
+
+  // Formulaire Appairage PIN
+  document.getElementById('formAuthPairing')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const pin = document.getElementById('pairingInputPin')?.value || '';
+    const res = authService.loginWithPairingCode(pin);
+    if (res.success) {
+      closeAuthModal();
+      showToast(`Écran compagnon connecté au profil de ${res.user.callsign} !`);
+      updateTopBarProfile();
+      renderProfileScreen();
+    } else {
+      showToast(`Erreur d'appairage : ${res.error}`);
+    }
+  });
+
+  // Vérification paramètre URL ?pair=PIN
+  if (typeof window !== 'undefined' && window.location.search) {
+    const params = new URLSearchParams(window.location.search);
+    const pairCode = params.get('pair');
+    if (pairCode) {
+      const res = authService.loginWithPairingCode(pairCode);
+      if (res.success) {
+        showToast(`Appairage automatique réussi : Bienvenue ${res.user.callsign}`);
+        updateTopBarProfile();
+        renderProfileScreen();
+      }
+    }
+  }
+
+  // Écoute des événements du bus
+  eventBus.on(EVENTS.PLAYER_UPDATED, () => {
+    renderTopBarCitizen();
+  });
+  eventBus.on(EVENTS.CALLSIGN_CHANGED, () => {
+    renderTopBarCitizen();
+  });
+  eventBus.on(EVENTS.AUTH_CHANGED, () => {
+    renderTopBarCitizen();
+  });
+}
+
+// ============================================================================
+// 11. TOPBAR & EVENT BINDINGS
+// ============================================================================
+function updateTopBarProfile() {
+  const activeShip = fleetService.getActiveShip();
+  const activeShipNameEl = document.getElementById('topbarActiveShipName');
+  if (activeShipNameEl && activeShip) {
+    const s = getShip(activeShip.shipId);
+    activeShipNameEl.textContent = `${s?.name || 'Vaisseau'} « ${activeShip.nickname || 'Sans nom'} »`;
+  }
+  renderTopBarCitizen();
+}
+
+function initEventBindings() {
+  // Navigation Sidebar (8 Onglets)
+  document.querySelectorAll('.sidebar-nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const app = btn.getAttribute('data-app');
+      if (app) setActiveApp(app);
+    });
+  });
+
+  // Slide-Over Drawer Close
+  document.getElementById('btnCloseInspector')?.addEventListener('click', closeInspector);
+  document.getElementById('inspectorBackdrop')?.addEventListener('click', closeInspector);
+
+  // Boutons du Dashboard
+  document.getElementById('btnDashScanRock')?.addEventListener('click', () => setActiveApp('mining'));
+  document.getElementById('btnDashFindRoute')?.addEventListener('click', () => setActiveApp('trade'));
+  document.getElementById('btnDashImportOCR')?.addEventListener('click', openOCRDrawer);
+
+  // Boutons du Minage (Calculateur de rocher dynamique connecté à la flotte)
+  document.getElementById('btnGoToFleetFromMining')?.addEventListener('click', () => {
+    setActiveApp('fleet');
+  });
+
+  // Sélecteur de mode de tir pour vaisseaux multi-tourelles (MOLE, Arrastra, Orion)
+  document.querySelectorAll('#miningFiringModeContainer .firing-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentMiningFiringMode = btn.getAttribute('data-mode') || 'all';
+      renderMiningActiveShipBanner();
+      evaluateAndRenderMiningRock();
+    });
+  });
+
+  // Saisie Masse & Slider synchronisé
+  document.getElementById('miningInputMass')?.addEventListener('input', (e) => {
+    const val = Math.max(100, Number(e.target.value) || 0);
+    currentMiningScan.massKg = val;
+    const slider = document.getElementById('miningSliderMass');
+    if (slider) slider.value = Math.min(60000, val);
+    evaluateAndRenderMiningRock();
+  });
+
+  document.getElementById('miningSliderMass')?.addEventListener('input', (e) => {
+    const val = Number(e.target.value) || 0;
+    currentMiningScan.massKg = val;
+    const input = document.getElementById('miningInputMass');
+    if (input) input.value = val;
+    evaluateAndRenderMiningRock();
+  });
+
+  // Instabilité (Input clavier & Slider synchronisé)
+  const handleInstabilityChange = (rawVal, isFromSlider = false) => {
+    const val = Math.max(0, Math.min(100, Number(rawVal) || 0));
+    currentMiningScan.instability = val;
+    const input = document.getElementById('miningInputInstability');
+    const slider = document.getElementById('miningSliderInstability');
+    if (isFromSlider && input) input.value = val;
+    if (!isFromSlider && slider) slider.value = val;
+
+    const instBadge = document.getElementById('miningInstabilityBadge');
+    if (instBadge) {
+      instBadge.textContent = val > 50 ? 'Haute' : (val > 25 ? 'Moyenne' : 'Basse');
+      instBadge.className = `vo-badge ${val > 50 ? 'red' : (val > 25 ? 'amber' : 'green')}`;
+    }
+    evaluateAndRenderMiningRock();
+  };
+
+  document.getElementById('miningInputInstability')?.addEventListener('input', (e) => {
+    handleInstabilityChange(e.target.value, false);
+  });
+  document.getElementById('miningSliderInstability')?.addEventListener('input', (e) => {
+    handleInstabilityChange(e.target.value, true);
+  });
+
+  // Résistance brute (Input clavier & Slider synchronisé)
+  const handleResistanceChange = (rawVal, isFromSlider = false) => {
+    const val = Math.max(0, Math.min(100, Number(rawVal) || 0));
+    currentMiningScan.resistance = val;
+    const input = document.getElementById('miningInputResistance');
+    const slider = document.getElementById('miningSliderResistance');
+    if (isFromSlider && input) input.value = val;
+    if (!isFromSlider && slider) slider.value = val;
+    evaluateAndRenderMiningRock();
+  };
+
+  document.getElementById('miningInputResistance')?.addEventListener('input', (e) => {
+    handleResistanceChange(e.target.value, false);
+  });
+  document.getElementById('miningSliderResistance')?.addEventListener('input', (e) => {
+    handleResistanceChange(e.target.value, true);
+  });
+
+  // Qualité du matériau géologique (Input clavier, Slider & Presets)
+  const handleQualityChange = (rawVal, isFromSlider = false) => {
+    const val = Math.max(0, Math.min(1000, Number(rawVal) || 0));
+    currentMiningScan.quality = val;
+    const input = document.getElementById('miningInputQuality');
+    const slider = document.getElementById('miningSliderQuality');
+    const badge = document.getElementById('miningQualityBadge');
+    if (isFromSlider && input) input.value = val;
+    if (!isFromSlider && slider) slider.value = val;
+
+    if (badge && craftingService.getQualityTier) {
+      const tier = craftingService.getQualityTier(val);
+      badge.className = `quality-badge ${tier.badgeClass}`;
+      badge.textContent = `⭐ Q${val} ${tier.shortName}`;
+    }
+
+    document.querySelectorAll('.mining-quality-preset-btn[data-quality]').forEach(btn => {
+      const qVal = Number(btn.getAttribute('data-quality'));
+      btn.classList.toggle('active', Math.abs(qVal - val) < 30);
+    });
+
+    evaluateAndRenderMiningRock();
+  };
+
+  document.getElementById('miningInputQuality')?.addEventListener('input', (e) => {
+    handleQualityChange(e.target.value, false);
+  });
+  document.getElementById('miningSliderQuality')?.addEventListener('input', (e) => {
+    handleQualityChange(e.target.value, true);
+  });
+
+  document.querySelectorAll('.mining-quality-preset-btn[data-quality]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = Number(btn.getAttribute('data-quality')) || 780;
+      handleQualityChange(q, false);
+      triggerHaptic(8);
+    });
+  });
+
+  document.getElementById('btnMiningRandomQuality')?.addEventListener('click', () => {
+    const roll = Math.floor(300 + Math.random() * 680);
+    handleQualityChange(roll, false);
+    triggerHaptic(12);
+    showToast(`🎲 Nouveau jet de qualité scanner : Q${roll}`);
+  });
+
+  // Choix du type de roche géologique (Archétype Star Citizen 4.10)
+  document.getElementById('miningRockTypeSelect')?.addEventListener('change', (e) => {
+    const archId = e.target.value;
+    const arch = (miningCalc.ROCK_ARCHETYPES_CONFIG || []).find(a => a.id === archId);
+    if (!arch) return;
+
+    currentMiningScan.archetypeId = arch.id;
+    currentMiningScan.resistance = arch.baseResistance;
+    currentMiningScan.instability = arch.baseInstability;
+
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+    showToast(`Type de roche géologique : ${arch.name}`);
+  });
+
+  // Composant 1 : Minéral & Pourcentage
+  document.getElementById('miningMineral1Select')?.addEventListener('change', (e) => {
+    currentMiningScan.mineral1Id = e.target.value;
+    currentMiningScan.composition = miningCalc.buildRockComposition(
+      currentMiningScan.mineral1Id,
+      currentMiningScan.pct1,
+      currentMiningScan.mineral2Id,
+      currentMiningScan.pct2
+    );
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+  });
+
+  const handlePct1Change = (val) => {
+    const clamped = Math.max(0, Math.min(100, Number(val) || 0));
+    if (clamped + currentMiningScan.pct2 > 100) {
+      currentMiningScan.pct2 = Math.max(0, Math.round((100 - clamped) * 10) / 10);
+    }
+    currentMiningScan.pct1 = clamped;
+    currentMiningScan.composition = miningCalc.buildRockComposition(
+      currentMiningScan.mineral1Id,
+      currentMiningScan.pct1,
+      currentMiningScan.mineral2Id,
+      currentMiningScan.pct2
+    );
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+  };
+
+  document.getElementById('miningPct1Input')?.addEventListener('input', (e) => {
+    handlePct1Change(e.target.value);
+  });
+  document.getElementById('miningPct1Slider')?.addEventListener('input', (e) => {
+    handlePct1Change(e.target.value);
+  });
+
+  // Composant 2 : Minéral (ou Aucun) & Pourcentage
+  document.getElementById('miningMineral2Select')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    currentMiningScan.mineral2Id = val || null;
+    if (!val) {
+      currentMiningScan.pct2 = 0;
+    } else if (currentMiningScan.pct2 === 0) {
+      currentMiningScan.pct2 = Math.min(15, Math.max(0, Math.round((100 - currentMiningScan.pct1) * 10) / 10));
+    }
+    currentMiningScan.composition = miningCalc.buildRockComposition(
+      currentMiningScan.mineral1Id,
+      currentMiningScan.pct1,
+      currentMiningScan.mineral2Id,
+      currentMiningScan.pct2
+    );
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+  });
+
+  const handlePct2Change = (val) => {
+    if (!currentMiningScan.mineral2Id) return;
+    const maxAllowed = Math.max(0, Math.round((100 - currentMiningScan.pct1) * 10) / 10);
+    const clamped = Math.max(0, Math.min(maxAllowed, Number(val) || 0));
+    currentMiningScan.pct2 = clamped;
+    currentMiningScan.composition = miningCalc.buildRockComposition(
+      currentMiningScan.mineral1Id,
+      currentMiningScan.pct1,
+      currentMiningScan.mineral2Id,
+      currentMiningScan.pct2
+    );
+    renderMiningScannerUI();
+    evaluateAndRenderMiningRock();
+  };
+
+  document.getElementById('miningPct2Input')?.addEventListener('input', (e) => {
+    handlePct2Change(e.target.value);
+  });
+  document.getElementById('miningPct2Slider')?.addEventListener('input', (e) => {
+    handlePct2Change(e.target.value);
+  });
+
+  // Trigger OCR scanner modal
+  document.getElementById('btnTriggerOCRScanner')?.addEventListener('click', openMiningOCRModal);
+
+  // Bouton Calculer
+  document.getElementById('btnCalculateRock')?.addEventListener('click', () => {
+    const evalResult = evaluateAndRenderMiningRock();
+    triggerHaptic(12);
+    const prof = evalResult.profitability;
+    if (prof) {
+      showToast(`${prof.icon} ${prof.title} · ${prof.tacticalDiagnostic}`);
+    } else {
+      showToast(`⚡ Faisabilité : ${evalResult.verdictLabel} (${evalResult.summaryText})`);
+    }
+  });
+
+  // Minuteur de dégradation du Quantainium
+  document.getElementById('btnQuantaTimer')?.addEventListener('click', () => {
+    const btn = document.getElementById('btnQuantaTimer');
+    if (quantaniumTimerInterval) {
+      clearInterval(quantaniumTimerInterval);
+      quantaniumTimerInterval = null;
+      quantaniumSecondsLeft = 15 * 60;
+      if (btn) btn.textContent = '⏱ Lancer chrono dégradation (15:00)';
+      showToast('Minuteur Quantainium réinitialisé.');
+      return;
+    }
+
+    triggerHaptic(12);
+    showToast('⚠️ Chronomètre activé : ~15 min avant explosion du Quantainium !');
+    quantaniumTimerInterval = setInterval(() => {
+      quantaniumSecondsLeft--;
+      if (quantaniumSecondsLeft <= 0) {
+        clearInterval(quantaniumTimerInterval);
+        quantaniumTimerInterval = null;
+        if (btn) btn.textContent = '💥 CRITIQUE (TEMPS ÉCOULÉ)';
+        showToast('🚨 ALERTE : Le Quantainium a atteint le seuil d\'explosion !');
+        return;
+      }
+      const mins = Math.floor(quantaniumSecondsLeft / 60);
+      const secs = quantaniumSecondsLeft % 60;
+      const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      if (btn) btn.textContent = `⏱ Dégradation : ${timeStr} restant`;
+    }, 1000);
+  });
+
+  // Actions Stratégiques de Minage (Garder pour Craft, Vendre Brut, Raffiner & Vendre)
+  document.getElementById('btnMiningActionKeepCraft')?.addEventListener('click', () => {
+    const activeShipEntry = fleetService.getActiveShip();
+    const cap = miningCalc.computeShipMiningCapabilities(activeShipEntry, currentMiningFiringMode);
+    const evalResult = miningCalc.calculateLiveRockEvaluation(currentMiningScan, cap);
+    const mass = currentMiningScan.massKg || 18420;
+    const q = currentMiningScan.quality || 780;
+
+    let addedSummary = [];
+    currentMiningScan.composition.forEach(comp => {
+      if (comp.mineralId === 'inert' || (comp.name || '').toLowerCase().includes('inert')) return;
+      const min = MINERALS.find(m => m.id === comp.mineralId) || { density: 2.0 };
+      const scu = Math.round(((mass * (comp.pct / 100)) / ((min.density || 2.0) * 100)) * 10) / 10;
+      if (scu > 0) {
+        inventoryService.addExtractedOreBatch({
+          mineralId: comp.mineralId,
+          quantitySCU: scu,
+          quality: q,
+          intendedUse: 'craft',
+          locationId: 'ship_cargo',
+          notes: `Extrait depuis ${currentMiningScan.archetypeId || 'rocher'} [Q${q}]. Réservé pour la forge de composants surcadencés.`
+        });
+        addedSummary.push(`${scu} SCU de ${comp.name}`);
+      }
+    });
+
+    triggerHaptic(15);
+    showToast(`🛠️ ${addedSummary.join(' et ')} [Q${q}] ajoutés à votre inventaire personnel (Réservé pour le Craft) !`);
+    renderInventoryTable();
+  });
+
+  document.getElementById('btnMiningActionSellRaw')?.addEventListener('click', () => {
+    const activeShipEntry = fleetService.getActiveShip();
+    const cap = miningCalc.computeShipMiningCapabilities(activeShipEntry, currentMiningFiringMode);
+    const evalResult = miningCalc.calculateLiveRockEvaluation(currentMiningScan, cap);
+    const revenue = evalResult.rawGrossUEC;
+
+    inventoryService.creditBalance(revenue);
+    triggerHaptic(12);
+    showToast(`💰 Vente brute immédiate effectuée : +${revenue.toLocaleString('fr-FR')} aUEC crédités à votre solde (sans délai ni frais) !`);
+    renderTopBarCitizen();
+  });
+
+  document.getElementById('btnMiningActionRefine')?.addEventListener('click', () => {
+    const activeShipEntry = fleetService.getActiveShip();
+    const cap = miningCalc.computeShipMiningCapabilities(activeShipEntry, currentMiningFiringMode);
+    const evalResult = miningCalc.calculateLiveRockEvaluation(currentMiningScan, cap);
+    const best = evalResult.refineryMethods[0];
+    const q = currentMiningScan.quality || 780;
+    const mass = currentMiningScan.massKg || 18420;
+
+    currentMiningScan.composition.forEach(comp => {
+      if (comp.mineralId === 'inert' || (comp.name || '').toLowerCase().includes('inert')) return;
+      const min = MINERALS.find(m => m.id === comp.mineralId) || { density: 2.0 };
+      const rawScu = Math.round(((mass * (comp.pct / 100)) / ((min.density || 2.0) * 100)) * 10) / 10;
+      const refinedScu = Math.round((rawScu * ((best.yieldPct || 92) / 100)) * 10) / 10;
+      if (refinedScu > 0) {
+        inventoryService.addItem({
+          category: 'refined_ore',
+          code: comp.mineralId,
+          name: `${comp.name} Raffiné [Q${q}]`,
+          quantitySCU: refinedScu,
+          ownerType: 'personal',
+          locationId: best.location || 'CRU-L1 Ambitious Dream',
+          origin: 'mined',
+          materialQuality: q,
+          qualityTier: evalResult.qualityArbitrage?.tierId || 'high',
+          qualityTierLabel: evalResult.qualityArbitrage?.tierName || 'Haute Qualité',
+          intendedUse: 'sell_refined',
+          reservedForCraft: false,
+          forSale: true,
+          metadata: {
+            refiningMethod: 'dinyx',
+            refineryStation: best.location || 'CRU-L1',
+            notes: `Raffiné via Dinyx Solvent. Qualité Q${q}. Prêt pour la vente marchande.`
+          }
+        });
+      }
+    });
+
+    triggerHaptic(15);
+    showToast(`✨ Ordre de raffinage Dinyx lancé à ${best.location} pour ${evalResult.usefulSCU} SCU (+${best.net.toLocaleString('fr-FR')} aUEC net après délai) !`);
+
+    // Mettre à jour le KPI dashboard
+    const dashRefiningCount = document.querySelector('#viewDashboard .vo-grid-4 .vo-card:nth-child(2) .kpi-main-val');
+    if (dashRefiningCount) {
+      const cur = parseInt(dashRefiningCount.textContent, 10) || 3;
+      dashRefiningCount.textContent = cur + 1;
+    }
+    renderInventoryTable();
+  });
+
+  // Ajouter à la session d'escadre active
+  document.getElementById('btnAddToFleetSession')?.addEventListener('click', () => {
+    const activeShipEntry = fleetService.getActiveShip();
+    const cap = miningCalc.computeShipMiningCapabilities(activeShipEntry, currentMiningFiringMode);
+    const evalResult = miningCalc.calculateLiveRockEvaluation(currentMiningScan, cap);
+
+    if (!coopService.hasActiveSession()) {
+      coopService.createSession({
+        name: `Escadre ${cap.nickname || 'Mineur'}`,
+        targetRock: {
+          name: currentMiningScan?.name || 'Astéroïde miné',
+          massKg: currentMiningScan?.massKg || 12000,
+          resistance: currentMiningScan?.resistance || 30,
+          instability: currentMiningScan?.instability || 25,
+          mineralId: currentMiningScan?.composition?.[0]?.id || 'quantainium',
+          mineralName: currentMiningScan?.composition?.[0]?.name || 'Quantainium',
+          orePercentage: currentMiningScan?.composition?.[0]?.pct || 25,
+          estimatedValueUEC: evalResult.rawGrossUEC || 0
+        }
+      });
+    }
+
+    const session = coopService.getSession();
+    if (session) {
+      session.brokenRocksCount = (session.brokenRocksCount || 0) + 1;
+      session.totalOreSCU = Math.round(((session.totalOreSCU || 0) + evalResult.usefulSCU) * 10) / 10;
+      if (!session.financials) {
+        session.financials = { grossRevenueUEC: 0, fuelAndRepairsUEC: 0, guildTaxPct: 5, reserveFundPct: 5, payoutMode: 'role_weighted' };
+      }
+      session.financials.grossRevenueUEC = (session.financials.grossRevenueUEC || 0) + evalResult.rawGrossUEC;
+      const mineralLabel = currentMiningScan?.composition?.[0]?.name || 'minerai';
+      coopService.addLog(`${cap.nickname || 'Mineur'} a extrait ${evalResult.usefulSCU} SCU de ${mineralLabel} (+${Math.round(evalResult.rawGrossUEC).toLocaleString('fr-FR')} aUEC)`, 'mining', cap.nickname || 'Mineur');
+    }
+
+    setActiveApp('fleets');
+    renderFleetsScreen();
+    triggerHaptic(15);
+    showToast(`✓ +${evalResult.usefulSCU} SCU ajoutés aux opérations d’escadre !`);
+  });
+
+  // ============================================================================
+  // ÉVÉNEMENTS ESCADRE & MULTI-CREW (AARON MFD FLEETS)
+  // ============================================================================
+  document.querySelectorAll('#fleetOpsSubNav .fleet-ops-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const sub = tab.getAttribute('data-fleet-subview');
+      if (!sub) return;
+      activeFleetSubview = sub;
+      document.querySelectorAll('#fleetOpsSubNav .fleet-ops-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      document.querySelectorAll('.fleet-subview-panel').forEach(p => p.style.display = 'none');
+      const target = document.getElementById(
+        sub === 'roster' ? 'fleetSubViewRoster' :
+        sub === 'jointfire' ? 'fleetSubViewJointFire' :
+        sub === 'payouts' ? 'fleetSubViewPayouts' : 'fleetSubViewLogs'
+      );
+      if (target) target.style.display = 'block';
+
+      renderFleetsScreen();
+    });
+  });
+
+  document.getElementById('fleetPresetSelect')?.addEventListener('change', (e) => {
+    coopService.loadPreset(e.target.value);
+    activeJointFireCallsigns = new Set(
+      coopService.getAllCrewMembers().filter(m => m.laserId).map(m => m.callsign)
+    );
+    renderFleetsScreen();
+    showToast(`✓ Modèle d'escadre chargé : ${e.target.options[e.target.selectedIndex].text}`);
+  });
+
+  document.getElementById('btnToggleAllLasers')?.addEventListener('click', () => {
+    const allLasers = coopService.getAllCrewMembers().filter(m => m.laserId).map(m => m.callsign);
+    if (activeJointFireCallsigns.size === allLasers.length) {
+      activeJointFireCallsigns.clear();
+    } else {
+      activeJointFireCallsigns = new Set(allLasers);
+    }
+    coopService.broadcastJointFire(activeJointFireCallsigns);
+    renderFleetJointFire(coopService.getSession());
+  });
+
+  // Modal Liaison Multijoueur P2P (WebRTC)
+  const openModalWing = () => {
+    const modal = document.getElementById('modalWingNet');
+    if (modal) modal.classList.add('active');
+    const net = coopService.getNetworkStatus();
+    const joinInput = document.getElementById('inputJoinWingCode');
+    if (joinInput && net.roomCode) joinInput.value = net.roomCode;
+  };
+
+  const closeModalWing = () => {
+    const modal = document.getElementById('modalWingNet');
+    if (modal) modal.classList.remove('active');
+  };
+
+  document.getElementById('btnOpenWingModal')?.addEventListener('click', openModalWing);
+  document.getElementById('topbarFleetBadge')?.addEventListener('click', () => {
+    setActiveApp('fleets');
+    openModalWing();
+  });
+  document.getElementById('btnCloseWingModal')?.addEventListener('click', closeModalWing);
+  document.getElementById('modalWingNet')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modalWingNet') closeModalWing();
+  });
+
+  document.getElementById('btnConfirmCreateWing')?.addEventListener('click', () => {
+    const customCode = document.getElementById('inputCreateWingCode')?.value?.trim();
+    const roomCode = coopService.createWing(customCode || null);
+    closeModalWing();
+    showToast(`✓ Escadre créée : ${roomCode} ! Transmets ce code à tes ailiers.`);
+    updateFleetNetUI();
+    renderFleetsScreen();
+  });
+
+  document.getElementById('btnConfirmJoinWing')?.addEventListener('click', () => {
+    const code = document.getElementById('inputJoinWingCode')?.value?.trim();
+    if (!code) {
+      showToast('⚠️ Veuillez renseigner un code d’escadre (ex: WING-2954)');
+      return;
+    }
+    coopService.joinWing(code);
+    closeModalWing();
+    showToast(`✓ Connexion à l'escadre ${code.toUpperCase()} en cours...`);
+    updateFleetNetUI();
+    renderFleetsScreen();
+  });
+
+  document.getElementById('btnCopyInviteLink')?.addEventListener('click', () => {
+    const net = coopService.getNetworkStatus();
+    if (net.inviteUrl) {
+      navigator.clipboard?.writeText(net.inviteUrl).then(() => {
+        showToast(`🔗 Lien d'invitation pour ${net.roomCode} copié !`);
+      }).catch(() => {
+        prompt('Copie le lien d\'invitation :', net.inviteUrl);
+      });
+    }
+  });
+
+  document.getElementById('btnDisconnectWing')?.addEventListener('click', () => {
+    coopService.leaveWing();
+    showToast('🚪 Escadre quittée. Retour en mode solo.');
+    updateFleetNetUI();
+    renderFleetsScreen();
+  });
+
+  document.getElementById('btnPayoutModeWeighted')?.addEventListener('click', () => {
+    const session = coopService.getSession();
+    if (!session || !session.financials) return;
+    session.financials.payoutMode = 'role_weighted';
+    document.getElementById('btnPayoutModeWeighted')?.classList.add('active');
+    document.getElementById('btnPayoutModeEqual')?.classList.remove('active');
+    renderFleetPayouts(session, coopService.calculateFinancialSplit());
+  });
+
+  document.getElementById('btnPayoutModeEqual')?.addEventListener('click', () => {
+    const session = coopService.getSession();
+    if (!session || !session.financials) return;
+    session.financials.payoutMode = 'equal';
+    document.getElementById('btnPayoutModeEqual')?.classList.add('active');
+    document.getElementById('btnPayoutModeWeighted')?.classList.remove('active');
+    renderFleetPayouts(session, coopService.calculateFinancialSplit());
+  });
+
+  document.getElementById('btnCopyMoTraderCommands')?.addEventListener('click', () => {
+    if (!coopService.hasActiveSession()) {
+      showToast('⚠️ Aucune escadre active.');
+      return;
+    }
+    const cmds = coopService.generateMoTraderCommands();
+    const text = cmds.map(c => c.commandText).join('\n');
+    navigator.clipboard?.writeText(text).then(() => {
+      showToast('📋 Commandes mo.Trader copiées dans le presse-papier !');
+    }).catch(() => {
+      showToast(`📋 ${cmds.length} virements mo.Trader calculés !`);
+    });
+  });
+
+  document.getElementById('btnOpenAddFleetShip')?.addEventListener('click', () => {
+    if (!coopService.hasActiveSession()) {
+      showToast('⚠️ Veuillez d’abord créer une escadre.');
+      return;
+    }
+    const name = prompt('Nom du vaisseau à intégrer à l’escadre (ex: MISC Prospector Solo, C2 Hercules, MOLE #2) :');
+    if (name && name.trim()) {
+      const isMulti = confirm('S’agit-il d’un vaisseau Multi-Crew avec équipage à bord (ex: ARGO MOLE) ?');
+      const pilotCallsign = prompt('Callsign du pilote / chef de bord :') || 'PILOT-1';
+      coopService.addShip({
+        name: name.trim(),
+        modelId: isMulti ? 'mole' : 'prospector',
+        isMultiCrew: isMulti,
+        role: isMulti ? 'mining_heavy' : 'mining_solo',
+        roleLabel: isMulti ? 'Mineur Lourd Multi-Crew' : 'Mineur Solo',
+        totalScu: isMulti ? 96 : 32,
+        crew: [
+          { callsign: pilotCallsign.trim().toUpperCase(), role: 'pilot', roleLabel: 'Pilote', sharePct: isMulti ? 25 : 15, laserId: isMulti ? null : 'lancet_s1', powerWatts: isMulti ? 0 : 1400, resistanceReductionPct: isMulti ? 0 : 40, status: 'online' }
+        ]
+      });
+      renderFleetsScreen();
+      showToast(`✓ Vaisseau ${name.trim()} déployé dans l’escadre !`);
+    }
+  });
+
+  document.getElementById('btnCloseLiveSession')?.addEventListener('click', () => {
+    if (!coopService.hasActiveSession()) {
+      showToast('⚠️ Aucune escadre active à clôturer.');
+      return;
+    }
+
+    const summary = coopService.closeSession();
+    if (!summary) return;
+
+    if (liveSessionTimerInterval) {
+      clearInterval(liveSessionTimerInterval);
+      liveSessionTimerInterval = null;
+    }
+    liveSessionSeconds = 0;
+
+    const split = summary.split;
+    const totalUEC = (split?.distributableUEC || 0).toLocaleString('fr-FR');
+    const grossUEC = (split?.gross || 0).toLocaleString('fr-FR');
+    const taxUEC = ((split?.guildTaxUEC || 0) + (split?.reserveFundUEC || 0)).toLocaleString('fr-FR');
+    const cmds = summary.moTraderCommands || [];
+
+    const cmdsHtml = cmds.length > 0
+      ? cmds.map(c => {
+          const safeCallsign = String(c.recipientCallsign || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const safeRole = String(c.roleLabel || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const safeCmd = String(c.commandText || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const rawCmd = (c.commandText || '').replace(/'/g, "\\'");
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); font-family:var(--font-mono); font-size:0.8rem;">
+              <div>
+                <strong style="color:var(--accent-cyan);">${safeCallsign}</strong> 
+                <span style="color:var(--text-dim); font-size:0.75rem;">(${safeRole})</span>: 
+                <span style="color:var(--accent-green); font-weight:700;">${(c.amountUEC || 0).toLocaleString('fr-FR')} aUEC</span>
+                <div style="color:var(--text-muted); font-size:0.72rem; margin-top:2px;"><code>${safeCmd}</code></div>
+              </div>
+              <button type="button" class="vo-btn outline" style="padding:4px 8px; font-size:0.72rem;" onclick="navigator.clipboard?.writeText('${rawCmd}'); showToast('✓ Commande copiée !');">Copier</button>
+            </div>
+          `;
+        }).join('')
+      : '<p style="color:var(--text-dim); font-size:0.8rem; margin:8px 0;">Aucun virement requis (pilote solo ou solde nul).</p>';
+
+    openInspector({
+      title: 'Clôture & Virements mo.Trader',
+      subtitle: `${summary.sessionName || 'Escadre'} · Session terminée`,
+      body: `
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:12px; text-align:center;">
+            <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent-green); font-weight:700;">Recette Nette Distribuée</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#fff; font-family:var(--font-mono); margin-top:4px;">${totalUEC} <span style="font-size:0.9rem; color:var(--accent-green);">aUEC</span></div>
+            <div style="font-size:0.72rem; color:var(--text-dim); margin-top:4px;">Brut : ${grossUEC} aUEC · Caisse & Taxes : ${taxUEC} aUEC</div>
+          </div>
+          <div>
+            <div style="font-size:0.78rem; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Commandes mo.Trader prêtes à coller en jeu</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${cmdsHtml}
+            </div>
+          </div>
+        </div>
+      `,
+      footer: `
+        <div style="display:flex; justify-content:space-between; gap:8px; width:100%;">
+          <button type="button" class="vo-btn outline" id="btnCopyAllClosedMoTrader" style="font-size:0.78rem;">📋 Tout copier</button>
+          <button type="button" class="vo-btn primary" onclick="closeInspector()" style="font-size:0.78rem;">Fermer</button>
+        </div>
+      `,
+      wide: false
+    });
+
+    document.getElementById('btnCopyAllClosedMoTrader')?.addEventListener('click', () => {
+      const fullText = cmds.map(c => c.commandText).join('\n');
+      if (fullText) {
+        navigator.clipboard?.writeText(fullText).then(() => {
+          showToast('📋 Toutes les commandes mo.Trader ont été copiées !');
+        });
+      }
+    });
+
+    renderFleetsScreen();
+    showToast(`💎 Session clôturée et escadre dissoute ! ${totalUEC} aUEC répartis.`);
+  });
+
+  document.getElementById('btnCreateFleetSession')?.addEventListener('click', () => {
+    coopService.createSession();
+    liveSessionSeconds = 0;
+    renderFleetsScreen();
+    showToast('🚀 Nouvelle escadre créée ! Prêt pour le déploiement.');
+  });
+
+  document.getElementById('btnEmptyJoinWing')?.addEventListener('click', () => {
+    openModalWing();
+  });
+
+  document.getElementById('btnEmptyLoadPreset')?.addEventListener('click', () => {
+    coopService.loadPreset('mixed_wing');
+    liveSessionSeconds = 0;
+    renderFleetsScreen();
+    showToast('📑 Modèle d’entraînement « Escadre Mixte » chargé !');
+  });
+
+  document.getElementById('fleetPresetSelect')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (!val) return;
+    coopService.loadPreset(val);
+    liveSessionSeconds = 0;
+    renderFleetsScreen();
+    showToast('📑 Modèle d’entraînement chargé dans l’escadre !');
+  });
+
+  document.getElementById('btnLiveAddScan')?.addEventListener('click', () => {
+    if (!coopService.hasActiveSession()) {
+      showToast('⚠️ Aucune escadre active.');
+      return;
+    }
+    const min = prompt('Minerai scanné (ex: Quantainium 42%, Laranite 28%) :', 'Quantainium 44%');
+    if (min) {
+      coopService.addLog(`Scan longue portée confirmé · ${min.trim()}`, 'scan', 'Scout');
+      renderFleetLogs(coopService.getSession());
+      showToast('📷 Scan enregistré dans le journal d’escadre !');
+    }
+  });
+
+  document.getElementById('btnLiveAddCargoEvent')?.addEventListener('click', () => {
+    if (!coopService.hasActiveSession()) {
+      showToast('⚠️ Aucune escadre active.');
+      return;
+    }
+    const qty = prompt('Volume transféré en SCU (ex: 32 SCU Saddlebag) :', '32 SCU');
+    if (qty) {
+      coopService.addLog(`Transfert de conteneur ${qty.trim()} vers le transporteur cargo`, 'cargo', 'Logistique');
+      renderFleetLogs(coopService.getSession());
+      showToast('📦 Transfert de conteneur enregistré !');
+    }
+  });
+
+  // Inventaire
+  document.getElementById('btnTriggerOCRDrawer')?.addEventListener('click', openOCRDrawer);
+  document.getElementById('btnValidateOCRStock')?.addEventListener('click', () => {
+    showToast('✓ 20,4 SCU (Laranite + Copper) ajoutés aux stocks depuis ARC-L1 !');
+  });
+
+  document.getElementById('btnCorrectOCRStock')?.addEventListener('click', () => {
+    openInspector({
+      title: 'Correction manuelle OCR',
+      subtitle: 'Ligne ambiguë détectée · Indice de confiance 61 %',
+      body: `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <p style="font-size:0.82rem; color:var(--text-muted);">La reconnaissance optique hésite entre Bexalite et Hephaestanite :</p>
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Minerai corrigé</label>
+            <input type="text" id="inputCorrectMineral" value="Bexalite" style="width:100%; padding:8px 12px; background:var(--bg-card-inner); border:1px solid var(--border-medium); border-radius:4px; color:#fff; font-family:var(--font-ui);">
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Volume exact (SCU)</label>
+            <input type="number" id="inputCorrectQty" value="3.4" step="0.1" style="width:100%; padding:8px 12px; background:var(--bg-card-inner); border:1px solid var(--border-medium); border-radius:4px; color:#fff; font-family:var(--font-mono);">
+          </div>
+        </div>
+      `,
+      footer: `
+        <button type="button" class="vo-btn primary" id="btnConfirmManualCorrection" style="width:100%;">
+          Valider la correction (3.4 SCU)
+        </button>
+      `
+    });
+
+    document.getElementById('btnConfirmManualCorrection')?.addEventListener('click', () => {
+      showToast('✓ Ligne corrigée : 3,4 SCU de Bexalite ajoutés !');
+      closeInspector();
+    });
+  });
+
+  // Filtres Crafting dynamiques (Recherche, Catégories, Tailles, Sources, Chips)
+  document.getElementById('craftSearchInput')?.addEventListener('input', (e) => {
+    craftFilters.search = e.target.value;
+    renderCraftingCatalog();
+  });
+
+  document.getElementById('craftCategorySelect')?.addEventListener('change', (e) => {
+    craftFilters.category = e.target.value;
+    renderCraftingCatalog();
+  });
+
+  document.getElementById('craftSizeSelect')?.addEventListener('change', (e) => {
+    craftFilters.size = e.target.value;
+    renderCraftingCatalog();
+  });
+
+  document.getElementById('craftAcqSelect')?.addEventListener('change', (e) => {
+    craftFilters.acq = e.target.value;
+    renderCraftingCatalog();
+  });
+
+  const bindChip = (id, key) => {
+    document.getElementById(id)?.addEventListener('click', () => {
+      craftFilters.chip = craftFilters.chip === key ? null : key;
+      document.querySelectorAll('.vo-chip').forEach(c => c.classList.remove('active'));
+      if (craftFilters.chip) document.getElementById(id)?.classList.add('active');
+      renderCraftingCatalog();
+    });
+  };
+
+  bindChip('chipCraftFilterCraftable', 'g');
+  bindChip('chipCraftFilterMissing', 'a');
+  bindChip('chipCraftFilterOwned', 'b');
+  bindChip('chipCraftFilterUnowned', 'r');
+
+  document.getElementById('btnCraftViewMe')?.addEventListener('click', () => {
+    document.getElementById('btnCraftViewMe')?.classList.add('primary');
+    document.getElementById('btnCraftViewMe')?.classList.remove('outline');
+    document.getElementById('btnCraftViewGuild')?.classList.add('outline');
+    document.getElementById('btnCraftViewGuild')?.classList.remove('primary');
+    showToast('Vue Craft : mes blueprints personnels');
+  });
+
+  document.getElementById('btnCraftViewGuild')?.addEventListener('click', () => {
+    document.getElementById('btnCraftViewGuild')?.classList.add('primary');
+    document.getElementById('btnCraftViewGuild')?.classList.remove('outline');
+    document.getElementById('btnCraftViewMe')?.classList.add('outline');
+    document.getElementById('btnCraftViewMe')?.classList.remove('primary');
+    showToast('Vue Craft : catalogue consolidé de la guilde');
+  });
+
+  // Contrôles Commerce (AARON MFD Interactif)
+  document.getElementById('btnTradeRiskToggle')?.addEventListener('click', () => {
+    tradeState.avoidHighRisk = !tradeState.avoidHighRisk;
+    renderTradeCards();
+    triggerHaptic(10);
+    showToast(tradeState.avoidHighRisk ? 'Filtre actif : routes sécurisées uniquement' : 'Attention : routes à haute criminalité (Pyro/Jumptown) incluses');
+  });
+
+  document.getElementById('btnTradeShip')?.addEventListener('click', () => {
+    triggerHaptic(10);
+    openTradeShipModal();
+  });
+
+  document.getElementById('btnTradeCapital')?.addEventListener('click', () => {
+    triggerHaptic(10);
+    openTradeCapitalModal();
+  });
+
+  document.getElementById('btnTradeRouteSelect')?.addEventListener('click', () => {
+    triggerHaptic(10);
+    openTradeRouteAnalysisModal();
+  });
+
+  // Bourse UEX Corp : Synchronisation manuelle des cours
+  document.getElementById('btnRefreshUex')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnRefreshUex');
+    if (btn) btn.classList.add('spinning');
+    triggerHaptic(12);
+
+    const res = await uexService.syncPrices(true);
+    if (btn) btn.classList.remove('spinning');
+
+    if (res.status === 'live') {
+      showToast('🟢 Cours UEX Corp synchronisés en direct avec succès !');
+    } else {
+      showToast('🟡 Hors-ligne ou API indisponible : bascule sur le cache local sécurisé (price_cache).');
+    }
+    renderTradeCards();
+  });
+
+  // Commerce : Ouverture du catalogue officiel des marchandises
+  document.getElementById('btnOpenCommoditiesCatalog')?.addEventListener('click', () => {
+    triggerHaptic(10);
+    openCommoditiesCatalogModal();
+  });
+
+  // Flotte : Composer ma flotte (Toggle Catalogue)
+  const toggleCatalogBtn = document.getElementById('btnToggleCatalog');
+  const catalogSection = document.getElementById('fleetCatalogSection');
+  if (toggleCatalogBtn && catalogSection) {
+    toggleCatalogBtn.addEventListener('click', () => {
+      catalogFilters.isOpen = !catalogFilters.isOpen;
+      catalogSection.style.display = catalogFilters.isOpen ? 'block' : 'none';
+      toggleCatalogBtn.textContent = catalogFilters.isOpen ? '✕ Fermer le catalogue' : '+ Composer ma flotte';
+      if (catalogFilters.isOpen) {
+        renderShipCatalog();
+        catalogSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+  }
+
+  // Catalogue : Recherche en direct
+  document.getElementById('catalogSearchInput')?.addEventListener('input', (e) => {
+    catalogFilters.search = e.target.value;
+    renderShipCatalog();
+  });
+
+  // Catalogue : Filtres de rôle
+  const bindCatalogRoleBtn = (btnId, roleVal) => {
+    document.getElementById(btnId)?.addEventListener('click', () => {
+      catalogFilters.role = roleVal;
+      document.querySelectorAll('#fleetCatalogSection .vo-chip').forEach(c => c.classList.remove('active'));
+      document.getElementById(btnId)?.classList.add('active');
+      renderShipCatalog();
+    });
+  };
+
+  bindCatalogRoleBtn('btnCatalogFilterAll', 'tous');
+  bindCatalogRoleBtn('btnCatalogFilterMining', 'mining');
+  bindCatalogRoleBtn('btnCatalogFilterCargo', 'cargo');
+  bindCatalogRoleBtn('btnCatalogFilterCombat', 'escort');
+  bindCatalogRoleBtn('btnCatalogFilterSalvage', 'salvage');
+  bindCatalogRoleBtn('btnCatalogFilterExplo', 'exploration');
+
+  // Flotte : Recherche dans la flotte possédée
+  document.getElementById('fleetSearchInput')?.addEventListener('input', (e) => {
+    fleetFilters.search = e.target.value;
+    renderFleetHangar();
+  });
+
+  // Flotte : Filtres de rôle dans la flotte possédée
+  const bindFleetRoleChip = (chipId, roleVal) => {
+    document.getElementById(chipId)?.addEventListener('click', () => {
+      fleetFilters.role = roleVal;
+      document.querySelectorAll('#fleetOverviewSubView .vo-chip').forEach(c => c.classList.remove('active'));
+      document.getElementById(chipId)?.classList.add('active');
+      renderFleetHangar();
+    });
+  };
+
+  bindFleetRoleChip('chipFleetFilterAll', 'all');
+  bindFleetRoleChip('chipFleetFilterMining', 'mining');
+  bindFleetRoleChip('chipFleetFilterSupport', 'support');
+  bindFleetRoleChip('chipFleetFilterCombat', 'combat');
+  bindFleetRoleChip('chipFleetFilterSalvage', 'salvage');
+  bindFleetRoleChip('chipFleetFilterExplo', 'exploration');
+
+  // Éditeur de configuration : Copier la tourelle sur toutes les tourelles
+  document.getElementById('btnCopyTurretToAll')?.addEventListener('click', () => {
+    if (!shipConfigDraft || !shipConfigDraft.config?.turrets) return;
+    const turrets = shipConfigDraft.config.turrets;
+    if (turrets.length <= 1) return;
+
+    const src = turrets[activeTurretTab];
+    if (!src) return;
+
+    shipConfigDraft.config.turrets = turrets.map(t => ({
+      ...t,
+      laserId: src.laserId,
+      modules: [...(src.modules || [])]
+    }));
+
+    triggerHaptic(12);
+    renderShipConfigView();
+    showToast(`Configuration de la Tourelle ${activeTurretTab + 1} copiée sur toutes les tourelles !`);
+  });
+
+  // Éditeur de configuration : Profils rapides
+  document.getElementById('btnQuickPresetPureMining')?.addEventListener('click', () => {
+    if (!shipConfigDraft) return;
+    const ship = getShip(shipConfigDraft.shipId);
+    if (!ship || !shipConfigDraft.config?.turrets?.length) return;
+
+    const laser = ship.laserSize === 2 ? 'helix_s2' : ship.laserSize === 3 ? 'helix_s3' : 'helix_s1';
+    shipConfigDraft.config.turrets = shipConfigDraft.config.turrets.map(t => ({
+      ...t,
+      laserId: laser,
+      modules: ['surge', 'stampede']
+    }));
+
+    renderShipConfigView();
+    showToast('✓ Profil « Minage Pur » (Helix + Boosters) appliqué !');
+  });
+
+  document.getElementById('btnQuickPresetQuantainium')?.addEventListener('click', () => {
+    if (!shipConfigDraft) return;
+    const ship = getShip(shipConfigDraft.shipId);
+    if (!ship || !shipConfigDraft.config?.turrets?.length) return;
+
+    const laser = ship.laserSize === 2 ? 'lancet_s2' : ship.laserSize === 3 ? 'lancet_s3' : 'lancet_s1';
+    shipConfigDraft.config.turrets = shipConfigDraft.config.turrets.map(t => ({
+      ...t,
+      laserId: laser,
+      modules: ['focus_3', 'brandt']
+    }));
+
+    renderShipConfigView();
+    showToast('✓ Profil « Quantainium » (Lancet + Focus III) appliqué !');
+  });
+
+  document.getElementById('btnQuickPresetFactory')?.addEventListener('click', () => {
+    if (!shipConfigDraft) return;
+    const ship = getShip(shipConfigDraft.shipId);
+    if (!ship || !shipConfigDraft.config?.turrets?.length) return;
+
+    const laser = ship.laserSize === 2 ? 'arbor_s2' : ship.laserSize === 3 ? 'arbor_s3' : 'arbor_s1';
+    shipConfigDraft.config.turrets = shipConfigDraft.config.turrets.map(t => ({
+      ...t,
+      laserId: laser,
+      modules: []
+    }));
+
+    renderShipConfigView();
+    showToast('✓ Profil « Usine Standard » (Arbor) réinitialisé !');
+  });
+
+  // Éditeur de configuration : Enregistrement
+  document.getElementById('btnSaveShipConfig')?.addEventListener('click', () => {
+    if (!shipConfigDraft) return;
+    fleetService.updateShip(shipConfigDraft.uid, shipConfigDraft);
+    triggerHaptic(12);
+    updateTopBarProfile();
+    renderFleetHangar();
+    showToast(`✓ Configuration de ${shipConfigDraft.nickname} enregistrée !`);
+  });
+
+  document.getElementById('btnSaveAndExitShipConfig')?.addEventListener('click', () => {
+    if (!shipConfigDraft) return;
+    fleetService.updateShip(shipConfigDraft.uid, shipConfigDraft);
+    triggerHaptic(12);
+    updateTopBarProfile();
+    closeShipConfigScreen();
+    showToast(`✓ Configuration enregistrée. Retour au hangar.`);
+  });
+
+  document.getElementById('btnBackToFleetOverview')?.addEventListener('click', closeShipConfigScreen);
+
+  // Guilde : sous-onglets
+  document.querySelectorAll('[data-gtab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-gtab]').forEach(b => {
+        b.classList.remove('primary');
+        b.classList.add('outline');
+      });
+      btn.classList.add('primary');
+      btn.classList.remove('outline');
+      activeGuildTab = btn.getAttribute('data-gtab');
+      showToast(`Onglet Guilde : ${btn.textContent}`);
+    });
+  });
+
+  document.getElementById('btnGuildCreateOp')?.addEventListener('click', () => {
+    openInspector({
+      title: 'Créer une opération de guilde',
+      subtitle: 'Nova Mining Co. · Planification d\'escadre',
+      body: `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Nom de l'opération</label>
+            <input type="text" value="Opération Aaron Deep Core" style="width:100%; padding:8px 12px; background:var(--bg-card-inner); border:1px solid var(--border-medium); border-radius:4px; color:#fff; font-family:var(--font-ui);">
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Zone cible</label>
+            <input type="text" value="Aaron Halo · Belt 5" style="width:100%; padding:8px 12px; background:var(--bg-card-inner); border:1px solid var(--border-medium); border-radius:4px; color:#fff; font-family:var(--font-ui);">
+          </div>
+          <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Composition prévue</label>
+            <p style="font-size:0.8rem; color:var(--text-dim);">2 Foreuses MOLE, 1 Transport Hercules C2, 2 Chasseurs Scorpius</p>
+          </div>
+        </div>
+      `,
+      footer: `
+        <button type="button" class="vo-btn primary" id="btnConfirmCreateOp" style="width:100%;">
+          Publier l'ordre d'opération
+        </button>
+      `
+    });
+
+    document.getElementById('btnConfirmCreateOp')?.addEventListener('click', () => {
+      showToast('🚀 Opération Aaron Deep Core planifiée et notifiée sur Discord !');
+      closeInspector();
+    });
+  });
+
+  // Initialisation des écouteurs Équipement, Vente & Marché de Guilde
+  initEquipmentAndMarketBindings();
+}
+
+function initEquipmentAndMarketBindings() {
+  // 1. Bouton ouverture modal inventorier un équipement
+  document.getElementById('btnOpenAddEquipmentModal')?.addEventListener('click', openAddEquipmentModal);
+  document.getElementById('btnCloseEquipmentModal')?.addEventListener('click', closeAddEquipmentModal);
+  document.getElementById('btnCancelEquipmentModal')?.addEventListener('click', closeAddEquipmentModal);
+
+  // 2. Sélection d'origine (3 cartes : Acheté, Trouvé, Crafté)
+  document.querySelectorAll('#originSelectorGrid .origin-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#originSelectorGrid .origin-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const origin = card.getAttribute('data-origin') || 'purchased';
+      const input = document.getElementById('eqOriginInput');
+      if (input) input.value = origin;
+      const craftQContainer = document.getElementById('eqCraftQualityContainer');
+      if (craftQContainer) craftQContainer.style.display = origin === 'crafted' ? 'block' : 'none';
+      triggerHaptic(8);
+    });
+  });
+
+  // Slider de qualité des matériaux pour équipement crafté
+  document.getElementById('eqMaterialQualityInput')?.addEventListener('input', (e) => {
+    const val = Number(e.target.value) || 500;
+    const valEl = document.getElementById('eqMaterialQualityVal');
+    if (valEl) valEl.textContent = 'Q' + val;
+    const badge = document.getElementById('eqQualityBadgePreview');
+    if (badge && craftingService.getQualityTier) {
+      const tier = craftingService.getQualityTier(val);
+      badge.className = 'quality-badge ' + tier.badgeClass;
+      badge.textContent = `${tier.name} · Q${val}`;
+    }
+  });
+
+  // 3. Bascule champ de vente dans la modal d'ajout
+  document.getElementById('eqForSaleToggle')?.addEventListener('change', (e) => {
+    const container = document.getElementById('eqSaleFieldsContainer');
+    if (container) {
+      container.style.display = e.target.checked ? 'flex' : 'none';
+      if (e.target.checked) {
+        const catPrice = Number(document.getElementById('eqSelectedCatalogPrice')?.value) || 0;
+        const priceInput = document.getElementById('eqSalePrice');
+        if (priceInput && (!priceInput.value || Number(priceInput.value) === 0)) {
+          priceInput.value = catPrice > 0 ? catPrice : '';
+        }
+      }
+    }
+  });
+
+  // 4. Recherche FleetYards & Autocomplétion
+  let searchDebounceTimer = null;
+  const searchInput = document.getElementById('eqSearchInput');
+  const dropdown = document.getElementById('eqSearchDropdown');
+
+  searchInput?.addEventListener('input', (e) => {
+    clearTimeout(searchDebounceTimer);
+    const q = (e.target.value || '').trim().toLowerCase();
+    if (q.length < 2) {
+      dropdown?.classList.remove('open');
+      return;
+    }
+
+    searchDebounceTimer = setTimeout(async () => {
+      const catalog = await loadFleetyardsCatalog();
+      const matches = catalog.filter(item =>
+        item.name.toLowerCase().includes(q) ||
+        item.code.toLowerCase().includes(q) ||
+        (item.subCategory && item.subCategory.toLowerCase().includes(q))
+      ).slice(0, 10);
+
+      if (!dropdown) return;
+      if (matches.length === 0) {
+        dropdown.innerHTML = `
+          <div style="padding:10px 14px; font-size:0.75rem; color:var(--text-dim);">
+            Aucune pièce officielle trouvée. Cliquez ci-dessous ou appuyez sur Entrée pour utiliser « ${e.target.value} » comme désignation personnalisée.
+          </div>
+        `;
+        dropdown.classList.add('open');
+        return;
+      }
+
+      dropdown.innerHTML = matches.map((m, idx) => `
+        <div class="eq-search-item" data-index="${idx}">
+          <div>
+            <div class="eq-item-main-title">${m.name}</div>
+            <div class="eq-item-sub-meta">${m.typeLabel} ${m.size ? `· S${m.size}` : ''} ${m.grade ? `· Grade ${m.grade}` : ''}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-mono); font-weight:600; font-size:0.8rem; color:var(--accent-cyan);">
+              ${m.catalogPrice > 0 ? `${m.catalogPrice.toLocaleString('fr-FR')} aUEC` : '— aUEC'}
+            </div>
+            <div style="font-size:0.68rem; color:var(--text-dim);">Cours officiel</div>
+          </div>
+        </div>
+      `).join('');
+
+      dropdown.classList.add('open');
+
+      dropdown.querySelectorAll('.eq-search-item').forEach(itemEl => {
+        itemEl.addEventListener('click', () => {
+          const idx = Number(itemEl.getAttribute('data-index'));
+          const selected = matches[idx];
+          if (!selected) return;
+
+          document.getElementById('eqSelectedCode').value = selected.code;
+          document.getElementById('eqSelectedName').value = selected.name;
+          document.getElementById('eqSelectedCategory').value = selected.category;
+          document.getElementById('eqSelectedSubCategory').value = selected.subCategory;
+          document.getElementById('eqSelectedSize').value = selected.size || '';
+          document.getElementById('eqSelectedGrade').value = selected.grade || '';
+          document.getElementById('eqSelectedCatalogPrice').value = selected.catalogPrice || 0;
+
+          document.getElementById('eqDisplayTitle').textContent = selected.name;
+          document.getElementById('eqDisplayMeta').textContent = `${selected.typeLabel} ${selected.size ? `· Taille ${selected.size}` : ''} ${selected.grade ? `· Grade ${selected.grade}` : ''}`;
+          document.getElementById('eqDisplayCatalogPrice').textContent = selected.catalogPrice > 0
+            ? `${selected.catalogPrice.toLocaleString('fr-FR')} aUEC`
+            : '—';
+
+          // Pre-fill price if sale is toggled
+          const priceInput = document.getElementById('eqSalePrice');
+          if (priceInput && (!priceInput.value || Number(priceInput.value) === 0) && selected.catalogPrice > 0) {
+            priceInput.value = selected.catalogPrice;
+          }
+
+          searchInput.value = selected.name;
+          dropdown.classList.remove('open');
+          triggerHaptic(10);
+        });
+      });
+    }, 150);
+  });
+
+  // Fermer dropdown si clic extérieur
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.eq-search-wrapper')) {
+      dropdown?.classList.remove('open');
+    }
+  });
+
+  // 5. Soumission du formulaire d'ajout d'équipement
+  document.getElementById('formAddEquipment')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const rawName = document.getElementById('eqSearchInput')?.value?.trim();
+    const selectedName = document.getElementById('eqSelectedName')?.value?.trim();
+    const finalName = selectedName || rawName;
+
+    if (!finalName) {
+      showToast('⚠️ Veuillez renseigner le nom ou rechercher une référence.');
+      return;
+    }
+
+    const code = document.getElementById('eqSelectedCode')?.value || finalName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const category = document.getElementById('eqSelectedCategory')?.value || 'component';
+    const subCategory = document.getElementById('eqSelectedSubCategory')?.value || '';
+    const size = document.getElementById('eqSelectedSize')?.value || null;
+    const grade = document.getElementById('eqSelectedGrade')?.value || null;
+    const catalogPrice = Number(document.getElementById('eqSelectedCatalogPrice')?.value) || 0;
+    const origin = document.getElementById('eqOriginInput')?.value || 'purchased';
+    const locationId = document.getElementById('eqLocationSelect')?.value || 'ARC-L1 Wide Forest Station';
+    const units = Math.max(1, Number(document.getElementById('eqQuantityUnits')?.value) || 1);
+    const conditionPct = Math.max(1, Math.min(100, Number(document.getElementById('eqConditionPct')?.value) || 100));
+
+    let materialQuality = null;
+    let qualityTier = null;
+    let qualityTierLabel = null;
+    if (origin === 'crafted') {
+      materialQuality = Number(document.getElementById('eqMaterialQualityInput')?.value) || 500;
+      if (craftingService.getQualityTier) {
+        const tier = craftingService.getQualityTier(materialQuality);
+        qualityTier = tier.id;
+        qualityTierLabel = tier.name;
+      }
+    }
+
+    const forSale = document.getElementById('eqForSaleToggle')?.checked || false;
+    const salePrice = forSale ? (Number(document.getElementById('eqSalePrice')?.value) || catalogPrice || 0) : 0;
+    const barterOffer = forSale ? (document.getElementById('eqBarterOffer')?.value || '').trim() : '';
+    const saleScope = forSale ? (document.getElementById('eqSaleScope')?.value || 'inter_guild') : 'guild_internal';
+
+    const currentUser = store.get('profile') || {};
+    const ownerCallsign = currentUser.callsign || 'VORTEX-1';
+
+    const newEquipment = inventoryService.addEquipmentItem({
+      name: finalName,
+      code,
+      category,
+      subCategory,
+      size,
+      grade,
+      origin,
+      materialQuality,
+      qualityTier,
+      qualityTierLabel,
+      locationId,
+      quantityUnits: units,
+      conditionPct,
+      forSale,
+      salePriceUEC: salePrice,
+      barterOffer,
+      catalogReferencePriceUEC: catalogPrice,
+      saleScope,
+      ownerCallsign
+    });
+
+    showToast(`✓ Équipement "${newEquipment.name}" inventorié avec succès !`);
+    closeAddEquipmentModal();
+    renderInventoryTable();
+    if (currentActiveApp === 'guild') renderGuildMarket();
+  });
+
+  // 6. Modale Édition Rapide de Vente
+  document.getElementById('btnCloseEditSaleModal')?.addEventListener('click', closeEditSaleModal);
+  document.getElementById('btnCancelEditSaleModal')?.addEventListener('click', closeEditSaleModal);
+
+  document.getElementById('formEditSale')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const itemId = document.getElementById('editSaleItemId')?.value;
+    if (!itemId) return;
+
+    const forSale = document.getElementById('editSaleForSaleToggle')?.checked || false;
+    const salePrice = Number(document.getElementById('editSalePriceInput')?.value) || 0;
+    const barter = (document.getElementById('editSaleBarterInput')?.value || '').trim();
+    const scope = document.getElementById('editSaleScopeSelect')?.value || 'inter_guild';
+
+    inventoryService.updateItemSaleListing(itemId, {
+      forSale,
+      salePriceUEC: salePrice,
+      barterOffer: barter,
+      saleScope: scope
+    });
+
+    showToast(`✓ Offre de vente mise à jour.`);
+    closeEditSaleModal();
+    renderInventoryTable();
+    if (currentActiveApp === 'guild') renderGuildMarket();
+  });
+
+  // 7. Modale Export Manifeste Inter-Guilde
+  document.getElementById('btnOpenExportManifestModal')?.addEventListener('click', openExportManifestModal);
+  document.getElementById('btnCloseManifestModal')?.addEventListener('click', closeExportManifestModal);
+  document.getElementById('btnDismissManifestModal')?.addEventListener('click', closeExportManifestModal);
+
+  document.getElementById('btnCopyManifestClipboard')?.addEventListener('click', () => {
+    const textarea = document.getElementById('manifestExportTextarea');
+    if (!textarea) return;
+    textarea.select();
+    try {
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        showToast('📋 Manifeste inter-guilde copié dans le presse-papier !');
+      }).catch(() => {
+        document.execCommand('copy');
+        showToast('📋 Manifeste inter-guilde copié !');
+      });
+    } catch {
+      document.execCommand('copy');
+      showToast('📋 Manifeste inter-guilde copié !');
+    }
+  });
+
+  // 8. Filtres d'inventaire
+  document.getElementById('inventoryLocSelect')?.addEventListener('change', (e) => {
+    inventoryFilterState.locationId = e.target.value;
+    renderInventoryTable();
+  });
+
+  document.getElementById('inventoryOriginSelect')?.addEventListener('change', (e) => {
+    inventoryFilterState.origin = e.target.value;
+    renderInventoryTable();
+  });
+
+  document.getElementById('inventoryPurposeSelect')?.addEventListener('change', (e) => {
+    inventoryFilterState.purpose = e.target.value;
+    renderInventoryTable();
+  });
+
+  document.getElementById('inventorySaleFilterBtn')?.addEventListener('click', () => {
+    inventoryFilterState.forSaleOnly = !inventoryFilterState.forSaleOnly;
+    const btn = document.getElementById('inventorySaleFilterBtn');
+    if (btn) {
+      btn.textContent = inventoryFilterState.forSaleOnly ? '🏷️ En vente uniquement' : '🏷️ Tous';
+      btn.classList.toggle('primary', inventoryFilterState.forSaleOnly);
+      btn.classList.toggle('outline', !inventoryFilterState.forSaleOnly);
+    }
+    renderInventoryTable();
+  });
+
+  // 9. Raccourci Trade -> Bourse de Guilde
+  document.getElementById('btnGoToGuildMarket')?.addEventListener('click', () => {
+    setActiveApp('guild');
+    switchGuildSubTab('market');
+  });
+
+  // 10. Filtres & recherche Bourse de Guilde
+  document.querySelectorAll('.g-market-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.g-market-filter-btn').forEach(b => {
+        b.classList.remove('primary');
+        b.classList.add('outline');
+      });
+      btn.classList.remove('outline');
+      btn.classList.add('primary');
+
+      guildMarketFilters.category = btn.getAttribute('data-mcat') || 'all';
+      renderGuildMarket();
+    });
+  });
+
+  document.getElementById('btnMarketBarterToggle')?.addEventListener('click', () => {
+    guildMarketFilters.barterOnly = !guildMarketFilters.barterOnly;
+    const btn = document.getElementById('btnMarketBarterToggle');
+    if (btn) {
+      btn.classList.toggle('primary', guildMarketFilters.barterOnly);
+      btn.classList.toggle('outline', !guildMarketFilters.barterOnly);
+    }
+    renderGuildMarket();
+  });
+
+  document.getElementById('guildMarketSearchInput')?.addEventListener('input', (e) => {
+    guildMarketFilters.search = e.target.value;
+    renderGuildMarket();
+  });
+}
+
+// ============================================================================
+// GESTION DU THÈME HOLO (mobiGlas) & CLASSIQUE
+// ============================================================================
+const THEME_STORAGE_KEY = 'aaron-mfd.theme';
+
+function initThemeToggle() {
+  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'holo';
+  document.documentElement.dataset.theme = savedTheme;
+  updateThemeToggleUI(savedTheme);
+
+  document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
+    const currentTheme = document.documentElement.dataset.theme || 'holo';
+    const nextTheme = currentTheme === 'holo' ? 'classic' : 'holo';
+    document.documentElement.dataset.theme = nextTheme;
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    updateThemeToggleUI(nextTheme);
+    triggerHaptic(10);
+    showToast(`Thème activé : ${nextTheme === 'holo' ? 'Holo (mobiGlas)' : 'Classique'}`);
+  });
+}
+
+function updateThemeToggleUI(theme) {
+  const val = document.getElementById('themeToggleVal');
+  if (val) {
+    val.innerHTML = `<b>${theme === 'holo' ? 'Holo' : 'Classique'}</b>`;
+  }
+}
+
+// ============================================================================
+// 12. GESTION DU SALVAGE & RECYCLAGE DE COQUES (STAR CITIZEN 4.0)
+// ============================================================================
+function renderSalvageScreen() {
+  const calc = salvageService.getLiveCalculation();
+  if (!calc) return;
+
+  // 1. Bandeau vaisseau actif & modules
+  const bannerShip = document.getElementById('salvageBannerShipName');
+  if (bannerShip) bannerShip.textContent = `${calc.ship.name} « ${calc.ship.manufacturer} »`;
+
+  const bannerCargo = document.getElementById('salvageBannerCargoBadge');
+  if (bannerCargo) bannerCargo.textContent = `Soute : ${calc.cargoGridSCU} SCU`;
+
+  const bannerBuffer = document.getElementById('salvageBannerBufferBadge');
+  if (bannerBuffer) bannerBuffer.textContent = `Tampon : ${calc.bufferSCU} SCU`;
+
+  const bannerScrapers = document.getElementById('salvageBannerScrapersSummary');
+  if (bannerScrapers) bannerScrapers.textContent = `${calc.ship.scraperSlots || 2}x ${calc.scraper.name} (${calc.scraper.manufacturer})`;
+
+  const bannerSpeed = document.getElementById('salvageBannerSpeedBadge');
+  if (bannerSpeed) bannerSpeed.textContent = `⚡ ${(calc.scraper.speedScuMin * (calc.ship.scraperSlots || 2)).toFixed(1)} SCU/min`;
+
+  const bannerEff = document.getElementById('salvageBannerEffBadge');
+  if (bannerEff) bannerEff.textContent = `🎯 Efficacité ${calc.scraper.efficiencyPct}%`;
+
+  // 2. Épave scannée
+  const diffBadge = document.getElementById('salvageWreckDiffBadge');
+  if (diffBadge) {
+    diffBadge.textContent = calc.wreck.scrapingDifficulty || 'Normal';
+    diffBadge.style.color = calc.wreck.difficultyColor || '#38bdf8';
+  }
+
+  const commonLoot = document.getElementById('salvageCommonLoot');
+  if (commonLoot && calc.wreck.commonLoot) {
+    commonLoot.textContent = calc.wreck.commonLoot.join(' · ');
+  }
+
+  // 3. Simulateur de buffer
+  const buf = calc.bufferState;
+  const bufCurrent = document.getElementById('salvageBufferCurrentText');
+  if (bufCurrent) bufCurrent.textContent = buf.currentBufferSCU.toFixed(1);
+
+  const bufMax = document.getElementById('salvageBufferMaxText');
+  if (bufMax) bufMax.textContent = buf.bufferCapacitySCU.toFixed(1);
+
+  const bufPercentBadge = document.getElementById('salvageBufferPercentBadge');
+  if (bufPercentBadge) bufPercentBadge.textContent = `${buf.percentage}%`;
+
+  const bufBar = document.getElementById('salvageBufferProgressBar');
+  if (bufBar) {
+    bufBar.style.width = `${buf.percentage}%`;
+    if (buf.isFull) {
+      bufBar.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+    } else if (buf.isNearFull) {
+      bufBar.style.background = 'linear-gradient(90deg, #38bdf8, #f59e0b)';
+    } else {
+      bufBar.style.background = 'linear-gradient(90deg, #38bdf8, #818cf8)';
+    }
+  }
+
+  const bufAlert = document.getElementById('salvageBufferVisualAlert');
+  if (bufAlert) {
+    bufAlert.textContent = buf.alertText;
+    bufAlert.className = `salvage-buffer-alert ${buf.alertLevel}`;
+  }
+
+  // 4. Extraction Dashboard KPIs
+  const rmcSCU = document.getElementById('salvageRmcSCU');
+  if (rmcSCU) rmcSCU.textContent = `${calc.rmcSCU.toFixed(1)} SCU`;
+
+  const rmcRev = document.getElementById('salvageRmcRevenue');
+  if (rmcRev) rmcRev.textContent = `~${calc.revenueRMC.toLocaleString('fr-FR')} aUEC (TDD)`;
+
+  const cmSCU = document.getElementById('salvageCmSCU');
+  if (cmSCU) cmSCU.textContent = `${calc.cmSCU.toFixed(1)} SCU`;
+
+  const cmRev = document.getElementById('salvageCmRevenue');
+  if (cmRev) cmRev.textContent = `~${calc.revenueCM.toLocaleString('fr-FR')} aUEC`;
+
+  const totalRev = document.getElementById('salvageTotalRevenue');
+  if (totalRev) totalRev.textContent = `+${calc.totalRevenue.toLocaleString('fr-FR')}`;
+
+  const timeEst = document.getElementById('salvageTimeEstimate');
+  if (timeEst) timeEst.textContent = `Temps estimé : ${calc.estimatedScrapingMinutes} min · ${calc.runsNeeded} rotation(s)`;
+
+  // 5. Arbitrage Stratégique
+  const rec = calc.strategicRecommendation;
+  const stratBadge = document.getElementById('salvageStrategicBadge');
+  if (stratBadge) stratBadge.textContent = rec.badge_fr;
+
+  const stratTitle = document.getElementById('salvageStrategicTitle');
+  if (stratTitle) stratTitle.textContent = rec.title_fr;
+
+  const stratDetail = document.getElementById('salvageStrategicDetail');
+  if (stratDetail) stratDetail.textContent = rec.detail_fr;
+
+  // Boutons d'actions
+  const reserveAmount = Math.min(6, calc.rmcSCU);
+  const lblReserve = document.getElementById('labelSalvageReserveCraftAmount');
+  if (lblReserve) lblReserve.textContent = `Réserver ${reserveAmount} SCU`;
+
+  const lblSellRmc = document.getElementById('labelSalvageSellRmcRevenue');
+  if (lblSellRmc) lblSellRmc.textContent = `+${calc.revenueRMC.toLocaleString('fr-FR')} aUEC`;
+
+  const lblSellCm = document.getElementById('labelSalvageSellCmRevenue');
+  if (lblSellCm) lblSellCm.textContent = `+${calc.revenueCM.toLocaleString('fr-FR')} aUEC`;
+}
+
+// ============================================================================
+// 13. GESTION DU STARMAP & CALCULATEUR QUANTUM DROP AARON HALO (100% VISUEL)
+// ============================================================================
+let starmapRendererInstance = null;
+
+function renderStarmapScreen() {
+  const calc = starmapService.getLiveCalculation();
+  if (!calc) return;
+
+  // 1. Initialiser le Canvas Renderer si nécessaire
+  const canvas = document.getElementById('starmapCanvas');
+  if (canvas && !starmapRendererInstance) {
+    starmapRendererInstance = new StarmapCanvasRenderer(canvas);
+  }
+
+  if (starmapRendererInstance) {
+    starmapRendererInstance.setSystem(starmapService.state.activeSystem);
+    starmapRendererInstance.setActiveRoute(starmapService.state.activeRouteId);
+  }
+
+  // Titre du Canvas
+  const canvasTitle = document.getElementById('starmapCanvasTitle');
+  if (canvasTitle) {
+    canvasTitle.textContent = `RADAR ORBITAL · SYSTÈME ${starmapService.state.activeSystem.toUpperCase()}`;
+  }
+
+  // 2. Mise à jour de la colonne Droite (Calculateur de Drop)
+  const bandBadge = document.getElementById('starmapTargetBandBadge');
+  if (bandBadge) bandBadge.textContent = `⭐ ${calc.targetBand_fr}`;
+
+  const cutoffDist = document.getElementById('starmapCutoffDistanceDisplay');
+  if (cutoffDist) cutoffDist.textContent = `${calc.targetDistanceKm.toLocaleString('fr-FR')} km`;
+
+  const cutoffInstr = document.getElementById('starmapCutoffInstructionDisplay');
+  if (cutoffInstr) cutoffInstr.textContent = calc.dropInstruction_fr;
+
+  const flightTime = document.getElementById('starmapFlightTimeDisplay');
+  if (flightTime) flightTime.textContent = calc.formattedFlightTime;
+
+  const flightSpeed = document.getElementById('starmapFlightSpeedDisplay');
+  if (flightSpeed) flightSpeed.textContent = `${calc.speedKmS.toLocaleString('fr-FR')} km/s`;
+}
+
+function initSalvageAndStarmapEvents() {
+  // --- SALVAGE EVENTS ---
+  document.getElementById('salvageShipSelect')?.addEventListener('change', (e) => {
+    salvageService.setShip(e.target.value);
+    renderSalvageScreen();
+  });
+
+  document.getElementById('salvageScraperSelect')?.addEventListener('change', (e) => {
+    salvageService.setScraper(e.target.value);
+    renderSalvageScreen();
+  });
+
+  document.getElementById('salvageWreckSelect')?.addEventListener('change', (e) => {
+    salvageService.setWreck(e.target.value);
+    renderSalvageScreen();
+  });
+
+  document.getElementById('salvageHullIntegritySlider')?.addEventListener('input', (e) => {
+    const badge = document.getElementById('salvageHullIntegrityBadge');
+    if (badge) badge.textContent = `${e.target.value}%`;
+    salvageService.setHullIntegrity(e.target.value);
+    renderSalvageScreen();
+  });
+
+  document.getElementById('btnSalvageEjectBuffer')?.addEventListener('click', () => {
+    const res = salvageService.ejectBufferToCargo();
+    renderSalvageScreen();
+    showToast(res.message);
+  });
+
+  const feedbackBox = document.getElementById('salvageActionFeedback');
+  const showSalvageFeedback = (msg, isSuccess = true) => {
+    if (!feedbackBox) return;
+    feedbackBox.style.display = 'block';
+    feedbackBox.style.background = isSuccess ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
+    feedbackBox.style.border = `1px solid ${isSuccess ? 'rgba(34,197,94,0.5)' : 'rgba(239,68,68,0.5)'}`;
+    feedbackBox.style.color = isSuccess ? '#4ade80' : '#fca5a5';
+    feedbackBox.textContent = msg;
+    setTimeout(() => { feedbackBox.style.display = 'none'; }, 5000);
+  };
+
+  document.getElementById('btnSalvageActionReserveCraft')?.addEventListener('click', () => {
+    const res = salvageService.reserveRmcForCraft();
+    showSalvageFeedback(res.message, res.success);
+    showToast(res.message);
+    renderSalvageScreen();
+  });
+
+  document.getElementById('btnSalvageActionSellRMC')?.addEventListener('click', () => {
+    const res = salvageService.sellRmcInstant();
+    showSalvageFeedback(res.message, res.success);
+    showToast(res.message);
+    renderSalvageScreen();
+    renderTopBarCitizen();
+  });
+
+  document.getElementById('btnSalvageActionSellCM')?.addEventListener('click', () => {
+    const res = salvageService.sellCmInstant();
+    showSalvageFeedback(res.message, res.success);
+    showToast(res.message);
+    renderSalvageScreen();
+    renderTopBarCitizen();
+  });
+
+  // --- STARMAP EVENTS ---
+  const btnStanton = document.getElementById('btnStarmapSystemStanton');
+  const btnPyro = document.getElementById('btnStarmapSystemPyro');
+
+  btnStanton?.addEventListener('click', () => {
+    btnStanton.className = 'vo-btn primary small';
+    if (btnPyro) btnPyro.className = 'vo-btn outline small';
+    starmapService.setSystem('stanton');
+    renderStarmapScreen();
+  });
+
+  btnPyro?.addEventListener('click', () => {
+    btnPyro.className = 'vo-btn primary small';
+    if (btnStanton) btnStanton.className = 'vo-btn outline small';
+    starmapService.setSystem('pyro');
+    renderStarmapScreen();
+  });
+
+  document.getElementById('starmapRouteSelect')?.addEventListener('change', (e) => {
+    starmapService.setRoute(e.target.value);
+    renderStarmapScreen();
+  });
+
+  document.getElementById('starmapDriveSelect')?.addEventListener('change', (e) => {
+    starmapService.setQuantumDrive(e.target.value);
+    renderStarmapScreen();
+  });
+
+  // Contrôles Zoom Canvas
+  document.getElementById('btnStarmapZoomIn')?.addEventListener('click', () => starmapRendererInstance?.zoomIn());
+  document.getElementById('btnStarmapZoomOut')?.addEventListener('click', () => starmapRendererInstance?.zoomOut());
+  document.getElementById('btnStarmapResetView')?.addEventListener('click', () => starmapRendererInstance?.resetView());
+
+  // Compte à rebours 100% visuel de coupure Quantum Drive
+  const btnStartDrop = document.getElementById('btnStartQuantumDrop');
+  const btnResetDrop = document.getElementById('btnResetQuantumDrop');
+  const dropProgressBar = document.getElementById('starmapDropProgressBar');
+  const progressPercentText = document.getElementById('starmapProgressPercentText');
+  const silentAlertBanner = document.getElementById('starmapSilentAlertBanner');
+  const silentAlertTitle = document.getElementById('starmapSilentAlertTitle');
+  const silentAlertSub = document.getElementById('starmapSilentAlertSub');
+
+  btnStartDrop?.addEventListener('click', () => {
+    if (starmapService.state.countdownActive) {
+      starmapService.stopCountdown();
+      if (btnStartDrop) btnStartDrop.textContent = '⏱️ Démarrer le Saut Quantum';
+      return;
+    }
+
+    if (btnStartDrop) btnStartDrop.textContent = '⏸️ Interrompre le Saut';
+
+    starmapService.startCountdown((progress) => {
+      if (dropProgressBar) dropProgressBar.style.width = `${progress.progressPercent}%`;
+      if (progressPercentText) progressPercentText.textContent = `${progress.progressPercent}% (${progress.formattedRemainingTime})`;
+
+      if (silentAlertBanner) {
+        silentAlertBanner.className = progress.bannerClass;
+      }
+      if (silentAlertTitle) {
+        silentAlertTitle.textContent = progress.bannerText;
+      }
+      if (silentAlertSub) {
+        silentAlertSub.textContent = progress.bannerSub;
+      }
+
+      if (progress.visualPhase === 'cut_now') {
+        if (btnStartDrop) btnStartDrop.textContent = '✅ ARRIVÉE DANS L\'ANNEAU D\'AARON';
+      }
+    });
+  });
+
+  btnResetDrop?.addEventListener('click', () => {
+    starmapService.resetCountdown();
+    if (btnStartDrop) btnStartDrop.textContent = '⏱️ Démarrer le Saut Quantum';
+    if (dropProgressBar) dropProgressBar.style.width = '0%';
+    if (progressPercentText) progressPercentText.textContent = '0% (En attente)';
+    if (silentAlertBanner) {
+      silentAlertBanner.className = 'banner-cruise';
+      silentAlertBanner.classList.remove('blink-fast');
+    }
+    if (silentAlertTitle) silentAlertTitle.textContent = 'PRÊT POUR LE SAUT QUANTUM';
+    if (silentAlertSub) silentAlertSub.textContent = 'Enclenchez le Quantum Drive en jeu puis appuyez sur « Démarrer le Saut Quantum »';
+  });
+}
+
+// Initialisation sécurisée (exécution unique)
+let isAppInitialized = false;
+function initApp() {
+  if (isAppInitialized) return;
+  isAppInitialized = true;
+
+  // Nettoyage automatique des données de démo et d'exemple résiduelles en stockage
+  try {
+    const inv = store.get('inventory');
+    if (inv && Array.isArray(inv.items) && inv.items.length > 0) {
+      const cleaned = inv.items.filter(item => {
+        const id = String(item.id || '');
+        return !id.startsWith('inv_quant_') &&
+               !id.startsWith('inv_beryl_') &&
+               !id.startsWith('inv_laranite_') &&
+               !id.startsWith('inv_rmc_') &&
+               !id.startsWith('inv_cm_') &&
+               !id.startsWith('inv_bex_') &&
+               !id.startsWith('inv_tar_') &&
+               !id.startsWith('inv_titan_') &&
+               !id.startsWith('inv_quartz_') &&
+               !id.startsWith('inv_laser_') &&
+               !id.startsWith('inv_mod_') &&
+               !id.startsWith('inv_armor_') &&
+               !id.startsWith('inv_multi_') &&
+               !id.startsWith('inv_food_') &&
+               !id.includes('_seed_');
+      });
+      if (cleaned.length !== inv.items.length) {
+        store.set('inventory', { items: cleaned });
+      }
+    }
+
+    const craftState = store.get('crafting');
+    if (craftState && Array.isArray(craftState.unlockedBlueprintIds)) {
+      const filteredBp = craftState.unlockedBlueprintIds.filter(id => id !== 'bp_lancet_s1_mk2' && id !== 'bp_focus_3_mk2');
+      if (filteredBp.length !== craftState.unlockedBlueprintIds.length) {
+        store.set('crafting', { ...craftState, unlockedBlueprintIds: filteredBp });
+      }
+    }
+  } catch (err) {
+    console.warn('Nettoyage du cache d’exemples :', err);
+  }
+
+  authService.init();
+  initThemeToggle();
+  uexService.initCache();
+  initCitizenProfileAndAuth();
+  updateTopBarProfile();
+  initFleetNetSync();
+  initEventBindings();
+  initSalvageAndStarmapEvents();
+  renderMiningScreen();
+  setActiveApp('dashboard', false);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
+
 
