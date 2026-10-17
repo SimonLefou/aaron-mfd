@@ -2209,7 +2209,11 @@ function evaluateAndRenderMiningRock() {
         : (prof.status === 'meh' ? 'var(--accent-amber)' : 'var(--accent-red)');
     }
     if (mNet) {
-      mNet.textContent = prof.bestRefinedNet > 0 ? `+${prof.bestRefinedNet.toLocaleString('fr-FR')} aUEC` : '0 aUEC';
+      if (evalResult.oreLossRiskPct > 0 && prof.bestRefinedNet > 0) {
+        mNet.innerHTML = `+${prof.bestRefinedNet.toLocaleString('fr-FR')} aUEC <span style="font-size:0.7rem; font-weight:600; color:var(--accent-amber); display:block;">(~+${evalResult.volatileNetUEC.toLocaleString('fr-FR')} si instable)</span>`;
+      } else {
+        mNet.textContent = prof.bestRefinedNet > 0 ? `+${prof.bestRefinedNet.toLocaleString('fr-FR')} aUEC` : '0 aUEC';
+      }
       mNet.style.color = prof.isProfitable ? 'var(--accent-green)' : 'var(--accent-red)';
     }
     if (mUnit) {
@@ -2227,10 +2231,48 @@ function evaluateAndRenderMiningRock() {
     effResLabel.innerHTML = `🛡 Résistance effective : <strong style="color:#fff;">${evalResult.effectiveResistance} %</strong> (Pénétration : <strong style="color:var(--accent-cyan);">${evalResult.penetrationPct} %</strong> · <strong style="color:var(--accent-green);">${evalResult.effectiveLaserPower.toLocaleString('fr-FR')} W</strong> transmis)`;
   }
 
-  // Instabilité effective & Fenêtre verte (SC 4.x)
+  // Instabilité effective & Fenêtre verte (SC 4.x - Modèle Warchest)
   const effInstLabel = document.getElementById('miningEffectiveInstabilityLabel');
   if (effInstLabel) {
     effInstLabel.innerHTML = `<span>Zone verte : <strong style="color:var(--accent-${evalResult.windowClass || 'cyan'});">${evalResult.optimalWindowPct} % (${evalResult.windowLabel})</strong></span> <span class="vo-badge ${evalResult.dangerClass || 'cyan'}" style="font-size:0.65rem; padding:1px 5px;">${evalResult.dangerBadge}</span>`;
+  }
+
+  const oreLossLabel = document.getElementById('miningOreLossWarningLabel');
+  if (oreLossLabel) {
+    if (evalResult.oreLossRiskPct > 0) {
+      oreLossLabel.innerHTML = `<span>Pertes de minerai (éclatement) : <strong style="color:var(--accent-red); font-weight:800;">-${evalResult.oreLossRiskPct} % (-${evalResult.estimatedOreLossUEC.toLocaleString('fr-FR')} aUEC)</strong></span> <span>Oscillations : <strong>±${evalResult.bounceAmplitudePct} %</strong></span>`;
+    } else {
+      oreLossLabel.innerHTML = `<span>Pertes de minerai (éclatement) : <strong style="color:var(--accent-green);">0 % (Rendement Intact)</strong></span> <span>Oscillations : <strong>±${evalResult.bounceAmplitudePct} %</strong></span>`;
+    }
+  }
+
+  // Conseils Tactiques Warchest (Loadout & Gadgets)
+  const warchestBadge = document.getElementById('miningOreLossBadge');
+  const warchestContent = document.getElementById('miningWarchestAdvisoryContent');
+  if (warchestBadge) {
+    if (evalResult.oreLossRiskPct > 0) {
+      warchestBadge.className = `vo-badge ${evalResult.oreLossRiskPct >= 20 ? 'red' : 'amber'}`;
+      warchestBadge.textContent = `-${evalResult.oreLossRiskPct} % Pertes sans stabilisateur`;
+    } else {
+      warchestBadge.className = 'vo-badge green';
+      warchestBadge.textContent = 'Rendement 100 % (Optimal)';
+    }
+  }
+  if (warchestContent) {
+    if (evalResult.countermeasures && evalResult.countermeasures.length > 0) {
+      warchestContent.innerHTML = evalResult.countermeasures.map(cm => `
+        <div style="margin-top:3px; padding-top:3px; border-top:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:1px;">
+          <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:5px;">
+            <span>${cm.icon}</span>
+            <span style="color:var(--accent-cyan);">${cm.category} :</span>
+            <span style="color:var(--accent-amber);">${cm.equipment}</span>
+          </div>
+          <div style="font-size:0.71rem; color:var(--text-dim);">${cm.advice}</div>
+        </div>
+      `).join('');
+    } else {
+      warchestContent.innerHTML = '<span style="color:var(--accent-green);">✓ Paramètres de tir optimaux :</span> Ce rocher peut être fracturé avec votre configuration actuelle sans risque de perte de minerai ou de surtension explosive.';
+    }
   }
 
   // 1. KPI Faisabilité

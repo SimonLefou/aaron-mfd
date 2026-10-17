@@ -411,6 +411,37 @@ export const miningCalc = {
       hasQuantanium: refineryAnalysis.hasQuantanium
     });
 
+    // 4. MODÉLISATION WARCHEST (ELGUAPOE) : OSCILLATIONS THERMIQUES & PERTES DE MINERAI (SHATTER LOSS)
+    // L'instabilité provoque des pulsations d'énergie et vaporise une partie du minerai noble lors de l'éclatement si non stabilisé.
+    const bounceAmplitudePct = Math.round(effectiveInstability * 0.4);
+    let oreLossRiskPct = 0;
+    if (effectiveInstability > 40) {
+      oreLossRiskPct = Math.min(40, Math.round((effectiveInstability - 40) * 0.75));
+    }
+    const estimatedOreLossUEC = Math.round((profitability.bestRefinedNet || 0) * (oreLossRiskPct / 100));
+    const volatileNetUEC = Math.max(0, (profitability.bestRefinedNet || 0) - estimatedOreLossUEC);
+
+    // Recommandations tactiques de contre-mesures (Loadout & Gadgets Warchest)
+    const countermeasures = [];
+    if (effectiveResistance >= 60) {
+      countermeasures.push({
+        type: 'resistance',
+        category: 'Dissipation Thermique Élevée',
+        icon: '🛡️',
+        equipment: 'Gadget Sabir (-50 % rés.) ou Tête Helix / Klein (-30 % à -45 %)',
+        advice: `La roche dissipe ${effectiveResistance} % de l'énergie (pénétration : ${penetrationPct} %). Utilisez un laser perce-blindage ou un gadget Sabir pour abaisser le seuil d'énergie requise.`
+      });
+    }
+    if (effectiveInstability >= 50) {
+      countermeasures.push({
+        type: 'stability',
+        category: 'Volatilité & Pertes de Minerai',
+        icon: '⚡',
+        equipment: 'Gadget BoreMax / Waveshift ou Modules Brandt / Focus',
+        advice: `Instabilité à ${effectiveInstability} % (oscillations ±${bounceAmplitudePct} %) : risque de vaporiser -${oreLossRiskPct} % de minerai utile (-${estimatedOreLossUEC.toLocaleString('fr-FR')} aUEC). Installez des stabilisateurs pour élargir la zone verte (${optimalWindowPct} %) et sécuriser 100 % de votre cargaison.`
+      });
+    }
+
     return {
       massKg: mass,
       resistance,
@@ -426,6 +457,11 @@ export const miningCalc = {
       optimalWindowPct,
       windowClass,
       windowLabel,
+      bounceAmplitudePct,
+      oreLossRiskPct,
+      estimatedOreLossUEC,
+      volatileNetUEC,
+      countermeasures,
       dangerLevel,
       dangerText,
       dangerBadge,
