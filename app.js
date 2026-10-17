@@ -970,57 +970,117 @@ function closeShipConfigScreen() {
 // ============================================================================
 
 let fleetyardsCatalogCache = null;
+let fleetyardsCatalogLoadingPromise = null;
 
 async function loadFleetyardsCatalog() {
   if (fleetyardsCatalogCache && fleetyardsCatalogCache.length > 0) {
     return fleetyardsCatalogCache;
   }
-  try {
-    const [compsRes, equipRes] = await Promise.all([
-      fetch('/data/fleetyards/components.json').then(r => r.json()).catch(() => []),
-      fetch('/data/fleetyards/equipment.json').then(r => r.json()).catch(() => [])
-    ]);
-
-    const unified = [];
-    (compsRes || []).forEach(c => {
-      const price = c.availability?.soldAt?.[0]?.price || c.availability?.boughtAt?.[0]?.price || c.price || 0;
-      unified.push({
-        name: c.name,
-        code: c.slug || (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
-        category: 'component',
-        subCategory: c.type || 'component',
-        size: c.size ? String(c.size) : null,
-        grade: c.grade ? String(c.grade) : null,
-        catalogPrice: Number(price) || 0,
-        typeLabel: `Composant · ${c.type || 'Système'}`
-      });
-    });
-
-    (equipRes || []).forEach(e => {
-      const price = e.availability?.soldAt?.[0]?.price || e.availability?.boughtAt?.[0]?.price || e.price || 0;
-      let cat = 'equipment';
-      const typeStr = (e.type || '').toLowerCase();
-      if (typeStr.includes('weapon') || typeStr.includes('gun') || typeStr.includes('smg') || typeStr.includes('rifle') || typeStr.includes('pistol')) {
-        cat = 'weapon';
-      }
-      unified.push({
-        name: e.name,
-        code: e.slug || (e.name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
-        category: cat,
-        subCategory: e.type || 'gear',
-        size: e.size ? String(e.size) : 'FPS',
-        grade: e.grade ? String(e.grade) : 'B',
-        catalogPrice: Number(price) || 0,
-        typeLabel: `FPS · ${e.type || 'Équipement'}`
-      });
-    });
-
-    fleetyardsCatalogCache = unified;
-    return unified;
-  } catch (err) {
-    console.error('Error loading FleetYards catalog cache:', err);
-    return [];
+  if (fleetyardsCatalogLoadingPromise) {
+    return fleetyardsCatalogLoadingPromise;
   }
+
+  fleetyardsCatalogLoadingPromise = (async () => {
+    const resolveDataUrl = (relPath) => {
+      try {
+        return new URL(relPath, window.location.href).href;
+      } catch {
+        return relPath;
+      }
+    };
+
+    // 1. Essai avec l'index précompilé ultra-rapide (1.47 Mo au lieu de 44 Mo)
+    try {
+      const idxUrl = resolveDataUrl('data/fleetyards/catalog-index.json');
+      const res = await fetch(idxUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          fleetyardsCatalogCache = data;
+          const statusBadge = document.getElementById('eqCatalogStatusBadge');
+          if (statusBadge) statusBadge.textContent = `✓ ${data.length.toLocaleString('fr-FR')} articles prêts`;
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Catalogue index non disponible, repli sur components.json...', e);
+    }
+
+    // 2. Repli sur les fichiers individuels avec chemin relatif
+    try {
+      const compsUrl = resolveDataUrl('data/fleetyards/components.json');
+      const equipUrl = resolveDataUrl('data/fleetyards/equipment.json');
+      const [compsRes, equipRes] = await Promise.all([
+        fetch(compsUrl).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(equipUrl).then(r => r.ok ? r.json() : []).catch(() => [])
+      ]);
+
+      const unified = [];
+      (compsRes || []).forEach(c => {
+        const price = c.availability?.soldAt?.[0]?.price || c.availability?.boughtAt?.[0]?.price || c.price || 0;
+        unified.push({
+          name: c.name,
+          code: c.slug || (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
+          category: 'component',
+          subCategory: c.type || 'component',
+          size: c.size ? String(c.size) : null,
+          grade: c.grade ? String(c.grade) : null,
+          catalogPrice: Number(price) || 0,
+          typeLabel: `Composant · ${c.type || 'Système'}`
+        });
+      });
+
+      (equipRes || []).forEach(e => {
+        const price = e.availability?.soldAt?.[0]?.price || e.availability?.boughtAt?.[0]?.price || e.price || 0;
+        let cat = 'equipment';
+        const typeStr = (e.type || '').toLowerCase();
+        if (typeStr.includes('weapon') || typeStr.includes('gun') || typeStr.includes('smg') || typeStr.includes('rifle') || typeStr.includes('pistol')) {
+          cat = 'weapon';
+        } else if (typeStr.includes('armor') || typeStr.includes('suit') || typeStr.includes('helmet')) {
+          cat = 'armor';
+        }
+        unified.push({
+          name: e.name,
+          code: e.slug || (e.name || '').toLowerCase().replace(/[^a-z0-9]/g, '-'),
+          category: cat,
+          subCategory: e.type || 'gear',
+          size: e.size ? String(e.size) : 'FPS',
+          grade: e.grade ? String(e.grade) : 'B',
+          catalogPrice: Number(price) || 0,
+          typeLabel: `FPS · ${e.type || 'Équipement'}`
+        });
+      });
+
+      if (unified.length > 0) {
+        fleetyardsCatalogCache = unified;
+        const statusBadge = document.getElementById('eqCatalogStatusBadge');
+        if (statusBadge) statusBadge.textContent = `✓ ${unified.length.toLocaleString('fr-FR')} articles prêts`;
+        return unified;
+      }
+    } catch (err) {
+      console.error('Erreur chargement FleetYards components/equipment:', err);
+    }
+
+    // 3. Fallback de secours (composants populaires toujours disponibles)
+    const fallbackCatalog = [
+      { name: 'Lancet MH1', code: 'lancet-mh1', category: 'component', subCategory: 'Mining Laser', size: '1', grade: 'A', catalogPrice: 24000, typeLabel: 'Tête de minage · S1' },
+      { name: 'Helix I', code: 'helix-i', category: 'component', subCategory: 'Mining Laser', size: '1', grade: 'A', catalogPrice: 42000, typeLabel: 'Tête de minage · S1' },
+      { name: 'Helix II', code: 'helix-ii', category: 'component', subCategory: 'Mining Laser', size: '2', grade: 'A', catalogPrice: 84000, typeLabel: 'Tête de minage · S2' },
+      { name: 'Arbor MH1', code: 'arbor-mh1', category: 'component', subCategory: 'Mining Laser', size: '1', grade: 'C', catalogPrice: 12000, typeLabel: 'Tête de minage · S1' },
+      { name: 'Atlas (Quantum Drive)', code: 'atlas-qd', category: 'component', subCategory: 'Quantum Drive', size: '1', grade: 'A', catalogPrice: 28500, typeLabel: 'Moteur Quantique · S1' },
+      { name: 'FR-66 (Shield)', code: 'fr-66-shield', category: 'component', subCategory: 'Shield Generator', size: '1', grade: 'A', catalogPrice: 22000, typeLabel: 'Bouclier · S1' },
+      { name: 'FR-76 (Shield)', code: 'fr-76-shield', category: 'component', subCategory: 'Shield Generator', size: '2', grade: 'A', catalogPrice: 58000, typeLabel: 'Bouclier · S2' },
+      { name: 'JS-300 (Power Plant)', code: 'js-300', category: 'component', subCategory: 'Power Plant', size: '1', grade: 'A', catalogPrice: 29000, typeLabel: 'Génératrice · S1' },
+      { name: 'Novikov (Suit)', code: 'novikov-suit', category: 'armor', subCategory: 'Heavy Armor', size: 'FPS', grade: 'A', catalogPrice: 18000, typeLabel: 'Combinaison Environnementale' },
+      { name: 'P8-SC SMG', code: 'p8-sc', category: 'weapon', subCategory: 'SMG', size: 'FPS', grade: 'A', catalogPrice: 3800, typeLabel: 'Arme FPS · Mitraillette' },
+      { name: 'FS-9 LMG', code: 'fs-9', category: 'weapon', subCategory: 'LMG', size: 'FPS', grade: 'A', catalogPrice: 6200, typeLabel: 'Arme FPS · Mitrailleuse' },
+      { name: 'Pyro RYT Multi-Tool', code: 'multi-tool', category: 'equipment', subCategory: 'Tool', size: 'FPS', grade: 'A', catalogPrice: 1500, typeLabel: 'Outil Multifonction FPS' }
+    ];
+    fleetyardsCatalogCache = fallbackCatalog;
+    return fallbackCatalog;
+  })();
+
+  return fleetyardsCatalogLoadingPromise;
 }
 
 let inventoryFilterState = {
@@ -6432,87 +6492,155 @@ function initEquipmentAndMarketBindings() {
     }
   });
 
-  // 4. Recherche FleetYards & Autocomplétion
+  // 4. Recherche FleetYards, Catégories & Autocomplétion
   let searchDebounceTimer = null;
+  let currentEqCategory = 'popular';
   const searchInput = document.getElementById('eqSearchInput');
   const dropdown = document.getElementById('eqSearchDropdown');
 
-  searchInput?.addEventListener('input', (e) => {
-    clearTimeout(searchDebounceTimer);
-    const q = (e.target.value || '').trim().toLowerCase();
-    if (q.length < 2) {
-      dropdown?.classList.remove('open');
+  async function updateAndShowEquipmentDropdown(cat = currentEqCategory, q = '') {
+    if (!dropdown) return;
+    const cleanQ = (q || '').trim().toLowerCase();
+
+    // Affichage d'attente si chargement en cours
+    if (!fleetyardsCatalogCache || fleetyardsCatalogCache.length === 0) {
+      dropdown.innerHTML = `
+        <div style="padding:14px; text-align:center; color:var(--accent-cyan); font-size:0.78rem;">
+          ⏳ Chargement de la base FleetYards (7 966 articles)...
+        </div>
+      `;
+      dropdown.classList.add('open');
+    }
+
+    const catalog = await loadFleetyardsCatalog();
+    let matches = [];
+
+    if (cleanQ.length > 0) {
+      // Filtrage par texte
+      matches = catalog.filter(item => {
+        const matchText = (item.name || '').toLowerCase().includes(cleanQ) ||
+                          (item.code || '').toLowerCase().includes(cleanQ) ||
+                          (item.subCategory && item.subCategory.toLowerCase().includes(cleanQ)) ||
+                          (item.typeLabel && item.typeLabel.toLowerCase().includes(cleanQ));
+        if (!matchText) return false;
+        if (cat === 'all' || cat === 'popular') return true;
+        if (cat === 'mining') {
+          const s = (item.name + ' ' + (item.subCategory || '') + ' ' + (item.typeLabel || '')).toLowerCase();
+          return s.includes('mining') || s.includes('minage') || s.includes('laser') || s.includes('lancet') || s.includes('helix') || s.includes('arbor') || s.includes('gadget');
+        }
+        return item.category === cat;
+      }).slice(0, 25);
+    } else {
+      // Affichage par catégorie par défaut (au clic)
+      if (cat === 'popular') {
+        const popularCodes = [
+          'lancet', 'helix', 'arbor', 'atlas', 'fr-66', 'fr-76', 'js-300',
+          'novikov', 'pembroke', 'p8-sc', 'fs-9', 'multi-tool', 'medpen'
+        ];
+        matches = catalog.filter(item => {
+          const s = (item.name + ' ' + (item.code || '')).toLowerCase();
+          return popularCodes.some(p => s.includes(p));
+        }).slice(0, 18);
+      } else if (cat === 'mining') {
+        matches = catalog.filter(item => {
+          const s = (item.name + ' ' + (item.subCategory || '') + ' ' + (item.typeLabel || '')).toLowerCase();
+          return s.includes('mining') || s.includes('minage') || s.includes('laser') || s.includes('lancet') || s.includes('helix') || s.includes('arbor') || s.includes('gadget');
+        }).slice(0, 25);
+      } else if (cat === 'all') {
+        matches = catalog.slice(0, 30);
+      } else {
+        matches = catalog.filter(item => item.category === cat).slice(0, 25);
+      }
+    }
+
+    if (matches.length === 0) {
+      dropdown.innerHTML = `
+        <div style="padding:12px 14px; font-size:0.75rem; color:var(--text-dim); text-align:center;">
+          Aucune pièce correspondante trouvée.<br>
+          <span style="color:#fff; font-weight:600;">Appuyez sur Entrée</span> pour enregistrer « ${q} » comme désignation personnalisée.
+        </div>
+      `;
+      dropdown.classList.add('open');
       return;
     }
 
-    searchDebounceTimer = setTimeout(async () => {
-      const catalog = await loadFleetyardsCatalog();
-      const matches = catalog.filter(item =>
-        item.name.toLowerCase().includes(q) ||
-        item.code.toLowerCase().includes(q) ||
-        (item.subCategory && item.subCategory.toLowerCase().includes(q))
-      ).slice(0, 10);
-
-      if (!dropdown) return;
-      if (matches.length === 0) {
-        dropdown.innerHTML = `
-          <div style="padding:10px 14px; font-size:0.75rem; color:var(--text-dim);">
-            Aucune pièce officielle trouvée. Cliquez ci-dessous ou appuyez sur Entrée pour utiliser « ${e.target.value} » comme désignation personnalisée.
-          </div>
-        `;
-        dropdown.classList.add('open');
-        return;
-      }
-
-      dropdown.innerHTML = matches.map((m, idx) => `
-        <div class="eq-search-item" data-index="${idx}">
-          <div>
-            <div class="eq-item-main-title">${m.name}</div>
-            <div class="eq-item-sub-meta">${m.typeLabel} ${m.size ? `· S${m.size}` : ''} ${m.grade ? `· Grade ${m.grade}` : ''}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-family:var(--font-mono); font-weight:600; font-size:0.8rem; color:var(--accent-cyan);">
-              ${m.catalogPrice > 0 ? `${m.catalogPrice.toLocaleString('fr-FR')} aUEC` : '— aUEC'}
-            </div>
-            <div style="font-size:0.68rem; color:var(--text-dim);">Cours officiel</div>
-          </div>
+    dropdown.innerHTML = matches.map((m, idx) => `
+      <div class="eq-search-item" data-index="${idx}">
+        <div>
+          <div class="eq-item-main-title">${m.name}</div>
+          <div class="eq-item-sub-meta">${m.typeLabel} ${m.size ? `· S${m.size}` : ''} ${m.grade ? `· Grade ${m.grade}` : ''}</div>
         </div>
-      `).join('');
+        <div style="text-align:right;">
+          <div style="font-family:var(--font-mono); font-weight:600; font-size:0.8rem; color:var(--accent-cyan);">
+            ${m.catalogPrice > 0 ? `${m.catalogPrice.toLocaleString('fr-FR')} aUEC` : '— aUEC'}
+          </div>
+          <div style="font-size:0.68rem; color:var(--text-dim);">Cours officiel</div>
+        </div>
+      </div>
+    `).join('');
 
-      dropdown.classList.add('open');
+    dropdown.classList.add('open');
 
-      dropdown.querySelectorAll('.eq-search-item').forEach(itemEl => {
-        itemEl.addEventListener('click', () => {
-          const idx = Number(itemEl.getAttribute('data-index'));
-          const selected = matches[idx];
-          if (!selected) return;
+    dropdown.querySelectorAll('.eq-search-item').forEach(itemEl => {
+      itemEl.addEventListener('click', () => {
+        const idx = Number(itemEl.getAttribute('data-index'));
+        const selected = matches[idx];
+        if (!selected) return;
 
-          document.getElementById('eqSelectedCode').value = selected.code;
-          document.getElementById('eqSelectedName').value = selected.name;
-          document.getElementById('eqSelectedCategory').value = selected.category;
-          document.getElementById('eqSelectedSubCategory').value = selected.subCategory;
-          document.getElementById('eqSelectedSize').value = selected.size || '';
-          document.getElementById('eqSelectedGrade').value = selected.grade || '';
-          document.getElementById('eqSelectedCatalogPrice').value = selected.catalogPrice || 0;
+        document.getElementById('eqSelectedCode').value = selected.code || '';
+        document.getElementById('eqSelectedName').value = selected.name || '';
+        document.getElementById('eqSelectedCategory').value = selected.category || 'component';
+        document.getElementById('eqSelectedSubCategory').value = selected.subCategory || '';
+        document.getElementById('eqSelectedSize').value = selected.size || '';
+        document.getElementById('eqSelectedGrade').value = selected.grade || '';
+        document.getElementById('eqSelectedCatalogPrice').value = selected.catalogPrice || 0;
 
-          document.getElementById('eqDisplayTitle').textContent = selected.name;
-          document.getElementById('eqDisplayMeta').textContent = `${selected.typeLabel} ${selected.size ? `· Taille ${selected.size}` : ''} ${selected.grade ? `· Grade ${selected.grade}` : ''}`;
-          document.getElementById('eqDisplayCatalogPrice').textContent = selected.catalogPrice > 0
-            ? `${selected.catalogPrice.toLocaleString('fr-FR')} aUEC`
-            : '—';
+        document.getElementById('eqDisplayTitle').textContent = selected.name;
+        document.getElementById('eqDisplayMeta').textContent = `${selected.typeLabel} ${selected.size ? `· Taille ${selected.size}` : ''} ${selected.grade ? `· Grade ${selected.grade}` : ''}`;
+        document.getElementById('eqDisplayCatalogPrice').textContent = selected.catalogPrice > 0
+          ? `${selected.catalogPrice.toLocaleString('fr-FR')} aUEC`
+          : '—';
 
-          // Pre-fill price if sale is toggled
-          const priceInput = document.getElementById('eqSalePrice');
-          if (priceInput && (!priceInput.value || Number(priceInput.value) === 0) && selected.catalogPrice > 0) {
-            priceInput.value = selected.catalogPrice;
-          }
+        const priceInput = document.getElementById('eqSalePrice');
+        if (priceInput && (!priceInput.value || Number(priceInput.value) === 0) && selected.catalogPrice > 0) {
+          priceInput.value = selected.catalogPrice;
+        }
 
-          searchInput.value = selected.name;
-          dropdown.classList.remove('open');
-          triggerHaptic(10);
-        });
+        if (searchInput) searchInput.value = selected.name;
+        dropdown.classList.remove('open');
+        triggerHaptic(10);
       });
+    });
+  }
+
+  // Écouteur de saisie dans le champ de recherche
+  searchInput?.addEventListener('input', (e) => {
+    clearTimeout(searchDebounceTimer);
+    const q = e.target.value;
+    searchDebounceTimer = setTimeout(() => {
+      updateAndShowEquipmentDropdown(currentEqCategory, q);
     }, 150);
+  });
+
+  // Ouverture de la liste au clic ou focus dans le champ
+  searchInput?.addEventListener('focus', () => {
+    updateAndShowEquipmentDropdown(currentEqCategory, searchInput.value);
+  });
+
+  searchInput?.addEventListener('click', () => {
+    updateAndShowEquipmentDropdown(currentEqCategory, searchInput.value);
+  });
+
+  // Écouteurs sur les puces de filtres rapides
+  document.querySelectorAll('#eqQuickCategoryChips button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('#eqQuickCategoryChips button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentEqCategory = btn.getAttribute('data-eq-cat') || 'popular';
+      updateAndShowEquipmentDropdown(currentEqCategory, searchInput?.value || '');
+      triggerHaptic(8);
+    });
   });
 
   // Fermer dropdown si clic extérieur

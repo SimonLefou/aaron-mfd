@@ -2713,12 +2713,24 @@
 
             <!-- RECHERCHE FLEETYARDS & AUTOCOMPLÉTION -->
             <div class="eq-search-wrapper">
-              <label class="auth-form-label" for="eqSearchInput">
-                <span>🔍 Référence Officielle (Base FleetYards : 7 966 articles)</span>
-                <span style="font-size:0.7rem; color:var(--accent-cyan); font-weight:normal;">Composants vaisseaux & Équipement FPS</span>
-              </label>
-              <input type="text" id="eqSearchInput" class="auth-form-input" placeholder="Tapez 2+ lettres (ex: Atlas, Lancet, FR-66, Novikov, Behring...)" autocomplete="off">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="auth-form-label" for="eqSearchInput" style="margin:0;">
+                  <span>🔍 Référence Officielle FleetYards</span>
+                </label>
+                <span id="eqCatalogStatusBadge" class="vo-badge cyan" style="font-size:0.68rem; font-weight:700;">Base FleetYards · 7 966 articles</span>
+              </div>
+              <input type="text" id="eqSearchInput" class="auth-form-input" placeholder="Cliquez pour parcourir ou tapez un nom (Atlas, Lancet, FR-66, Novikov...)" autocomplete="off">
               
+              <!-- FILTRES RAPIDES / PARCOURIR -->
+              <div id="eqQuickCategoryChips" style="display:flex; gap:6px; margin-top:6px; margin-bottom:6px; flex-wrap:wrap;">
+                <button type="button" class="vo-chip cyan active" data-eq-cat="popular" style="font-size:0.7rem; padding:2px 8px; cursor:pointer;">🌟 Populaires</button>
+                <button type="button" class="vo-chip amber" data-eq-cat="mining" style="font-size:0.7rem; padding:2px 8px; cursor:pointer;">⛏️ Minage</button>
+                <button type="button" class="vo-chip blue" data-eq-cat="component" style="font-size:0.7rem; padding:2px 8px; cursor:pointer;">🚀 Vaisseau</button>
+                <button type="button" class="vo-chip red" data-eq-cat="weapon" style="font-size:0.7rem; padding:2px 8px; cursor:pointer;">🔫 Armes FPS</button>
+                <button type="button" class="vo-chip purple" data-eq-cat="armor" style="font-size:0.7rem; padding:2px 8px; cursor:pointer;">🛡️ Armures</button>
+                <button type="button" class="vo-chip green" data-eq-cat="all" style="font-size:0.7rem; padding:2px 8px; cursor:pointer;">📦 Tout parcourir</button>
+              </div>
+
               <!-- MENU DÉROULANT DES SUGGESTIONS -->
               <div class="eq-search-dropdown" id="eqSearchDropdown"></div>
             </div>
