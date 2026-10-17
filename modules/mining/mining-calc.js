@@ -411,7 +411,7 @@ export const miningCalc = {
       hasQuantanium: refineryAnalysis.hasQuantanium
     });
 
-    // 4. MODÉLISATION WARCHEST (ELGUAPOE) : OSCILLATIONS THERMIQUES & PERTES DE MINERAI (SHATTER LOSS)
+    // 4. MODÉLISATION DYNAMIQUE DES OSCILLATIONS THERMIQUES & PERTES DE MINERAI (SHATTER LOSS)
     // L'instabilité provoque des pulsations d'énergie et vaporise une partie du minerai noble lors de l'éclatement si non stabilisé.
     const bounceAmplitudePct = Math.round(effectiveInstability * 0.4);
     let oreLossRiskPct = 0;
@@ -421,7 +421,7 @@ export const miningCalc = {
     const estimatedOreLossUEC = Math.round((profitability.bestRefinedNet || 0) * (oreLossRiskPct / 100));
     const volatileNetUEC = Math.max(0, (profitability.bestRefinedNet || 0) - estimatedOreLossUEC);
 
-    // Recommandations tactiques de contre-mesures (Loadout & Gadgets Warchest)
+    // Recommandations tactiques de contre-mesures (Loadout & Gadgets)
     const countermeasures = [];
     if (effectiveResistance >= 60) {
       countermeasures.push({

@@ -1,5 +1,5 @@
 // ============================================================================
-// AARON MFD — FRONTIER CONSOLIDATED (FRCN) OFFICIAL MINEABLES CHART (SC 4.0+)
+// AARON MFD — GÉOLOGIE MINIÈRE OFFICIELLE (SC 4.0+)
 // Tableau de référence officiel : Minéraux Primaires, Secondaires et Tertiaires liés,
 // Signatures Radar (RS), Instabilité, Résistance, Densité et 2 Qualités de roche
 // ============================================================================

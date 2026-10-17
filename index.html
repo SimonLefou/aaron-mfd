@@ -691,19 +691,19 @@
             <div class="vo-card" id="miningScanCard">
               <div class="vo-card-header" style="margin-bottom:10px;">
                 <div class="vo-card-title">SCAN DU ROCHER</div>
-                <span class="vo-badge cyan" style="font-size:0.68rem;">Frontier Consolidated 4.0</span>
+                <span class="vo-badge cyan" style="font-size:0.68rem;">Star Citizen 4.0</span>
               </div>
 
-              <!-- SÉLECTEUR OFFICIEL PRESET DE ROCHE (FRONTIER CONSOLIDATED SC 4.0) -->
+              <!-- SÉLECTEUR OFFICIEL PRESET DE ROCHE (STAR CITIZEN 4.0) -->
               <div style="background:linear-gradient(180deg, rgba(14,165,233,0.08) 0%, rgba(15,23,42,0.4) 100%); border:1px solid var(--accent-cyan); border-radius:8px; padding:10px 12px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                   <label for="miningPresetSelect" style="font-size:0.72rem; color:var(--accent-cyan); font-weight:800; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
-                    <span>📐</span> PRESET DE ROCHE (FRONTIER CONSOLIDATED)
+                    <span>📐</span> PRESET DE ROCHE GÉOLOGIQUE
                   </label>
                   <span class="vo-badge cyan" id="miningPresetRsBadge" style="font-size:0.68rem; font-family:var(--font-mono);">RS: 3170</span>
                 </div>
                 <select id="miningPresetSelect" class="vo-select" style="width:100%; font-size:0.82rem; font-weight:700; padding:6px 10px; background:rgba(10,15,30,0.9); border:1px solid rgba(0,210,255,0.4); border-radius:6px; color:#fff;">
-                  <!-- Rempli dynamiquement avec les 26 roches Frontier Consolidated -->
+                  <!-- Rempli dynamiquement avec les 26 roches SC 4.0 -->
                 </select>
                 <div id="miningPresetSummary" style="font-size:0.72rem; color:var(--text-dim); margin-top:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
                   <span>Compositions liées : <strong style="color:#fff;" id="miningPresetCompsDesc">1: Quantainium · 2: Béryl · 3: Aucun</strong></span>
@@ -788,11 +788,11 @@
                 </div>
               </div>
 
-              <!-- COMPOSITION & TENEUR DU ROCHER (3 COMPOSITIONS LIÉES SELON FRONTIER CONSOLIDATED + INERTE) -->
+              <!-- COMPOSITION & TENEUR DU ROCHER (3 COMPOSITIONS LIÉES + INERTE) -->
               <div style="margin-top:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                   <div class="vo-card-title" style="margin:0; font-size:0.8rem;">COMPOSITION &amp; TENEUR</div>
-                  <span style="font-size:0.68rem; color:var(--accent-cyan); font-weight:700;">Frontier Consolidated · 3 minerais liés + inerte</span>
+                  <span style="font-size:0.68rem; color:var(--accent-cyan); font-weight:700;">Gisement SC 4.0 · 3 minerais liés + inerte</span>
                 </div>
 
                 <!-- COMPOSANT 1 (PRINCIPAL / PRIMAIRE) -->
@@ -934,15 +934,15 @@
                     </div>
                   </div>
                 </div>
-                <!-- RECOMMANDATIONS TACTIQUES WARCHEST (ELGUAPOE) -->
-                <div id="miningWarchestAdvisoryBox" style="margin-top:10px; padding:8px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(245,158,11,0.25); border-radius:6px; font-size:0.75rem;">
+                <!-- RECOMMANDATIONS TACTIQUES (LOADOUT & GADGETS) -->
+                <div id="miningTacticalAdvisoryBox" style="margin-top:10px; padding:8px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(245,158,11,0.25); border-radius:6px; font-size:0.75rem;">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                     <span style="font-weight:700; color:var(--accent-amber); display:flex; align-items:center; gap:6px;">
-                      <span>🛡️ CONSEILS TACTIQUES WARCHEST (LOADOUT &amp; GADGETS)</span>
+                      <span>🛡️ CONSEILS TACTIQUES (LOADOUT &amp; GADGETS)</span>
                     </span>
                     <span id="miningOreLossBadge" class="vo-badge green" style="font-size:0.68rem;">Rendement 100 % (Optimal)</span>
                   </div>
-                  <div id="miningWarchestAdvisoryContent" style="color:var(--text-muted); line-height:1.4;">
+                  <div id="miningTacticalAdvisoryContent" style="color:var(--text-muted); line-height:1.4;">
                     ✓ Paramètres optimaux : Ce rocher peut être fracturé avec votre configuration actuelle sans risque de perte de minerai ou de surtension fatale.
                   </div>
                 </div>

@@ -1780,7 +1780,7 @@ let currentMiningScan = {
 };
 
 /**
- * Applique un preset officiel Frontier Consolidated avec compositions liées et 2 qualités primaires
+ * Applique un preset officiel géologique SC 4.0 avec compositions liées et 2 qualités primaires
  */
 function applyFrontierMiningPreset(presetId, qualityIndex = null) {
   const preset = getFrontierPreset(presetId);
@@ -1903,7 +1903,7 @@ function populateMiningMineralSelects() {
     return nameA.localeCompare(nameB);
   });
 
-  // 1. Presets officiels Frontier Consolidated
+  // 1. Présélections géologiques SC 4.0
   if (presetSelect && Array.isArray(FRONTIER_MINEABLES)) {
     presetSelect.innerHTML = FRONTIER_MINEABLES.map(p => {
       const comps = [p.name, p.secondaryName, p.tertiaryName].filter(Boolean).join(' + ');
@@ -1941,7 +1941,7 @@ function populateMiningMineralSelects() {
 function renderMiningScannerUI() {
   populateMiningMineralSelects();
 
-  // 1. Presets Frontier Consolidated (Compositions Liées SC 4.0)
+  // 1. Presets Géologiques (Compositions Liées SC 4.0)
   const presetSelect = document.getElementById('miningPresetSelect');
   const presetRsBadge = document.getElementById('miningPresetRsBadge');
   const presetDensityBadge = document.getElementById('miningPresetDensityBadge');
@@ -2231,7 +2231,7 @@ function evaluateAndRenderMiningRock() {
     effResLabel.innerHTML = `🛡 Résistance effective : <strong style="color:#fff;">${evalResult.effectiveResistance} %</strong> (Pénétration : <strong style="color:var(--accent-cyan);">${evalResult.penetrationPct} %</strong> · <strong style="color:var(--accent-green);">${evalResult.effectiveLaserPower.toLocaleString('fr-FR')} W</strong> transmis)`;
   }
 
-  // Instabilité effective & Fenêtre verte (SC 4.x - Modèle Warchest)
+  // Instabilité effective & Fenêtre verte (SC 4.x - Modèle dynamique)
   const effInstLabel = document.getElementById('miningEffectiveInstabilityLabel');
   if (effInstLabel) {
     effInstLabel.innerHTML = `<span>Zone verte : <strong style="color:var(--accent-${evalResult.windowClass || 'cyan'});">${evalResult.optimalWindowPct} % (${evalResult.windowLabel})</strong></span> <span class="vo-badge ${evalResult.dangerClass || 'cyan'}" style="font-size:0.65rem; padding:1px 5px;">${evalResult.dangerBadge}</span>`;
@@ -2246,21 +2246,21 @@ function evaluateAndRenderMiningRock() {
     }
   }
 
-  // Conseils Tactiques Warchest (Loadout & Gadgets)
-  const warchestBadge = document.getElementById('miningOreLossBadge');
-  const warchestContent = document.getElementById('miningWarchestAdvisoryContent');
-  if (warchestBadge) {
+  // Conseils Tactiques (Loadout & Gadgets)
+  const tacticalBadge = document.getElementById('miningOreLossBadge');
+  const tacticalContent = document.getElementById('miningTacticalAdvisoryContent');
+  if (tacticalBadge) {
     if (evalResult.oreLossRiskPct > 0) {
-      warchestBadge.className = `vo-badge ${evalResult.oreLossRiskPct >= 20 ? 'red' : 'amber'}`;
-      warchestBadge.textContent = `-${evalResult.oreLossRiskPct} % Pertes sans stabilisateur`;
+      tacticalBadge.className = `vo-badge ${evalResult.oreLossRiskPct >= 20 ? 'red' : 'amber'}`;
+      tacticalBadge.textContent = `-${evalResult.oreLossRiskPct} % Pertes sans stabilisateur`;
     } else {
-      warchestBadge.className = 'vo-badge green';
-      warchestBadge.textContent = 'Rendement 100 % (Optimal)';
+      tacticalBadge.className = 'vo-badge green';
+      tacticalBadge.textContent = 'Rendement 100 % (Optimal)';
     }
   }
-  if (warchestContent) {
+  if (tacticalContent) {
     if (evalResult.countermeasures && evalResult.countermeasures.length > 0) {
-      warchestContent.innerHTML = evalResult.countermeasures.map(cm => `
+      tacticalContent.innerHTML = evalResult.countermeasures.map(cm => `
         <div style="margin-top:3px; padding-top:3px; border-top:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:1px;">
           <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:5px;">
             <span>${cm.icon}</span>
@@ -2271,7 +2271,7 @@ function evaluateAndRenderMiningRock() {
         </div>
       `).join('');
     } else {
-      warchestContent.innerHTML = '<span style="color:var(--accent-green);">✓ Paramètres de tir optimaux :</span> Ce rocher peut être fracturé avec votre configuration actuelle sans risque de perte de minerai ou de surtension explosive.';
+      tacticalContent.innerHTML = '<span style="color:var(--accent-green);">✓ Paramètres de tir optimaux :</span> Ce rocher peut être fracturé avec votre configuration actuelle sans risque de perte de minerai ou de surtension explosive.';
     }
   }
 
@@ -5392,7 +5392,7 @@ function initEventBindings() {
     showToast(`Type de roche géologique : ${arch.name}`);
   });
 
-  // Presets officiels Frontier Consolidated
+  // Presets géologiques officiels SC 4.0
   document.getElementById('miningPresetSelect')?.addEventListener('change', (e) => {
     applyFrontierMiningPreset(e.target.value);
     renderMiningScannerUI();
@@ -5422,7 +5422,7 @@ function initEventBindings() {
     triggerHaptic(8);
   });
 
-  // Composant 1 : Minéral & Pourcentage (Lié automatiquement aux compositions Frontier)
+  // Composant 1 : Minéral & Pourcentage (Lié automatiquement aux compositions géologiques)
   document.getElementById('miningMineral1Select')?.addEventListener('change', (e) => {
     applyFrontierMiningPreset(e.target.value);
     renderMiningScannerUI();
