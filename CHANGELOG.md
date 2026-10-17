@@ -34,6 +34,11 @@ Ce document répertorie l'ensemble des ajouts, améliorations ergonomiques et co
   - Cliquer sur « Clôturer & Virement mo.Trader » dissout immédiatement l'escadre (`coopService.closeSession()`), stoppe le chronomètre et réinitialise l'affichage vers l'état d'accueil vierge sans laisser d'escadre fantôme.
   - Ouverture automatique du volet récapitulatif mo.Trader détaillant la recette brute, les déductions/taxes et l'ensemble des commandes `/pay <Callsign> <Montant>` prêtes à coller en jeu avec copie en un clic.
   - Sécurisation contre les valeurs nulles sur toutes les fonctions de calcul financier, de tirs synchronisés et de gestion d'équipage.
+- **Correction Critique Création & Persistance d'Escadre** :
+  - Exposition complète des méthodes déléguées sur la façade `coopService` (`createSession()`, `hasActiveSession()`, `closeSession()`), éliminant l'erreur bloquante de création.
+  - Correction de l'erreur d'horodatage dans le journal d'activité (`addLog`).
+  - Persistance dans `localStorage` (`aaron_fleet_session_v1`) pour conserver l'escadre active entre les rechargements, tout en maintenant le démarrage vierge pour les nouveaux pilotes.
+  - Ajout du bouton d'en-tête « 🚀 Nouvelle escadre » (`#btnHeaderCreateFleet`) et synchronisation instantanée des lasers de fracture synchronisée.
 - **Suppression du jeu de données démo automatique** : Suppression définitive de la liste de 300 lignes `sampleItems` (16 articles injectés) et désactivation des appels automatiques `seedInitialInventory()`.
 - **Inventaire vierge par défaut** : L'inventaire unifié démarre désormais à 0 SCU / 0 article, permettant aux utilisateurs d'alimenter leur stock via le minage réel, le recyclage, le commerce ou l'import OCR.
 - **Remise à zéro des stocks et dépenses de guilde** : `DEFAULT_GUILD_STOCKPILE` et `DEFAULT_GUILD_EXPENSES` initialisés à des tableaux vides `[]`.

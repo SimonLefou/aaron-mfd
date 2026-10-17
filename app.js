@@ -3810,6 +3810,11 @@ let liveSessionTimerInterval = null;
 let activeFleetSubview = 'roster'; // 'roster' | 'jointfire' | 'payouts' | 'logs'
 let activeJointFireCallsigns = new Set();
 
+function syncActiveJointFireCallsigns() {
+  const members = coopService.getAllCrewMembers().filter(m => m.laserId && m.powerWatts > 0);
+  activeJointFireCallsigns = new Set(members.map(m => m.callsign));
+}
+
 function formatSessionTime(sec) {
   const h = String(Math.floor(sec / 3600)).padStart(2, '0');
   const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
@@ -3827,7 +3832,12 @@ function renderFleetsScreen() {
   const subEl = document.getElementById('fleetLiveSubtitle');
   const btnClose = document.getElementById('btnCloseLiveSession');
   const btnAddShip = document.getElementById('btnOpenAddFleetShip');
+  const btnHeaderCreate = document.getElementById('btnHeaderCreateFleet');
   const presetSelect = document.getElementById('fleetPresetSelect');
+
+  if (btnHeaderCreate) {
+    btnHeaderCreate.style.display = hasSession ? 'none' : 'inline-flex';
+  }
 
   if (!hasSession || !session) {
     if (emptyContainer) emptyContainer.style.display = 'block';
@@ -3839,6 +3849,7 @@ function renderFleetsScreen() {
     if (btnClose) btnClose.style.display = 'none';
     if (btnAddShip) btnAddShip.style.display = 'none';
     if (presetSelect) presetSelect.value = '';
+    activeJointFireCallsigns.clear();
 
     if (liveSessionTimerInterval) {
       clearInterval(liveSessionTimerInterval);
@@ -3853,6 +3864,14 @@ function renderFleetsScreen() {
   if (activeContainer) activeContainer.style.display = 'block';
   if (btnClose) btnClose.style.display = 'inline-flex';
   if (btnAddShip) btnAddShip.style.display = 'inline-flex';
+
+  if (liveSessionSeconds === 0 && session.startedAt) {
+    liveSessionSeconds = Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000));
+  }
+
+  if (activeJointFireCallsigns.size === 0) {
+    syncActiveJointFireCallsigns();
+  }
 
   if (timerBadge) {
     timerBadge.style.display = 'inline-block';
@@ -5485,6 +5504,7 @@ function initEventBindings() {
     const customCode = document.getElementById('inputCreateWingCode')?.value?.trim();
     const roomCode = coopService.createWing(customCode || null);
     closeModalWing();
+    syncActiveJointFireCallsigns();
     showToast(`✓ Escadre créée : ${roomCode} ! Transmets ce code à tes ailiers.`);
     updateFleetNetUI();
     renderFleetsScreen();
@@ -5498,6 +5518,7 @@ function initEventBindings() {
     }
     coopService.joinWing(code);
     closeModalWing();
+    syncActiveJointFireCallsigns();
     showToast(`✓ Connexion à l'escadre ${code.toUpperCase()} en cours...`);
     updateFleetNetUI();
     renderFleetsScreen();
@@ -5659,9 +5680,18 @@ function initEventBindings() {
     showToast(`💎 Session clôturée et escadre dissoute ! ${totalUEC} aUEC répartis.`);
   });
 
+  document.getElementById('btnHeaderCreateFleet')?.addEventListener('click', () => {
+    coopService.createSession();
+    liveSessionSeconds = 0;
+    syncActiveJointFireCallsigns();
+    renderFleetsScreen();
+    showToast('🚀 Nouvelle escadre créée ! Prêt pour le déploiement.');
+  });
+
   document.getElementById('btnCreateFleetSession')?.addEventListener('click', () => {
     coopService.createSession();
     liveSessionSeconds = 0;
+    syncActiveJointFireCallsigns();
     renderFleetsScreen();
     showToast('🚀 Nouvelle escadre créée ! Prêt pour le déploiement.');
   });
@@ -5673,6 +5703,7 @@ function initEventBindings() {
   document.getElementById('btnEmptyLoadPreset')?.addEventListener('click', () => {
     coopService.loadPreset('mixed_wing');
     liveSessionSeconds = 0;
+    syncActiveJointFireCallsigns();
     renderFleetsScreen();
     showToast('📑 Modèle d’entraînement « Escadre Mixte » chargé !');
   });
@@ -5682,6 +5713,7 @@ function initEventBindings() {
     if (!val) return;
     coopService.loadPreset(val);
     liveSessionSeconds = 0;
+    syncActiveJointFireCallsigns();
     renderFleetsScreen();
     showToast('📑 Modèle d’entraînement chargé dans l’escadre !');
   });

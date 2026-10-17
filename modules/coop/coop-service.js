@@ -8,6 +8,9 @@ import { miningCalc } from '../mining/mining-calc.js';
 import { eventBus, EVENTS } from '../core/event-bus.js';
 import { store } from '../core/state.js';
 import { AaronFleetNet } from '../../fleet-net.js';
+import { fleetService, getShip } from '../fleet/fleet-service.js';
+
+const FLEET_SESSION_STORAGE_KEY = 'aaron_fleet_session_v1';
 
 // Configuration des postes officiels pour vaisseaux Multi-Crew
 export const MULTICREW_ROLES = {
@@ -195,11 +198,38 @@ export const FLEET_SESSION_PRESETS = [
 
 export class FleetCoopManager {
   constructor() {
-    // Un nouveau joueur n'est dans AUCUNE flotte dès le départ
-    this.session = null;
+    this.session = this.loadFromStorage();
     this.fleetNet = null;
     this.onJointFireRemoteSync = null;
     this.onNetworkUpdate = null;
+  }
+
+  loadFromStorage() {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      const raw = localStorage.getItem(FLEET_SESSION_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.status === 'active' && Array.isArray(parsed.ships) && parsed.ships.length > 0) {
+        return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture localStorage escadre:', e);
+    }
+    return null;
+  }
+
+  saveToStorage() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      if (this.session && this.session.status === 'active' && Array.isArray(this.session.ships) && this.session.ships.length > 0) {
+        localStorage.setItem(FLEET_SESSION_STORAGE_KEY, JSON.stringify(this.session));
+      } else {
+        localStorage.removeItem(FLEET_SESSION_STORAGE_KEY);
+      }
+    } catch (e) {
+      console.warn('Erreur sauvegarde localStorage escadre:', e);
+    }
   }
 
   /**
@@ -216,15 +246,28 @@ export class FleetCoopManager {
    */
   createSession(options = {}) {
     const userCallsign = (typeof store !== 'undefined' && store.get('player')?.callsign) || 'CITIZEN-1';
-    const userFleet = (typeof store !== 'undefined' && store.get('fleet')?.ships) || [];
-    const activeShip = userFleet[0] || {
-      modelId: 'prospector',
-      customName: 'Prospector Alpha',
-      role: 'mining_solo',
-      cargoCapacitySCU: 32
-    };
+    let activeEntry = null;
+    let baseShip = null;
+    try {
+      if (typeof fleetService !== 'undefined' && typeof fleetService.getActiveShip === 'function') {
+        activeEntry = fleetService.getActiveShip();
+        if (activeEntry && activeEntry.shipId) {
+          baseShip = getShip(activeEntry.shipId);
+        }
+      }
+    } catch (e) {
+      console.warn('FleetService getActiveShip error:', e);
+    }
 
-    const isMultiCrew = activeShip.modelId === 'mole' || activeShip.modelId === 'orion' || activeShip.modelId === 'arrastra';
+    const shipModelId = activeEntry?.shipId || 'prospector';
+    const shipName = activeEntry?.customName || baseShip?.name || (shipModelId === 'mole' ? 'ARGO MOLE' : 'MISC Prospector');
+    const isMultiCrew = shipModelId === 'mole' || shipModelId === 'orion' || shipModelId === 'arrastra';
+    const totalScu = baseShip?.scu || (shipModelId === 'mole' ? 96 : 32);
+
+    const turret0LaserId = activeEntry?.turrets?.[0]?.laserId || (isMultiCrew ? null : 'lancet_s1');
+    const turret0LaserName = (turret0LaserId && typeof fleetService !== 'undefined' && typeof fleetService.getLaserName === 'function')
+      ? fleetService.getLaserName(turret0LaserId)
+      : (turret0LaserId ? turret0LaserId.toUpperCase() : null);
 
     this.session = {
       id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -256,12 +299,12 @@ export class FleetCoopManager {
       ships: [
         {
           id: `ship_${Date.now()}_1`,
-          modelId: activeShip.modelId || 'prospector',
-          name: activeShip.customName || activeShip.name || 'Mon Vaisseau',
-          role: activeShip.role || (isMultiCrew ? 'mining_heavy' : 'mining_solo'),
+          modelId: shipModelId,
+          name: shipName,
+          role: isMultiCrew ? 'mining_heavy' : 'mining_solo',
           roleLabel: isMultiCrew ? 'Mineur Lourd Multi-Crew' : 'Mineur Solo',
           isMultiCrew: isMultiCrew,
-          totalScu: activeShip.cargoCapacitySCU || 32,
+          totalScu: totalScu,
           crew: [
             {
               callsign: userCallsign,
@@ -269,10 +312,10 @@ export class FleetCoopManager {
               roleLabel: isMultiCrew ? 'Pilote & Chef de bord' : 'Pilote Foreur',
               status: 'online',
               sharePct: 100,
-              laserId: 'lancet_s1',
-              laserName: 'Lancet MH1 S1',
-              powerWatts: 1400,
-              resistanceReductionPct: 40
+              laserId: turret0LaserId,
+              laserName: turret0LaserName || (turret0LaserId ? 'Laser Actif' : null),
+              powerWatts: turret0LaserId ? 1400 : 0,
+              resistanceReductionPct: turret0LaserId ? 40 : 0
             }
           ]
         }
@@ -281,12 +324,13 @@ export class FleetCoopManager {
         {
           time: new Date().toLocaleTimeString('fr-FR'),
           author: 'Système',
-          text: `Escadre créée par ${userCallsign}. Prêt pour les opérations de flotte.`,
+          text: `Escadre créée par ${userCallsign} avec ${shipName}. Prêt pour les opérations de flotte.`,
           type: 'system'
         }
       ]
     };
 
+    this.saveToStorage();
     eventBus.emit('FLEET_SESSION_UPDATED', this.session);
     return this.session;
   }
@@ -321,6 +365,7 @@ export class FleetCoopManager {
 
     // Réinitialisation complète : plus aucune escadre active
     this.session = null;
+    this.saveToStorage();
     eventBus.emit('FLEET_SESSION_CLOSED', summary);
     eventBus.emit('FLEET_SESSION_UPDATED', null);
     return summary;
@@ -368,6 +413,7 @@ export class FleetCoopManager {
         }
       ]
     };
+    this.saveToStorage();
     eventBus.emit('FLEET_SESSION_UPDATED', this.session);
     return this.session;
   }
@@ -391,6 +437,7 @@ export class FleetCoopManager {
     if (!Array.isArray(this.session.ships)) this.session.ships = [];
     this.session.ships.push(newShip);
     this.addLog(`Nouveau vaisseau intégré à l'escadre : ${newShip.name}`, 'system');
+    this.saveToStorage();
     eventBus.emit('FLEET_SESSION_UPDATED', this.session);
     return newShip;
   }
@@ -405,6 +452,7 @@ export class FleetCoopManager {
     if (idx !== -1) {
       const removed = this.session.ships.splice(idx, 1)[0];
       this.addLog(`Vaisseau retiré de l'escadre : ${removed.name}`, 'system');
+      this.saveToStorage();
       eventBus.emit('FLEET_SESSION_UPDATED', this.session);
       return true;
     }
@@ -441,6 +489,7 @@ export class FleetCoopManager {
     }
 
     this.addLog(`${member.callsign} a pris le poste : ${member.roleLabel} à bord de ${ship.name}`, 'crew');
+    this.saveToStorage();
     eventBus.emit('FLEET_SESSION_UPDATED', this.session);
     return member;
   }
@@ -459,6 +508,7 @@ export class FleetCoopManager {
     if (idx !== -1) {
       const removed = ship.crew.splice(idx, 1)[0];
       this.addLog(`${removed.callsign} a quitté le poste ${removed.roleLabel} sur ${ship.name}`, 'crew');
+      this.saveToStorage();
       eventBus.emit('FLEET_SESSION_UPDATED', this.session);
       return true;
     }
@@ -691,6 +741,7 @@ export class FleetCoopManager {
   addLog(text, type = 'system', author = 'Système', shouldBroadcast = true) {
     if (!this.session) return;
     if (!Array.isArray(this.session.logs)) this.session.logs = [];
+    const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
     const logEntry = {
       time: timeStr,
@@ -702,6 +753,7 @@ export class FleetCoopManager {
     if (this.session.logs.length > 50) {
       this.session.logs.pop();
     }
+    this.saveToStorage();
     if (shouldBroadcast && this.fleetNet && this.fleetNet.status === 'connected') {
       this.fleetNet.broadcastFleetLog(logEntry);
     }
@@ -721,10 +773,13 @@ export class FleetCoopManager {
     this.fleetNet = new AaronFleetNet({
       callsign,
       onStatusChange: (status, roomCode, isHost) => {
-        this.session.isNetworked = (status === 'connected');
-        this.session.networkStatus = status;
-        this.session.roomCode = roomCode;
-        this.session.isHost = isHost;
+        if (this.session) {
+          this.session.isNetworked = (status === 'connected');
+          this.session.networkStatus = status;
+          this.session.roomCode = roomCode;
+          this.session.isHost = isHost;
+          this.saveToStorage();
+        }
         if (options.onStatusChange) options.onStatusChange(status, roomCode, isHost);
         if (this.onNetworkUpdate) this.onNetworkUpdate();
       },
@@ -752,15 +807,19 @@ export class FleetCoopManager {
       },
       onRockBroadcast: (rock, fromCallsign) => {
         if (rock) {
+          if (!this.session) this.createSession();
           this.session.targetRock = { ...this.session.targetRock, ...rock };
           this.addLog(`Rocher synchronisé par ${fromCallsign} : ${rock.name || 'Astéroïde'}`, 'scan', fromCallsign, false);
+          this.saveToStorage();
           if (this.onNetworkUpdate) this.onNetworkUpdate();
         }
       },
       onFleetLog: (log, fromCallsign) => {
         if (log && log.text) {
+          if (!this.session) this.createSession();
           this.session.logs.unshift(log);
           if (this.session.logs.length > 50) this.session.logs.pop();
+          this.saveToStorage();
           if (this.onNetworkUpdate) this.onNetworkUpdate();
         }
       }
@@ -776,8 +835,10 @@ export class FleetCoopManager {
     if (!this.fleetNet) this.initFleetNet();
     const ok = this.fleetNet.createWing(customCode, this._getLocalLoadoutPayload());
     if (ok) {
+      if (!this.session) this.createSession();
       this.session.name = `Escadre ${this.fleetNet.roomCode} · Live P2P`;
       this.addLog(`Escadre P2P créée sous le code ${this.fleetNet.roomCode}`, 'system', 'Hôte', false);
+      this.saveToStorage();
       if (this.onNetworkUpdate) this.onNetworkUpdate();
     }
     return this.fleetNet.roomCode;
@@ -791,8 +852,10 @@ export class FleetCoopManager {
     if (!this.fleetNet) this.initFleetNet();
     const ok = this.fleetNet.joinWing(roomCode, false, this._getLocalLoadoutPayload());
     if (ok) {
+      if (!this.session) this.createSession();
       this.session.name = `Escadre ${this.fleetNet.roomCode} · Live P2P`;
       this.addLog(`Connexion à l’escadre ${this.fleetNet.roomCode} en cours...`, 'system', 'Ailier', false);
+      this.saveToStorage();
       if (this.onNetworkUpdate) this.onNetworkUpdate();
     }
     return ok;
@@ -805,9 +868,12 @@ export class FleetCoopManager {
     if (this.fleetNet) {
       const code = this.fleetNet.roomCode;
       this.fleetNet.leaveWing();
-      this.session.isNetworked = false;
-      this.session.name = FLEET_SESSION_PRESETS[0].name;
-      this.addLog(`Liaison escadre ${code || ''} déconnectée. Mode solo actif.`, 'system', 'Système', false);
+      if (this.session) {
+        this.session.isNetworked = false;
+        this.session.name = FLEET_SESSION_PRESETS[0].name;
+        this.addLog(`Liaison escadre ${code || ''} déconnectée. Mode solo actif.`, 'system', 'Système', false);
+        this.saveToStorage();
+      }
       if (this.onNetworkUpdate) this.onNetworkUpdate();
     }
   }
@@ -921,6 +987,15 @@ export class FleetCoopManager {
 export const coopService = {
   manager: new FleetCoopManager(),
 
+  hasActiveSession() {
+    return this.manager.hasActiveSession();
+  },
+  createSession(options) {
+    return this.manager.createSession(options);
+  },
+  closeSession() {
+    return this.manager.closeSession();
+  },
   getSession() {
     return this.manager.getSession();
   },
