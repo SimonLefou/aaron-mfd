@@ -659,20 +659,39 @@ function renderShipConfigView() {
     const t = turrets[activeTurretTab] || turrets[0];
     if (formTableBody && t) {
       const compatibleLasers = fleetService.getLasersForSize(ship.laserSize);
+      const craftedLasers = fleetService.getCraftedLasersForSize ? fleetService.getCraftedLasersForSize(ship.laserSize) : [];
       const allModules = fleetService.getAllModules();
       const numSlots = moduleSlotsFor(t, ship);
+
+      let laserOptionsHtml = '<option value="">— Aucune —</option>';
+      if (craftedLasers.length > 0) {
+        laserOptionsHtml += `
+          <optgroup label="🛠️ Mes Têtes de Minage Craftées (Inventaire)">
+            ${craftedLasers.map(cl => `
+              <option value="${cl.id}" ${(t.laserId === cl.id) ? 'selected' : ''}>
+                ${cl.name} (${cl.power} W)
+              </option>
+            `).join('')}
+          </optgroup>
+        `;
+      }
+
+      laserOptionsHtml += `
+        <optgroup label="🏭 Catalogue Standard (Stock Usine)">
+          ${compatibleLasers.map(l => `
+            <option value="${l.id}" ${(t.laserId === l.id || getLaser(t.laserId)?.id === l.id) ? 'selected' : ''}>
+              ${l.name} (${l.power} W · ${l.slots ?? l.moduleSlots ?? 0} slots)
+            </option>
+          `).join('')}
+        </optgroup>
+      `;
 
       let formHtml = `
         <tr>
           <td style="width:180px; font-weight:600; color:var(--text-muted);">Tête laser (S${ship.laserSize ?? 0})</td>
           <td>
-            <select class="vo-select" id="configTurretLaserSelect" style="width:100%; max-width:280px;">
-              <option value="">— Aucune —</option>
-              ${compatibleLasers.map(l => `
-                <option value="${l.id}" ${(t.laserId === l.id || getLaser(t.laserId)?.id === l.id) ? 'selected' : ''}>
-                  ${l.name} (${l.power} W · ${l.slots ?? l.moduleSlots ?? 0} slots)
-                </option>
-              `).join('')}
+            <select class="vo-select" id="configTurretLaserSelect" style="width:100%; max-width:320px;">
+              ${laserOptionsHtml}
             </select>
             ${ship.laserSize === 0 ? '<span style="font-size:0.75rem; color:var(--text-dim); margin-left:8px;">· intégré</span>' : ''}
           </td>
@@ -1452,6 +1471,8 @@ function openAddEquipmentModal() {
   document.getElementById('eqSelectedSubCategory').value = '';
   document.getElementById('eqSelectedSize').value = '';
   document.getElementById('eqSelectedGrade').value = '';
+  const sizeSelect = document.getElementById('eqSizeSelect');
+  if (sizeSelect) sizeSelect.value = '1';
 
   const toggle = document.getElementById('eqForSaleToggle');
   if (toggle) toggle.checked = false;
@@ -6595,6 +6616,14 @@ function initEquipmentAndMarketBindings() {
         document.getElementById('eqSelectedGrade').value = selected.grade || '';
         document.getElementById('eqSelectedCatalogPrice').value = selected.catalogPrice || 0;
 
+        if (selected.size) {
+          const sSelect = document.getElementById('eqSizeSelect');
+          if (sSelect) {
+            const opt = Array.from(sSelect.options).find(o => o.value === String(selected.size));
+            if (opt) sSelect.value = opt.value;
+          }
+        }
+
         document.getElementById('eqDisplayTitle').textContent = selected.name;
         document.getElementById('eqDisplayMeta').textContent = `${selected.typeLabel} ${selected.size ? `· Taille ${selected.size}` : ''} ${selected.grade ? `· Grade ${selected.grade}` : ''}`;
         document.getElementById('eqDisplayCatalogPrice').textContent = selected.catalogPrice > 0
@@ -6663,15 +6692,24 @@ function initEquipmentAndMarketBindings() {
     }
 
     const code = document.getElementById('eqSelectedCode')?.value || finalName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const category = document.getElementById('eqSelectedCategory')?.value || 'component';
-    const subCategory = document.getElementById('eqSelectedSubCategory')?.value || '';
-    const size = document.getElementById('eqSelectedSize')?.value || null;
+    let category = document.getElementById('eqSelectedCategory')?.value || 'component';
+    let subCategory = document.getElementById('eqSelectedSubCategory')?.value || '';
+    const size = document.getElementById('eqSizeSelect')?.value || document.getElementById('eqSelectedSize')?.value || '1';
     const grade = document.getElementById('eqSelectedGrade')?.value || null;
     const catalogPrice = Number(document.getElementById('eqSelectedCatalogPrice')?.value) || 0;
     const origin = document.getElementById('eqOriginInput')?.value || 'purchased';
     const locationId = document.getElementById('eqLocationSelect')?.value || 'ARC-L1 Wide Forest Station';
     const units = Math.max(1, Number(document.getElementById('eqQuantityUnits')?.value) || 1);
     const conditionPct = Math.max(1, Math.min(100, Number(document.getElementById('eqConditionPct')?.value) || 100));
+
+    // Détection automatique de tête de minage si nom ou sous-catégorie l'indique
+    const lowerName = finalName.toLowerCase();
+    if (lowerName.includes('lancet') || lowerName.includes('helix') || lowerName.includes('arbor') ||
+        lowerName.includes('klein') || lowerName.includes('impact') || lowerName.includes('hofstede') ||
+        lowerName.includes('laser') || lowerName.includes('tête')) {
+      category = 'component';
+      if (!subCategory) subCategory = 'WeaponMining';
+    }
 
     let materialQuality = null;
     let qualityTier = null;

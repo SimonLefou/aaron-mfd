@@ -7,6 +7,7 @@ import { SHIPS, SUPPORT_SHIPS, getAllPlayableShips } from '../../data/game/ships
 import { LASERS } from '../../data/game/lasers.js';
 import { MODULES } from '../../data/game/modules.js';
 import { QUANTUM_DRIVES, SHIELDS, POWER_PLANTS, COOLERS } from '../../data/game/components.js';
+import { inventoryService } from '../inventory/inventory-service.js';
 
 const STORAGE_KEY = 'aaron-mfd.fleet.v3';
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -102,8 +103,93 @@ export function emptyConfig(ship) {
   };
 }
 
+/**
+ * Construit un objet laser enrichi avec les statistiques de qualité à partir d'un équipement crafté
+ * @param {Object} item - Élément d'inventaire
+ */
+export function buildCraftedLaserFromItem(item) {
+  if (!item) return null;
+  const name = (item.name || '').toLowerCase();
+  const code = (item.code || '').toLowerCase();
+
+  // Détermination de la taille (S1, S2, etc.)
+  let size = item.size ? parseInt(item.size, 10) : null;
+  if (isNaN(size) || size === null) {
+    if (name.includes('s2') || name.includes('mh2') || name.includes('helix ii') || name.includes('klein s2') || name.includes('impact ii')) {
+      size = 2;
+    } else {
+      size = 1;
+    }
+  }
+
+  // Recherche de l'archétype dans LASERS
+  let baseLaser = null;
+  if (name.includes('lancet') || code.includes('lancet')) {
+    baseLaser = LASERS.find(l => l.id.includes('lancet') && l.size === size);
+  } else if (name.includes('helix') || code.includes('helix')) {
+    baseLaser = LASERS.find(l => l.id.includes('helix') && l.size === size);
+  } else if (name.includes('arbor') || code.includes('arbor')) {
+    baseLaser = LASERS.find(l => l.id.includes('arbor') && l.size === size);
+  } else if (name.includes('impact') || code.includes('impact')) {
+    baseLaser = LASERS.find(l => l.id.includes('impact') && l.size === size);
+  } else if (name.includes('klein') || code.includes('klein')) {
+    baseLaser = LASERS.find(l => l.id.includes('klein') && l.size === size);
+  } else if (name.includes('hofstede') || code.includes('hofstede')) {
+    baseLaser = LASERS.find(l => l.id.includes('hofstede') && l.size === size);
+  }
+
+  if (!baseLaser) {
+    baseLaser = LASERS.find(l => l.size === size) || LASERS[0];
+  }
+
+  // Multiplicateur de qualité (0 à 1000, standard = 500)
+  const q = Number(item.materialQuality) || 500;
+  // Bonus statistique : de -10% à +35% selon la qualité des matériaux
+  const bonusPct = Math.round(((q - 500) / 500) * 35);
+  const factor = Math.max(0.7, 1 + (bonusPct / 100));
+
+  const power = Math.round((baseLaser.power || (size === 2 ? 3150 : 1400)) * factor);
+  const resistanceMod = baseLaser.resistanceMod ? Number((baseLaser.resistanceMod * factor).toFixed(3)) : -0.3;
+  const instabilityMod = baseLaser.instabilityMod ? Number((baseLaser.instabilityMod * factor).toFixed(3)) : -0.2;
+  const optimalWindowMod = baseLaser.optimalWindowMod ? Number((baseLaser.optimalWindowMod * factor).toFixed(3)) : 0.2;
+  const slots = baseLaser.slots ?? baseLaser.moduleSlots ?? 2;
+
+  const qualityLabel = item.qualityTierLabel ? ` · ${item.qualityTierLabel}` : '';
+  const bonusSign = bonusPct >= 0 ? `+${bonusPct}` : `${bonusPct}`;
+
+  return {
+    id: item.id,
+    name: `${item.name} [🛠️ Q${q}${qualityLabel}] (${bonusSign}%)`,
+    displayName: `${item.name} [🛠️ Q${q}]`,
+    rawName: item.name,
+    size,
+    power,
+    resistanceMod,
+    instabilityMod,
+    optimalWindowMod,
+    slots,
+    moduleSlots: slots,
+    isCrafted: true,
+    materialQuality: q,
+    qualityTier: item.qualityTier,
+    qualityTierLabel: item.qualityTierLabel,
+    origin: item.origin || 'crafted',
+    inventoryItemId: item.id
+  };
+}
+
 export function getLaser(id) {
   if (!id) return null;
+
+  // 1. Recherche dans l'inventaire si c'est un équipement crafté
+  if (typeof inventoryService !== 'undefined' && typeof inventoryService.getItemById === 'function') {
+    const invItem = inventoryService.getItemById(id);
+    if (invItem) {
+      return buildCraftedLaserFromItem(invItem);
+    }
+  }
+
+  // 2. Recherche standard dans le catalogue officiel
   const match = LASERS.find(l => l.id === id);
   if (match) return match;
   const alias = id
@@ -332,6 +418,42 @@ export const fleetService = {
   getLasersForSize(size) {
     if (size === null || size === undefined) return [];
     return LASERS.filter(l => l.size === size);
+  },
+
+  /**
+   * Obtenir les têtes laser craftées dans l'inventaire compatibles avec la taille demandée
+   */
+  getCraftedLasersForSize(size) {
+    if (size === null || size === undefined) return [];
+    if (typeof inventoryService === 'undefined' || typeof inventoryService.getItems !== 'function') {
+      return [];
+    }
+
+    const items = inventoryService.getItems();
+    return items.filter(item => {
+      // Doit être un équipement crafté
+      if (item.origin !== 'crafted') return false;
+
+      const sub = (item.subCategory || '').toLowerCase();
+      const code = (item.code || '').toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      const isLaser = sub.includes('weaponmining') || sub.includes('mining') || sub.includes('laser') ||
+                      name.includes('laser') || name.includes('lancet') || name.includes('helix') ||
+                      name.includes('arbor') || name.includes('impact') || name.includes('klein') ||
+                      name.includes('hofstede') || name.includes('tête');
+      if (!isLaser) return false;
+
+      let itemSize = item.size ? parseInt(item.size, 10) : null;
+      if (isNaN(itemSize) || itemSize === null) {
+        if (name.includes('s2') || name.includes('mh2') || name.includes('helix ii') || name.includes('klein s2') || name.includes('impact ii')) {
+          itemSize = 2;
+        } else {
+          itemSize = 1;
+        }
+      }
+
+      return itemSize === size;
+    }).map(item => buildCraftedLaserFromItem(item));
   },
 
   /**

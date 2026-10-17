@@ -2795,8 +2795,19 @@
               </div>
             </div>
 
-            <!-- ROW : LIEU & QUANTITÉ & ÉTAT -->
-            <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr; gap:12px;">
+            <!-- ROW : TAILLE & LIEU & QUANTITÉ & ÉTAT -->
+            <div style="display:grid; grid-template-columns: 1fr 1.5fr 0.8fr 0.8fr; gap:10px;">
+              <div class="auth-form-group">
+                <label class="auth-form-label" for="eqSizeSelect">Taille (Slot) *</label>
+                <select id="eqSizeSelect" class="auth-form-input">
+                  <option value="1">Taille 1 (S1 · Prospector, MOLE T1...)</option>
+                  <option value="2">Taille 2 (S2 · MOLE T2/T3, Arrastra...)</option>
+                  <option value="3">Taille 3 (S3 · Orion...)</option>
+                  <option value="0">Taille 0 (S0 · ROC terrestre)</option>
+                  <option value="FPS">FPS (Personnel / Arme / Armure)</option>
+                </select>
+              </div>
+
               <div class="auth-form-group">
                 <label class="auth-form-label" for="eqLocationSelect">Emplacement Spatial</label>
                 <select id="eqLocationSelect" class="auth-form-input">
@@ -2818,7 +2829,7 @@
               </div>
 
               <div class="auth-form-group">
-                <label class="auth-form-label" for="eqConditionPct">État / Santé</label>
+                <label class="auth-form-label" for="eqConditionPct">État</label>
                 <input type="number" id="eqConditionPct" class="auth-form-input" min="1" max="100" value="100" placeholder="100 %">
               </div>
             </div>
