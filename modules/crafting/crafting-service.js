@@ -492,6 +492,21 @@ export const craftingService = {
   },
 
   /**
+   * Basculer l'état de possession d'un blueprint (débloqué / verrouillé)
+   * @param {string} blueprintId 
+   * @returns {boolean} Nouveau statut de possession (true = possédé, false = non possédé)
+   */
+  toggleBlueprint(blueprintId) {
+    if (this.isUnlocked(blueprintId)) {
+      this.lockBlueprint(blueprintId);
+      return false;
+    } else {
+      this.unlockBlueprint(blueprintId);
+      return true;
+    }
+  },
+
+  /**
    * Construit une Map de stock { resourceCode -> totalSCU } pour calculs rapides
    * @param {string} ownerType - 'personal' ou 'guild' ou null
    */

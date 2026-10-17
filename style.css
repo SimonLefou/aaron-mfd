@@ -3205,6 +3205,100 @@ input[type="number"] {
 }
 
 /* ==========================================================================
+   BLUEPRINT OWNERSHIP TOGGLES (TABLE & FICHE DÉTAIL)
+   ========================================================================== */
+.bp-ownership-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+  user-select: none;
+  font-family: var(--font-ui);
+  text-decoration: none;
+}
+
+.bp-ownership-toggle.is-owned {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.45);
+  color: var(--accent-cyan);
+}
+
+.bp-ownership-toggle.is-owned:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+.bp-ownership-toggle.is-unowned {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--text-dim);
+}
+
+.bp-ownership-toggle.is-unowned:hover {
+  background: rgba(14, 165, 233, 0.22);
+  border-color: var(--accent-cyan);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.35);
+}
+
+.bp-toggle-icon {
+  font-weight: 800;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.bp-inspector-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  font-family: var(--font-ui);
+  text-decoration: none;
+}
+
+.bp-inspector-toggle.is-owned {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: #0ea5e9;
+  color: #38bdf8;
+  box-shadow: 0 0 8px rgba(14, 165, 233, 0.25);
+}
+
+.bp-inspector-toggle.is-owned:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.bp-inspector-toggle.is-unowned {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #e2e8f0;
+}
+
+.bp-inspector-toggle.is-unowned:hover {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: #22c55e;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
+}
+
+
+/* ==========================================================================
    FLEETS & MULTI-CREW OPERATIONS (AARON MFD WING & TURRETS)
    ========================================================================== */
 .fleet-ops-subnav {

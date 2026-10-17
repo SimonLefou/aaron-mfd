@@ -45,7 +45,15 @@ class StateStore {
 
       // 4. Blueprints Maîtrisés (Crafting 4.0)
       crafting: storage.get('crafting', {
-        unlockedBlueprintIds: [],
+        unlockedBlueprintIds: [
+          'bp_lancet_s1_mk2',
+          'bp_lancet_s2_mk2',
+          'bp_hofstede_s1_pulsed',
+          'bp_surge_module',
+          'bp_arbor_s1_reinforced',
+          'bp_salvage_abrade_s1',
+          'bp_fr66_shield'
+        ],
         workshopHistory: []
       }),
 

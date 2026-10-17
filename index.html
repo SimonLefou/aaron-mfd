@@ -1431,14 +1431,19 @@
             <!-- COLONNE DROITE : FICHE DÉTAIL & ATELIER -->
             <div style="display:flex; flex-direction:column; gap:14px;">
               <div class="vo-card" id="craftDetailCard">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
                   <div>
                     <div style="font-size:1.25rem; font-weight:700; color:#fff;" id="craftDetailName">Hofstede S1</div>
                     <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;" id="craftDetailSubtitle">
                       Tête minage S1 · 25 min
                     </div>
                   </div>
-                  <span class="vo-badge green" id="craftDetailBadge">Craftable ×3</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="bp-inspector-toggle is-owned" id="btnDetailToggleOwned" title="Basculer la possession de ce blueprint">
+                      <span class="bp-toggle-icon">✓</span> <span class="bp-toggle-text">Schéma possédé</span>
+                    </button>
+                    <span class="vo-badge green" id="craftDetailBadge">Craftable ×3</span>
+                  </div>
                 </div>
 
                 <div class="vo-card-title" style="margin-top:16px;">COMMENT L'ACQUÉRIR</div>

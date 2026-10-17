@@ -2694,6 +2694,56 @@ let craftFilters = {
 let selectedCraftBpId = CRAFT_SAMPLE_BLUEPRINTS[0]?.id || 'bp_lancet_s1_mk2';
 let craftCurrentQty = 1;
 
+/**
+ * Vérifie dynamiquement si un blueprint est débloqué par le joueur
+ * @param {string} bpId 
+ * @returns {boolean}
+ */
+function isBlueprintOwned(bpId) {
+  if (typeof craftingService !== 'undefined' && typeof craftingService.isUnlocked === 'function') {
+    return craftingService.isUnlocked(bpId);
+  }
+  const unlocked = store.get('crafting')?.unlockedBlueprintIds || [];
+  return unlocked.includes(bpId);
+}
+
+/**
+ * Bascule l'état de possession d'un blueprint et synchronise l'interface
+ * @param {string} bpId 
+ * @returns {boolean}
+ */
+function toggleBlueprintOwnership(bpId) {
+  const bp = CRAFT_SAMPLE_BLUEPRINTS.find(b => b.id === bpId);
+  const bpName = bp ? bp.name : bpId;
+  let nowOwned = false;
+
+  if (typeof craftingService !== 'undefined' && typeof craftingService.toggleBlueprint === 'function') {
+    nowOwned = craftingService.toggleBlueprint(bpId);
+  } else {
+    const craftState = store.get('crafting') || { unlockedBlueprintIds: [] };
+    const list = [...(craftState.unlockedBlueprintIds || [])];
+    const idx = list.indexOf(bpId);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      nowOwned = false;
+    } else {
+      list.push(bpId);
+      nowOwned = true;
+    }
+    store.set('crafting', prev => ({ ...prev, unlockedBlueprintIds: list }));
+  }
+
+  if (nowOwned) {
+    showToast(`✓ Schéma débloqué : ${bpName} ajouté à vos blueprints possédés !`);
+  } else {
+    showToast(`Schéma retiré : ${bpName} n'est plus marqué comme possédé.`);
+  }
+
+  triggerHaptic(12);
+  renderCraftingCatalog();
+  return nowOwned;
+}
+
 function evaluateBlueprintCraft(bp) {
   let maxQty = Infinity;
   const missing = [];
@@ -2709,10 +2759,11 @@ function evaluateBlueprintCraft(bp) {
   });
 
   const finalMaxQty = maxQty === Infinity ? 0 : maxQty;
+  const isOwned = isBlueprintOwned(bp.id);
   let statusKey = 'r';
   let statusLabel = 'Non possédé';
 
-  if (bp.owned) {
+  if (isOwned) {
     if (finalMaxQty > 0) {
       statusKey = 'g';
       statusLabel = 'Craftable';
@@ -2724,12 +2775,13 @@ function evaluateBlueprintCraft(bp) {
 
   // Closeness score (aaron-mfd) : 0 pour craftable, 1-99 pour manquant, 1000 pour non possédé
   let closeness = 1000;
-  if (bp.owned) {
+  if (isOwned) {
     closeness = finalMaxQty > 0 ? 0 : missing.length;
   }
 
   return {
     ...bp,
+    owned: isOwned,
     maxQty: finalMaxQty,
     missing,
     statusKey,
@@ -2806,7 +2858,10 @@ function renderCraftingCatalog() {
         <td>${bp.size}</td>
         <td style="font-size:0.75rem; color:var(--text-muted);">${acqText}</td>
         <td>
-          <span class="vo-badge ${bp.owned ? 'cyan' : 'red'}">${bp.owned ? 'Possédé' : 'Non possédé'}</span>
+          <button type="button" class="bp-ownership-toggle ${bp.owned ? 'is-owned' : 'is-unowned'}" data-toggle-bp="${bp.id}" title="${bp.owned ? 'Schéma possédé (Cliquer pour retirer)' : 'Non possédé (Cliquer pour marquer comme possédé)'}">
+            <span class="bp-toggle-icon">${bp.owned ? '✓' : '＋'}</span>
+            <span class="bp-toggle-label">${bp.owned ? 'Possédé' : 'Non possédé'}</span>
+          </button>
         </td>
         <td>
           <span class="vo-badge ${bp.statusKey === 'g' ? 'green' : (bp.statusKey === 'a' ? 'amber' : 'red')}">
@@ -2830,6 +2885,18 @@ function renderCraftingCatalog() {
         selectedCraftBpId = id;
         craftCurrentQty = 1;
         renderCraftingCatalog();
+      }
+    });
+  });
+
+  // Toggle ownership button bindings (stop propagation to prevent double trigger)
+  tbody.querySelectorAll('.bp-ownership-toggle').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-toggle-bp');
+      if (id) {
+        selectedCraftBpId = id;
+        toggleBlueprintOwnership(id);
       }
     });
   });
@@ -2861,6 +2928,22 @@ function renderCraftDetail(bp) {
     badgeEl.textContent = bp.owned
       ? (bp.maxQty > 0 ? `Craftable ×${bp.maxQty}` : bp.statusLabel)
       : 'Non possédé';
+  }
+
+  const headerToggleBtn = document.getElementById('btnDetailToggleOwned');
+  if (headerToggleBtn) {
+    headerToggleBtn.className = `bp-inspector-toggle ${bp.owned ? 'is-owned' : 'is-unowned'}`;
+    headerToggleBtn.innerHTML = `
+      <span class="bp-toggle-icon">${bp.owned ? '✓' : '＋'}</span>
+      <span class="bp-toggle-text">${bp.owned ? 'Schéma possédé' : 'Marquer comme possédé'}</span>
+    `;
+    headerToggleBtn.title = bp.owned
+      ? 'Blueprint débloqué. Cliquer pour retirer de mes schémas possédés.'
+      : 'Cliquer pour marquer ce blueprint comme débloqué / possédé.';
+    headerToggleBtn.onclick = (e) => {
+      e.preventDefault();
+      toggleBlueprintOwnership(bp.id);
+    };
   }
 
   if (acqBody) {
@@ -3120,7 +3203,12 @@ function renderCraftDetail(bp) {
           <button type="button" class="stepper-btn" id="btnCraftQtyPlus">+</button>
           <span style="font-size:0.75rem; color:var(--text-dim);">max ${bp.maxQty}</span>
         </div>
+        <button type="button" class="vo-btn outline" id="btnActionLockBlueprint" style="border-color:rgba(239,68,68,0.35); color:#fca5a5; font-size:0.76rem; margin-left:auto;" title="Retirer ce blueprint de ma bibliothèque">✕ Retirer de mes schémas</button>
       `;
+
+      document.getElementById('btnActionLockBlueprint')?.addEventListener('click', () => {
+        toggleBlueprintOwnership(bp.id);
+      });
 
       document.getElementById('btnExecuteCraftMain')?.addEventListener('click', () => {
         const { compositeQ, tier, analysis } = updateQualityCalculations();
@@ -3194,14 +3282,22 @@ function renderCraftDetail(bp) {
     } else if (bp.owned) {
       actionsRow.innerHTML = `
         <button type="button" class="vo-btn outline" id="btnFindMissingIngredients">🛒 Où trouver ce qui manque</button>
+        <button type="button" class="vo-btn outline" id="btnActionLockBlueprint" style="border-color:rgba(239,68,68,0.35); color:#fca5a5; font-size:0.78rem;" title="Retirer ce blueprint de mes schémas possédés">✕ Retirer de mes schémas</button>
       `;
       document.getElementById('btnFindMissingIngredients')?.addEventListener('click', () => {
         showToast(`🛒 Ordre d'approvisionnement généré pour les ingrédients manquants de ${bp.name} !`);
       });
+      document.getElementById('btnActionLockBlueprint')?.addEventListener('click', () => {
+        toggleBlueprintOwnership(bp.id);
+      });
     } else {
       actionsRow.innerHTML = `
+        <button type="button" class="vo-btn primary" id="btnActionUnlockBlueprint" style="background:#0284c7; border-color:#0284c7;">＋ Marquer comme possédé</button>
         <button type="button" class="vo-btn outline" id="btnTrackBlueprint">★ Je le cherche</button>
       `;
+      document.getElementById('btnActionUnlockBlueprint')?.addEventListener('click', () => {
+        toggleBlueprintOwnership(bp.id);
+      });
       document.getElementById('btnTrackBlueprint')?.addEventListener('click', () => {
         showToast(`★ ${bp.name} ajouté à votre journal de recherche d'épaves !`);
       });
@@ -6206,7 +6302,11 @@ function initEventBindings() {
     document.getElementById('btnCraftViewMe')?.classList.remove('outline');
     document.getElementById('btnCraftViewGuild')?.classList.add('outline');
     document.getElementById('btnCraftViewGuild')?.classList.remove('primary');
-    showToast('Vue Craft : mes blueprints personnels');
+    craftFilters.chip = 'b';
+    document.querySelectorAll('.vo-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('chipCraftFilterOwned')?.classList.add('active');
+    renderCraftingCatalog();
+    showToast('Vue : Mes blueprints possédés uniquement');
   });
 
   document.getElementById('btnCraftViewGuild')?.addEventListener('click', () => {
@@ -6214,7 +6314,10 @@ function initEventBindings() {
     document.getElementById('btnCraftViewGuild')?.classList.remove('outline');
     document.getElementById('btnCraftViewMe')?.classList.add('outline');
     document.getElementById('btnCraftViewMe')?.classList.remove('primary');
-    showToast('Vue Craft : catalogue consolidé de la guilde');
+    craftFilters.chip = null;
+    document.querySelectorAll('.vo-chip').forEach(c => c.classList.remove('active'));
+    renderCraftingCatalog();
+    showToast('Vue : Tous les schémas du Verse & de la Guilde');
   });
 
   // Contrôles Commerce (AARON MFD Interactif)
