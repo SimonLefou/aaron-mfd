@@ -711,29 +711,7 @@
                 </div>
               </div>
 
-              <!-- SÉLECTEUR DU TYPE DE ROCHE GÉOLOGIQUE (ARCHETYPE SC 4.10) -->
-              <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-medium); border-radius:6px; padding:8px 10px; margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                  <label for="miningRockTypeSelect" style="font-size:0.7rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">TYPE DE ROCHE GÉOLOGIQUE</label>
-                  <span class="vo-badge cyan" id="miningRockTypeBadge" style="font-size:0.68rem;">Densité Élevée</span>
-                </div>
-                <select id="miningRockTypeSelect" class="vo-select" style="width:100%; font-size:0.82rem; font-weight:600; padding:5px 8px;">
-                  <option value="basalt">Basalte Volcanique</option>
-                  <option value="granite">Granite Continental</option>
-                  <option value="obsidian">Obsidienne Vitreuse</option>
-                  <option value="gneiss">Gneiss Métamorphique</option>
-                  <option value="felsic">Formation Felsique</option>
-                  <option value="igneous">Roches Ignées</option>
-                  <option value="quartzite">Quartzite Crystalline</option>
-                  <option value="shale">Schiste Fissile</option>
-                  <option value="atacamite">Matrice d'Atacamite</option>
-                  <option value="pyroxenite">Pyroxénite Profonde · Pyro</option>
-                  <option value="cryo_ice">Glace Cryo · Astéroïde</option>
-                </select>
-                <div style="font-size:0.7rem; color:var(--text-dim); margin-top:4px; line-height:1.3;" id="miningRockTypeNotes">
-                  Roche volcanique dense et compacte, résistance thermique élevée
-                </div>
-              </div>
+              <!-- TYPE DE ROCHE GÉOLOGIQUE : Retiré de l'UI (n'existe plus en jeu SC 4.x), conservé dans le code (ROCK_ARCHETYPES_CONFIG) au cas où RSI le réintroduit -->
 
               <!-- PARAMÈTRES PHYSIQUES DU ROCHER -->
               <div style="display:flex; flex-direction:column; gap:6px;">
