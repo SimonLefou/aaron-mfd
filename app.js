@@ -3177,7 +3177,10 @@ function renderTradeCards() {
         <td>${r.item || r.name}</td>
         <td class="val-green">+${r.fullHoldProfit.toLocaleString('fr-FR')}</td>
         <td class="val-green"><b>+${r.profitPerHourUEC.toLocaleString('fr-FR')}</b></td>
-        <td><span class="tag ${r.freshnessTier || 't-g'}">${r.freshness}</span></td>
+        <td style="text-align:right;">
+          <span style="font-family:var(--font-mono); font-size:0.75rem;">${r.costPerSCU.toLocaleString('fr-FR')}</span> <span style="font-size:0.65rem; color:var(--text-muted);">aUEC</span>
+          <div style="font-size:0.68rem; color:var(--accent-green); font-family:var(--font-mono); font-weight:600;">+${r.marginPerSCU.toLocaleString('fr-FR')}/SCU</div>
+        </td>
       </tr>
     `;
   }).join('');
@@ -3226,10 +3229,10 @@ function renderTradeRouteDetail(route, currentShip) {
   const sellTotal = hold * revenuePerScu;
 
   if (buyEl) {
-    buyEl.textContent = `${hold} SCU × ${costPerScu.toLocaleString('fr-FR')} = ${buyTotal.toLocaleString('fr-FR')}`;
+    buyEl.textContent = `${hold} SCU × ${costPerScu.toLocaleString('fr-FR')} = ${buyTotal.toLocaleString('fr-FR')} aUEC`;
   }
   if (sellEl) {
-    sellEl.textContent = `${hold} SCU × ${revenuePerScu.toLocaleString('fr-FR')} = ${sellTotal.toLocaleString('fr-FR')}`;
+    sellEl.textContent = `${hold} SCU × ${revenuePerScu.toLocaleString('fr-FR')} = ${sellTotal.toLocaleString('fr-FR')} aUEC`;
   }
   if (distEl) {
     distEl.textContent = route.distance || `${route.origin} ➔ ${route.destination}`;
@@ -3637,7 +3640,7 @@ function openCommoditiesCatalogModal() {
 
   openInspector({
     title: 'Catalogue des Marchandises de Trade',
-    subtitle: `Star Citizen 4.x · 28 commodités · Cours ${syncInfo.badgeText} (${syncInfo.timeAgoText})`,
+    subtitle: `Star Citizen 4.x · ${syncInfo.totalCommodities} commodités · Cours ${syncInfo.badgeText} (${syncInfo.timeAgoText})`,
     body: `
       <div style="display:flex; flex-direction:column; gap:12px;">
         <!-- Barre de recherche et filtres -->

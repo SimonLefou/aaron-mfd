@@ -24,7 +24,7 @@ class UexService {
       const stored = localStorage.getItem('price_cache') || localStorage.getItem(UEX_CONFIG.cacheStorageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && parsed.data) {
+        if (parsed && parsed.data && parsed.version === '4.1_correlated' && Object.keys(parsed.data).length >= 200) {
           this.cachedPrices = parsed.data;
           this.lastSyncTimestamp = parsed.timestamp || (Date.now() - 1000 * 60 * 15);
           const ageMinutes = (Date.now() - this.lastSyncTimestamp) / (1000 * 60);
@@ -36,7 +36,7 @@ class UexService {
       console.warn('[UEX Service] Erreur lors du chargement du cache local:', e);
     }
 
-    // Si pas de cache, amorcer avec les prix de référence de base de Star Citizen 4.x
+    // Si pas de cache ou cache obsolète (< 200 commodités), réamorcer avec les 232 cours corrélés de Star Citizen 4.x
     this.seedDefaultCache();
   }
 
@@ -72,7 +72,7 @@ class UexService {
       const payload = JSON.stringify({
         data,
         timestamp,
-        version: '4.x',
+        version: '4.1_correlated',
         server: 'Stanton/Pyro Live'
       });
       localStorage.setItem('price_cache', payload);
@@ -286,25 +286,37 @@ class UexService {
     if (!routes || !Array.isArray(routes)) return [];
 
     return routes.map(route => {
-      const commId = route.commodityId || route.item?.toLowerCase();
-      const liveComm = this.cachedPrices[commId] || GENERAL_COMMODITIES.find(c => c.id === commId);
+      // 1. Prix par SCU définis sur la route
+      let buyPricePerScu = Number(route.buyPricePerScu);
+      let sellPricePerScu = Number(route.sellPricePerScu);
 
-      if (!liveComm) return route;
+      // Si la route n'a pas encore ses prix SCU (ou si flux Live UEX disponible)
+      if (!buyPricePerScu || !sellPricePerScu || this.status === 'live') {
+        const commId = route.commodityId || route.item?.toLowerCase();
+        const liveComm = this.cachedPrices[commId] || GENERAL_COMMODITIES.find(c => c.id === commId);
 
-      const buyPrice = liveComm.baseBuy || route.buyPrice;
-      const sellPrice = liveComm.baseSell || route.sellPrice;
-      const buyPricePerScu = Math.round(buyPrice * 100);
-      const sellPricePerScu = Math.round(sellPrice * 100);
+        if (liveComm && liveComm.baseBuy && liveComm.baseSell) {
+          if (this.status === 'live' || !buyPricePerScu) {
+            buyPricePerScu = Math.round(liveComm.baseBuy * 100);
+            sellPricePerScu = Math.round(liveComm.baseSell * 100);
+          }
+        }
+      }
+
+      // Sécurité fallback si toujours indéfini
+      if (!buyPricePerScu) buyPricePerScu = Math.round((route.buyPrice || 10) * 100);
+      if (!sellPricePerScu) sellPricePerScu = Math.round((route.sellPrice || 15) * 100);
+
       const marginPerScu = sellPricePerScu - buyPricePerScu;
 
       return {
         ...route,
-        buyPrice,
-        sellPrice,
+        buyPrice: Math.round((buyPricePerScu / 100) * 100) / 100,
+        sellPrice: Math.round((sellPricePerScu / 100) * 100) / 100,
         buyPricePerScu,
         sellPricePerScu,
         marginPerScu,
-        freshness: this.status === 'live' ? 'En direct (UEX)' : 'Cache UEX'
+        freshness: this.status === 'live' ? 'Direct Live' : 'Cache UEX'
       };
     });
   }
